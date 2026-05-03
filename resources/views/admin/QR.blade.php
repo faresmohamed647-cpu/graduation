@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ asset('css/QR.css') }}">
+    <title>QR</title>
+</head>
+<body>
+    <div class="container">
+        <div class="flip-card" id="flipCard">
+            <div class="flip-card-inner" id="flipCardInner">
+                <div class="flip-card-front">
+                    <div class="student-front">
+                        <div class="student-avatar" id="studentAvatar">ST</div>
+                        <h2 class="student-name" id="studentName">Student Name</h2>
+                        <p class="student-school" id="studentSchool">School</p>
+                        <div class="student-meta" id="studentMeta">Grade • Zone • Trip</div>
+                    </div>
+                </div>
+                <div class="flip-card-back">
+                    <div class="qr-back">
+                        <div id="qrContainer"></div>
+                        <p class="qr-payload" id="qrPayloadPreviewSmall">Payload preview will appear here.</p>
+                        <a href="" class="button" id="downloadBTN" download="student-qr.png">Download QR</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="manual-panel">
+            <label for="qr text">Enter Text or URL</label>
+            <input type="text" id="qr text" placeholder="Text or URL" required>
+            <button type="button" class="button" id="genbutton">Generate QR Code</button>
+        </div>
+    </div>
+    
+    
+
+
+</body>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.js"></script>
+<script>
+    let qrContainer = document.getElementById("qrContainer");
+    let qrText = document.getElementById("qr text");
+    let genbutton = document.getElementById("genbutton");
+    let downloadBTN = document.getElementById("downloadBTN");
+    let qrImage;
+    let blobUrl = null; // متغير لتخزين رابط الـ blob
+
+    const flipCardInner = document.getElementById('flipCardInner');
+    const studentAvatar = document.getElementById('studentAvatar');
+    const studentName = document.getElementById('studentName');
+    const studentSchool = document.getElementById('studentSchool');
+    const studentMeta = document.getElementById('studentMeta');
+    const qrPayloadPreviewSmall = document.getElementById('qrPayloadPreviewSmall');
+
+    function setFlipToBack() {
+        if (flipCardInner) flipCardInner.classList.add('flipped');
+    }
+
+    function setFlipToFront() {
+        if (flipCardInner) flipCardInner.classList.remove('flipped');
+    }
+
+    // دالة تحويل base64 إلى blob URL (لضمان التحميل في جميع المتصفحات)
+    function base64ToBlobUrl(base64Data) {
+        const byteCharacters = atob(base64Data.split(',')[1]); // فك التشفير
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'image/png' });
+        return URL.createObjectURL(blob); // إنشاء رابط مؤقت للتحميل
+    }
+
+    // دالة توليد QR code (مصححة لتجنب إفساد qrContainer)
+    generateQR = (qrTextValue) => {
+        qrContainer.innerHTML = ""; // مسح المحتوى السابق
+        const qr = new QRCode(qrContainer, {
+            text: qrTextValue,
+            width: 200,
+            height: 200,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+
+        // Expand container for QR display
+        qrContainer.classList.add('img-show');
+        return qr;
+    }
+
+    // دالة تحميل QR code (مصححة مع تحويل base64 إلى blob)
+    downloadQR = () => {
+        qrImage = document.querySelector("#qrContainer img");
+        if (!qrImage) {
+            alert("No QR code generated yet! Please generate one first.");
+            return;
+        }
+
+        const imgSrc = qrImage.getAttribute("src");
+        if (!imgSrc) return;
+
+        blobUrl = base64ToBlobUrl(imgSrc);
+        downloadBTN.setAttribute("href", blobUrl);
+    }
+
+    // حدث النقر على زر التوليد
+    genbutton.addEventListener("click", () => {
+        let text = qrText.value.trim(); // إزالة المسافات الزائدة
+        if (text.length === 0) {
+            alert("Please enter some text or URL!");
+            return;
+        }
+
+        generateQR(text);
+        if (qrPayloadPreviewSmall) qrPayloadPreviewSmall.textContent = text;
+
+        // If payload is JSON, try to use studentId for the download file name
+        try {
+            const payload = JSON.parse(text);
+            if (payload?.studentId) downloadBTN.setAttribute('download', `student-qr-${payload.studentId}.png`);
+        } catch { /* ignore */ }
+
+        setFlipToBack();
+    });
+
+    // حدث النقر على زر التحميل
+    downloadBTN.addEventListener("click", downloadQR);
+
+    function getInitials(name) {
+        const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+        if (!parts.length) return 'ST';
+        const first = parts[0]?.[0] || '';
+        const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] || '') : '';
+        return (first + last).toUpperCase() || 'ST';
+    }
+
+    // Auto-load the last QR generated from Admin QR builder
+    function initFromSavedStudentQr() {
+        let payloadStr = null;
+        try { payloadStr = localStorage.getItem('student_qr_last_payload'); } catch { /* ignore */ }
+        if (!payloadStr) return;
+
+        let payload = null;
+        try { payload = JSON.parse(payloadStr); } catch { return; }
+
+        const name = payload?.name || 'Student Name';
+        const school = payload?.school || 'School';
+        const grade = payload?.grade ? String(payload.grade) : '';
+        const zone = payload?.zone ? String(payload.zone) : '';
+        const tripType = payload?.tripType ? String(payload.tripType) : '';
+
+        if (studentAvatar) studentAvatar.textContent = getInitials(name);
+        if (studentName) studentName.textContent = name;
+        if (studentSchool) studentSchool.textContent = school;
+        if (studentMeta) studentMeta.textContent = [grade, zone, tripType].filter(Boolean).join(' • ') || 'Grade • Zone • Trip';
+
+        if (qrPayloadPreviewSmall) qrPayloadPreviewSmall.textContent = payloadStr;
+        if (qrText) qrText.value = payloadStr;
+
+        const studentId = payload?.studentId ? String(payload.studentId) : '';
+        if (studentId) downloadBTN.setAttribute('download', `student-qr-${studentId}.png`);
+
+        generateQR(payloadStr);
+        setFlipToBack();
+
+        // Ensure download href is ready after QR renders
+        setTimeout(() => downloadQR(), 250);
+    }
+
+    initFromSavedStudentQr();
+</script>
+
+
+</html>

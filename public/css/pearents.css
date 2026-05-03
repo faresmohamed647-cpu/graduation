@@ -1,0 +1,524 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --primary-color: #1d4ed8;
+    --secondary-color: #1e3a8a;
+    --success-color: #059669;
+    --warning-color: #d97706;
+    --danger-color: #dc2626;
+    --info-color: #2563eb;
+    --dark-blue: #0f172a;
+    --light-gray: #eff6ff;
+    --text-dark: #0f172a;
+    --text-light: #64748b;
+    --white: #FFFFFF;
+    --primary-gradient: linear-gradient(135deg, #0f172a 0%, #1e3a8a 45%, #1d4ed8 100%);
+    --primary-gradient-hover: linear-gradient(135deg, #020617 0%, #1e40af 42%, #2563eb 100%);
+    --soft-gradient: linear-gradient(135deg, rgba(30, 58, 138, 0.12), rgba(29, 78, 216, 0.12));
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Montserrat', sans-serif;
+}
+
+body {
+    background: linear-gradient(135deg, #eaf2ff, #1d4ed8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+}
+
+
+/* ================= CONTAINER ================= */
+
+.container {
+    background-color: #fff;
+    border-radius: 30px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.35);
+    position: relative;
+    overflow: hidden;
+    width: 1000px;
+    max-width: 100%;
+    min-height: 600px;
+}
+
+
+/* ================= FORMS ================= */
+
+.container form {
+    background-color: #fff;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    padding: 20px 40px;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.container h1 {
+    font-weight: 600;
+    margin: 10px 0;
+}
+
+.container label {
+    width: 100%;
+    font-size: 13px;
+    margin-top: 6px;
+}
+
+.container input,
+.container textarea,
+.container select {
+    background-color: #f0f0f0;
+    border: none;
+    margin: 5px 0;
+    padding: 10px 15px;
+    font-size: 13px;
+    border-radius: 8px;
+    width: 100%;
+    outline: none;
+}
+
+.input-group {
+    position: relative;
+    width: 100%;
+}
+
+.input-group i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--primary-color);
+    font-size: 16px;
+    pointer-events: none;
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.input-group textarea,
+.input-group input,
+.input-group select {
+    padding-left: 40px;
+}
+
+.input-group.textarea i {
+    top: 14px;
+    transform: none;
+}
+
+.input-group:focus-within i {
+    color: var(--secondary-color);
+    animation: icon-bounce 0.35s ease;
+}
+
+.input-group.textarea:focus-within i {
+    transform: translateX(2px);
+    animation: icon-slide 0.35s ease;
+}
+
+@keyframes icon-bounce {
+    0% {
+        transform: translateY(-50%) scale(1);
+    }
+    40% {
+        transform: translateY(-55%) scale(1.08);
+    }
+    100% {
+        transform: translateY(-50%) scale(1);
+    }
+}
+
+@keyframes icon-slide {
+    0% {
+        transform: translateX(0);
+    }
+    40% {
+        transform: translateX(4px);
+    }
+    100% {
+        transform: translateX(2px);
+    }
+}
+
+/* password strength */
+.password-block {
+    width: 100%;
+}
+
+.password-checklist {
+    margin-top: 8px;
+    background: #f8fbff;
+    border: 1px solid rgba(29, 78, 216, 0.18);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: none;
+}
+
+.password-block:focus-within .password-checklist {
+    display: block;
+}
+
+.strength-meter {
+    position: relative;
+    height: 8px;
+    background: #f0f0f0;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.strength-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    transition: width 0.2s ease;
+}
+
+.strength-text {
+    position: absolute;
+    right: 8px;
+    top: -18px;
+    font-size: 11px;
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.password-checklist ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 4px;
+    font-size: 12px;
+    color: #7f8c8d;
+}
+
+.password-checklist li {
+    padding-left: 18px;
+    position: relative;
+}
+
+.password-checklist li::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: var(--primary-color);
+}
+
+.password-checklist li.met {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.password-checklist li.met::before {
+    content: "✓";
+    color: var(--success-color);
+}
+
+textarea {
+    width: 100%;
+    min-height: 150px;
+    /* كبر الطول */
+    resize: vertical;
+    /* المستخدم يقدر يكبر ويصغر */
+    padding: 12px 15px;
+    border-radius: 10px;
+    font-size: 14px;
+}
+
+
+/* ================= BUTTONS ================= */
+
+.container button {
+    background: var(--primary-gradient);
+    color: #fff;
+    font-size: 13px;
+    padding: 12px 38px;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-top: 10px;
+    cursor: pointer;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.container button:hover {
+    background: var(--primary-gradient-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(29, 78, 216, 0.24);
+}
+
+.container form > button[type="submit"] {
+    width: 100%;
+    min-height: 48px;
+    font-size: 14px;
+    padding: 14px 22px;
+    border-radius: 14px;
+}
+
+button.hidden {
+    background-color: transparent;
+    border: 1px solid #fff;
+}
+
+
+/* ================= FORM CONTAINERS ================= */
+
+.form-container {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    width: 50%;
+    transition: all 0.6s ease-in-out;
+}
+
+
+/* student form */
+
+.join-student-container {
+    left: 0;
+    z-index: 2;
+}
+
+
+/* car owner form */
+
+.join-us {
+    left: 0;
+    opacity: 0;
+    z-index: 1;
+}
+
+
+/* when active */
+
+.container.active .join-student-container {
+    transform: translateX(100%);
+}
+
+.container.active .join-us {
+    transform: translateX(100%);
+    opacity: 1;
+    z-index: 5;
+    animation: move 0.6s;
+}
+
+@keyframes move {
+    0%,
+    49.99% {
+        opacity: 0;
+        z-index: 1;
+    }
+    50%,
+    100% {
+        opacity: 1;
+        z-index: 5;
+    }
+}
+
+
+/* ================= TOGGLE ================= */
+
+.toggle-container {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 50%;
+    height: 100%;
+    overflow: hidden;
+    transition: all 0.6s ease-in-out;
+    border-radius: 150px 0 0 100px;
+    z-index: 1000;
+}
+
+.container.active .toggle-container {
+    transform: translateX(-100%);
+    border-radius: 0 150px 100px 0;
+}
+
+.toggle {
+    background: var(--primary-gradient);
+    color: #fff;
+    position: relative;
+    left: -100%;
+    width: 200%;
+    height: 100%;
+    transform: translateX(0);
+    transition: all 0.6s ease-in-out;
+}
+
+.container.active .toggle {
+    transform: translateX(50%);
+}
+
+/* new styles for verification links */
+.existing-account {
+    margin: 8px 0 16px;
+    font-size: 12px;
+    text-align: center;
+}
+.existing-account a,
+.existing-account button {
+    display: inline-block;
+    padding: 6px 16px;
+    background: var(--primary-gradient);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.2s ease;
+    width: auto !important;
+    min-height: auto !important;
+}
+.existing-account a:hover,
+.existing-account button:hover {
+    background: var(--primary-gradient-hover);
+    transform: translateY(-2px);
+}
+
+/* toggle-panel button styling */
+.toggle-panel button,
+#login,
+#register {
+    padding: 14px 42px;
+    background: var(--primary-gradient);
+    color: #fff;
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    border-radius: 999px;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    cursor: pointer;
+    margin-top: 20px;
+    box-shadow: 0 10px 24px rgba(29, 78, 216, 0.28);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+}
+.toggle-panel button:hover,
+#login:hover,
+#register:hover {
+    background: var(--primary-gradient-hover);
+    transform: translateY(-3px);
+    box-shadow: 0 16px 30px rgba(29, 78, 216, 0.34);
+}
+.toggle-panel button:active,
+#login:active,
+#register:active {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 16px rgba(29, 78, 216, 0.28);
+}
+.toggle-panel button:focus-visible,
+#login:focus-visible,
+#register:focus-visible {
+    outline: 3px solid rgba(255, 255, 255, 0.6);
+    outline-offset: 3px;
+}
+.toggle-panel button.hidden {
+    background: transparent;
+    border: 2px solid #fff;
+    box-shadow: none;
+}
+.toggle-panel button.hidden:hover {
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 6px 18px rgba(255, 255, 255, 0.2);
+}
+
+.verify-container {
+    width: 100%;
+    padding: 20px 40px;
+}
+
+.toggle-panel {
+    position: absolute;
+    width: 50%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 30px;
+    text-align: center;
+    top: 0;
+    transition: all 0.6s ease-in-out;
+}
+
+.toggle-left {
+    transform: translateX(-200%);
+}
+
+.container.active .toggle-left {
+    transform: translateX(0);
+}
+
+.toggle-right {
+    right: 0;
+    transform: translateX(0);
+}
+
+.container.active .toggle-right {
+    transform: translateX(200%);
+}

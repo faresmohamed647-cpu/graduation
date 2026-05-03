@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Make Payment</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ asset('css/pay.css') }}">
+</head>
+<body>
+  <main class="pay-page">
+    <header class="pay-header">
+      <a href="/parent" class="back-link"><i class="fas fa-arrow-left"></i> Back To Dashboard</a>
+      <h1>Secure Payment</h1>
+      <p>Choose your payment method and complete checkout.</p>
+    </header>
+
+    <section class="pay-layout">
+      <div class="pay-card">
+        <h2><i class="fas fa-wallet"></i> Payment Method</h2>
+        <div class="payment-options">
+          <button type="button" class="pay-option active"><i class="fab fa-cc-visa"></i> Card</button>
+          <button type="button" class="pay-option"><i class="fab fa-paypal"></i> PayPal</button>
+          <button type="button" class="pay-option"><i class="fab fa-apple-pay"></i> Apple Pay</button>
+        </div>
+
+        <form class="pay-form">
+          <div class="field">
+            <label for="fullName">Card holder full name</label>
+            <input id="fullName" type="text" placeholder="Enter your full name" required>
+          </div>
+          <div class="field">
+            <label for="cardNumber">Card Number</label>
+            <input id="cardNumber" type="text" inputmode="numeric" placeholder="0000 0000 0000 0000" required>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label for="expiry">Expiry Date</label>
+              <input id="expiry" type="text" placeholder="MM/YY" required>
+            </div>
+            <div class="field">
+              <label for="cvv">CVV</label>
+              <input id="cvv" type="password" inputmode="numeric" placeholder="CVV" required>
+            </div>
+          </div>
+          <button type="submit" class="checkout-btn"><i class="fas fa-lock"></i> Checkout</button>
+        </form>
+      </div>
+
+      <aside class="summary-card">
+        <h3><i class="fas fa-receipt"></i> Order Summary</h3>
+        <div class="summary-line"><span>Selected Plan</span><strong>Premium Plan</strong></div>
+        <div class="summary-line"><span>Children</span><strong>2</strong></div>
+        <div class="summary-line"><span>Base Price</span><strong>1,300 EGP</strong></div>
+        <div class="summary-line"><span>Discount</span><strong>-195 EGP</strong></div>
+        <div class="summary-total"><span>Total</span><strong>1,105 EGP</strong></div>
+        <p class="summary-note">Your payment is encrypted and secured.</p>
+      </aside>
+    </section>
+  </main>
+</body>
+</html>

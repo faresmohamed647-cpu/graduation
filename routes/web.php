@@ -1,0 +1,144 @@
+<?php
+
+use App\Http\Controllers\AdminApplicationController;
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DriverController;
+use App\Http\Controllers\DriverDashboardController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ParentController;
+use App\Http\Controllers\ParentDashboardController;
+use App\Http\Controllers\RegistrationController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ApplicationController;
+use App\Http\Controllers\TripController;
+use Illuminate\Support\Facades\Route;
+
+Route::get('/', function () {
+    return view('website.index');
+});
+
+Route::view('/apply', 'website.apply');
+
+// Legacy static entrypoints (avoid 404s from migrated HTML)
+Route::redirect('/index.html', '/', 301);
+Route::view('/404', 'website.404');
+Route::redirect('/404.html', '/404', 301);
+
+Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+Route::post('/login', [AuthController::class, 'login'])->middleware(['throttle:10,1']);
+Route::get('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
+
+// Dedicated dashboard paths (used by role-based login redirect)
+Route::prefix('dashboard')->middleware('auth')->group(function () {
+    Route::get('/admin', function () {
+        return view('dashboard.admin');
+    })->middleware('role:admin');
+
+    Route::get('/driver', [DriverDashboardController::class, 'index'])->middleware('role:driver');
+    Route::get('/driver/applications/{application}', [DriverDashboardController::class, 'show'])->middleware('role:driver');
+
+    Route::get('/parent', [ParentDashboardController::class, 'index'])->middleware('role:parent');
+    Route::get('/parent/applications/{application}', [ParentDashboardController::class, 'show'])->middleware('role:parent');
+});
+
+// Registration & Applications
+Route::post('/register/parent', [RegistrationController::class, 'registerParent']);
+Route::post('/register/driver', [RegistrationController::class, 'registerDriver']);
+Route::post('/apply/submit', [ApplicationController::class, 'submit']);
+
+// Public Application Pages
+Route::view('/apply/parent', 'website.apply-parent');
+Route::view('/apply/driver', 'website.apply-driver');
+Route::view('/apply/admin',  'website.apply-admin');
+Route::view('/parents',      'website.parent-portal'); // New Premium Portal
+
+// Static website pages (Blade views already exist under resources/views/website)
+$websitePages = [
+    'about',
+    'contact',
+    'feature',
+    'pay',
+    'parent-portal',
+    'price',
+    'quote',
+    'service',
+    'team',
+    'testimonial',
+];
+
+Route::get('/verify', function () {
+    return view('website.verify');
+});
+Route::redirect('/verify.html', '/verify', 301);
+
+foreach ($websitePages as $page) {
+    Route::view('/'.$page, 'website.'.$page);
+    Route::redirect('/'.$page.'.html', '/'.$page, 301);
+}
+
+// Protected role dashboards (static views for now)
+Route::prefix('admin')->middleware(['auth', 'role:admin'])->group(function () {
+    Route::get('/', [AdminController::class, 'dashboard']);
+
+    // Applications management
+    Route::get('/applications', [AdminApplicationController::class, 'index']);
+    Route::get('/applications/{application}', [AdminApplicationController::class, 'show']);
+    Route::patch('/applications/{application}/status', [AdminApplicationController::class, 'updateStatus']);
+    Route::delete('/applications/{application}', [AdminApplicationController::class, 'destroy']);
+
+    // Admin sub-pages that already exist as Blade (keep UI, prevent 404)
+    Route::view('/add-user', 'admin.add-user');
+    Route::view('/add-trip', 'admin.add-trip');
+    Route::view('/add-student', 'admin.add-student');
+    Route::view('/add-school', 'admin.add-school');
+    Route::view('/add-parent', 'admin.add-parent');
+    Route::view('/add-driver', 'admin.add-driver');
+    Route::view('/add-bus', 'admin.add-bus');
+    Route::view('/add-complaint', 'admin.add-complaint');
+    Route::view('/add-maintenance-record', 'admin.add-maintenance-record');
+    Route::view('/add-financial-entry', 'admin.add-financial-entry');
+    Route::view('/add-entry', 'admin.add-entry');
+    Route::view('/price', 'admin.price');
+    Route::view('/qr', 'admin.QR');
+
+    // Legacy .html links used inside templates
+    Route::redirect('/admin.html', '/admin', 301);
+});
+
+Route::prefix('driver')->middleware(['auth', 'role:driver'])->group(function () {
+    Route::get('/', [DriverController::class, 'dashboard']);
+    Route::get('/report', [DriverController::class, 'report']);
+    Route::view('/request', 'driver.driver-request');
+
+    Route::post('/trips/{trip}/start', [TripController::class, 'start']);
+    Route::post('/trips/{trip}/end', [TripController::class, 'end']);
+    Route::post('/trips/{trip}/pickup', [TripController::class, 'pickup']);
+    Route::post('/trips/{trip}/dropoff', [TripController::class, 'dropoff']);
+
+    Route::redirect('/driver.html', '/driver', 301);
+    Route::redirect('/driver-request.html', '/driver/request', 301);
+});
+
+Route::prefix('parent')->middleware(['auth', 'role:parent'])->group(function () {
+    Route::get('/', [ParentController::class, 'dashboard']);
+    Route::get('/report', [ParentController::class, 'report']);
+    Route::view('/request', 'parent.parent-request');
+
+    Route::redirect('/parent.html', '/parent', 301);
+    Route::redirect('/parent-request.html', '/parent/request', 301);
+});
+
+// Additional legacy paths referenced by older landing pages
+Route::redirect('/Admin/admin.html', '/admin', 301);
+Route::redirect('/Driver/driver.html', '/driver', 301);
+Route::redirect('/Parents/parent.html', '/parent', 301);
+
+Route::get('/reports', [ReportController::class, 'index'])->middleware('auth');
+Route::post('/reports', [ReportController::class, 'store'])->middleware('auth');
+
+Route::prefix('notifications')->middleware('auth')->group(function () {
+    Route::get('/', [NotificationController::class, 'index']);
+    Route::post('/', [NotificationController::class, 'store'])->middleware('role:admin');
+    Route::post('/{id}/read', [NotificationController::class, 'markRead']);
+});

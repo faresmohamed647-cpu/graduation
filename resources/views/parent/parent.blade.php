@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parent Dashboard - School Bus Tracking</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('css/index.css') }}">
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin=""
+    >
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""
+        defer
+    ></script>
+    <style>
+        :root{
+            --bg:#f6f7fb;--card:#ffffff;--muted:#6b7280;--accent:#0ea5a4;--focus:#2563eb
+        }
+        body{background:var(--bg);font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial}
+        .sr-only{position:absolute!important;height:1px;width:1px;overflow:hidden;clip:rect(1px,1px,1px,1px);white-space:nowrap;border:0;padding:0;margin:-1px}
+        .card{background:var(--card);border-radius:12px;padding:16px;box-shadow:0 6px 18px rgba(16,24,40,0.06);transition:transform .18s ease,box-shadow .18s ease}
+        .card:focus-within,.card:hover{transform:translateY(-4px);box-shadow:0 12px 30px rgba(16,24,40,0.08)}
+        a.nav-link:focus { outline: none; }      
+        a.nav-link:focus-visible,button:focus-visible{outline:3px solid rgba(37,99,235,0.18);outline-offset:3px;border-radius:6px}
+        .sidebar.collapsed{width:72px}
+        .site-footer{margin:28px 16px;padding:12px 16px;background:transparent;color:var(--muted);font-size:13px;border-top:1px solid rgba(15,23,42,0.04);display:flex;justify-content:space-between;align-items:center}
+        .small-muted{color:var(--muted);font-size:13px}
+        /* Map overlay + markers */
+        .map-container{position:relative}
+        .map-overlay{position:absolute;right:18px;top:18px;background:rgba(255,255,255,0.96);padding:10px;border-radius:10px;box-shadow:0 6px 20px rgba(16,24,40,.06);min-width:180px;z-index:600}
+        .map-overlay .overlay-row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+        .map-overlay button{font-size:13px;padding:6px 10px;border-radius:8px}
+        .bus-marker i,.child-marker i{font-size:16px;color:#fff;padding:6px;border-radius:50%;display:inline-block}
+        .bus-marker{background:#0ea5a4}
+        .child-marker{background:#2563eb}
+        .map-overlay .progress{height:8px;background:rgba(15,23,42,0.06);border-radius:8px;overflow:hidden;margin-top:6px}
+        .map-overlay .progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--focus));width:0%;transition:width .3s ease}
+        .map-overlay .meta{font-size:12px;color:var(--muted);display:block;margin-top:6px}
+        .overlay-toggle{display:inline-flex;align-items:center;gap:8px}
+        .overlay-toggle input{width:16px;height:16px}
+
+        /* RTL Support */
+        html[dir="rtl"] body {
+            font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
+        }
+        html[dir="rtl"] .sidebar {
+            left: auto;
+            right: 0;
+            border-right: none;
+            border-left: 1px solid rgba(15, 23, 42, 0.04);
+        }
+        html[dir="rtl"] .main-content {
+            margin-left: 0;
+            margin-right: 280px; /* sidebar width */
+        }
+        @media (max-width: 768px) {
+            html[dir="rtl"] .main-content {
+                margin-right: 0;
+            }
+            html[dir="rtl"] .sidebar {
+                transform: translateX(100%);
+            }
+            html[dir="rtl"] .sidebar.active {
+                transform: translateX(0);
+            }
+        }
+        html[dir="rtl"] .topbar {
+            flex-direction: row-reverse;
+        }
+        html[dir="rtl"] .topbar-left, html[dir="rtl"] .topbar-right {
+            flex-direction: row-reverse;
+        }
+        html[dir="rtl"] .stat-card {
+            flex-direction: row-reverse;
+            text-align: right;
+        }
+        html[dir="rtl"] .card-header {
+            flex-direction: row-reverse;
+        }
+        html[dir="rtl"] .activity-item {
+            flex-direction: row-reverse;
+            text-align: right;
+        }
+        html[dir="rtl"] .profile {
+            flex-direction: row-reverse;
+        }
+        html[dir="rtl"] .nav-link {
+            text-align: right;
+        }
+    </style>
+    {{-- Seed the Sanctum API token into localStorage before any JS loads --}}
+    <script>
+    (function(){
+        var t = '{{ $apiToken ?? '' }}';
+        if(t){ localStorage.setItem('safestep_token', t); localStorage.setItem('token', t); }
+    })();
+    </script>
+</head>
+<body>
+    <a href="#dashboard" class="sr-only skip-link">Skip to content</a>
+    <!-- Sidebar -->
+    <aside class="sidebar" role="navigation" aria-label="Main navigation">
+        <div class="logo">
+            <i class="fas fa-bus"></i>
+            <h2>BusTracker</h2>
+        </div>
+        <nav id="mainNav" class="nav-menu" aria-label="Primary navigation">
+            <a href="#" class="nav-link active" data-page="dashboard" role="button" aria-pressed="true" aria-current="page">
+                <i class="fas fa-chart-line"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="#" class="nav-link" data-page="tracking" role="button" aria-pressed="false">
+                <i class="fas fa-map-marker-alt"></i>
+                <span>Live Tracking</span>
+            </a>
+            <a href="#" class="nav-link" data-page="children" role="button" aria-pressed="false">
+                <i class="fas fa-child"></i>
+                <span>Children</span>
+            </a>
+            <a href="#" class="nav-link" data-page="attendance" role="button" aria-pressed="false">
+                <i class="fas fa-clipboard-check"></i>
+                <span>Attendance</span>
+            </a>
+            <a href="#" class="nav-link" data-page="notifications" role="button" aria-pressed="false">
+                <i class="fas fa-bell"></i>
+                <span>Notifications</span>
+            </a>
+            <a href="#" class="nav-link" data-page="payments" role="button" aria-pressed="false">
+                <i class="fas fa-credit-card"></i>
+                <span>Payments</span>
+            </a>
+            <a href="#" class="nav-link" data-page="support" role="button" aria-pressed="false">
+                <i class="fas fa-headset"></i>
+                <span>Support</span>
+            </a>
+            <a href="#" class="nav-link" data-page="trip-history" role="button" aria-pressed="false">
+                <i class="fas fa-history"></i>
+                <span>Trip History</span>
+            </a>
+            <a href="#" class="nav-link" data-page="emergency-alerts" role="button" aria-pressed="false">
+                <i class="fas fa-triangle-exclamation"></i>
+                <span>Emergency Alerts</span>
+            </a>
+            <a href="#" class="nav-link" data-page="profile-settings" role="button" aria-pressed="false">
+                <i class="fas fa-user-cog"></i>
+                <span>Profile & Settings</span>
+            </a>
+            <a href="/parent/request" class="nav-link" data-page="requests">
+                <i class="fas fa-file-alt"></i>
+                <span>Parent Requests</span>
+            </a>
+            <a href="{{ route('logout') }}" class="nav-link logout"
+               onclick="event.preventDefault(); localStorage.removeItem('safestep_token'); localStorage.removeItem('token'); window.location.href='{{ route('logout') }}'">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content" role="main">
+        <!-- Top Navbar -->
+        <div class="topbar">
+            <div class="topbar-left">
+                <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="mainNav" aria-label="Toggle menu">
+                    <i class="fas fa-bars" aria-hidden="true"></i>
+                </button>
+                <h1 id="pageTitle">Dashboard</h1>
+            </div>
+            <div class="topbar-right">
+                <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode">
+                    <i class="fas fa-moon"></i>
+                    <span>Dark</span>
+                </button>
+                <button class="theme-toggle lang-toggle" id="langToggle" type="button" aria-label="Switch language to Arabic">
+                    <i class="fas fa-language"></i>
+                    <span>AR</span>
+                </button>
+                <button class="notification-icon" type="button" aria-label="Open notifications">
+                    <i class="fas fa-bell" aria-hidden="true"></i>
+                    <span class="badge">3</span>
+                </button>
+                <a class="profile" href="#" onclick="event.preventDefault(); openParentProfileModal();" aria-label="Open profile">
+                    <img src="{{ asset('IMAGE/ADMIN.png') }}" alt="Parent Profile" onerror="this.src='https://ui-avatars.com/api/?name={{ urlencode($userName ?? 'Parent') }}&background=0ea5a4&color=fff'">
+                    <span>{{ $userName ?? 'Parent' }}</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Dashboard Page -->
+        <div class="page active" id="dashboard">
+            <div class="dashboard-grid">
+                <!-- Bus Status Card -->
+                <div class="card bus-status-card">
+                    <div class="card-header">
+                        <h3>Bus Status</h3>
+                        <i class="fas fa-bus-alt"></i>
+                    </div>
+                    <div class="status-content">
+                        <div class="status-badge on-the-way">
+                            <i class="fas fa-circle"></i>
+                            <span>On the Way</span>
+                        </div>
+                        <div class="eta">
+                            <h2 id="etaTime">8 mins</h2>
+                            <p>Estimated Arrival Time</p>
+                        </div>
+                        <div class="distance">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span id="distanceText">2.3 km away</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Driver Info Card -->
+                <div class="card driver-info-card">
+                    <div class="card-header">
+                        <h3>Driver Information</h3>
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <div class="driver-content">
+                        <div class="driver-avatar">
+                            <img src="https://source.unsplash.com/200x200/?egyptian,driver,portrait&sig=12" alt="Driver">
+                        </div>
+                        <div class="driver-details">
+                            <h4>Omer mohamed</h4>
+                            <p><i class="fas fa-phone"></i> 01234567890</p>
+                            <p><i class="fas fa-bus"></i> Bus #42</p>
+                            <p><i class="fas fa-star"></i> Rating: 4.8/5.0</p>
+                        </div>
+                        <button class="btn-call" type="button">
+                            <i class="fas fa-phone-alt"></i> Call Driver
+                        </button>
+                    </div>
+                </div>
+                <!-- Quick Stats -->
+<div class="stats-container">
+    <div class="card stat-card">
+        <div class="stat-icon blue">
+            <i class="fas fa-children"></i>
+        </div>
+        <div class="stat-details">
+            <h3>2</h3>
+            <p>Total Children</p>
+        </div>
+    </div>
+
+    <div class="card stat-card">
+        <div class="stat-icon green">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="stat-details">
+            <h3>100%</h3>
+            <p>Today Attendance</p>
+        </div>
+    </div>
+
+    <div class="card stat-card">
+        <div class="stat-icon orange">
+            <i class="fas fa-tachometer-alt"></i>
+        </div>
+        <div class="stat-details">
+            <h3 id="busSpeed">45</h3>
+            <p>Bus Speed (km/h)</p>
+        </div>
+    </div>
+
+    <div class="card stat-card">
+        <div class="stat-icon purple">
+            <i class="fas fa-route"></i>
+        </div>
+        <div class="stat-details">
+            <h3>5.8 km</h3>
+            <p>Total Distance</p>
+        </div>
+    </div>
+</div>
+
+
+                
+                <!-- Recent Activity -->
+                <div class="card activity-card">
+                    <div class="card-header">
+                        <h3>Recent Activity</h3>
+                        <i class="fas fa-history"></i>
+                    </div>
+                    <div class="activity-list">
+                        <div class="activity-item">
+                            <div class="activity-icon green">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <div class="activity-content">
+                                <p><strong>Omer mohamed</strong> picked up</p>
+                                <span>Today at 7:45 AM</span>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon green">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <div class="activity-content">
+                                <p><strong>Ahmed fawzy</strong> picked up</p>
+                                <span>Today at 7:45 AM</span>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon blue">
+                                <i class="fas fa-info"></i>
+                            </div>
+                            <div class="activity-content">
+                                <p>Bus departed from terminal</p>
+                                <span>Today at 7:30 AM</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+
+        <!-- Tracking Page -->
+        <div class="page" id="tracking">
+            <div class="tracking-container">
+                <div class="card tracking-card">
+                    <div class="tracking-header">
+                        <div class="tracking-status">
+                            <h3>Live Tracking</h3>
+                            <div class="status-badge on-the-way">
+                                <i class="fas fa-circle pulse"></i>
+                                <span>Bus is on the way</span>
+                            </div>
+                        </div>
+                        <div class="tracking-info">
+                            <div class="info-item">
+                                <i class="fas fa-clock"></i>
+                                <span>ETA: <strong id="trackingEta">8 mins</strong></span>
+                            </div>
+                            <div class="info-item">
+                                <i class="fas fa-tachometer-alt"></i>
+                                <span>Speed: <strong id="trackingSpeed">45 km/h</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="map-container" id="map">
+                        <div class="map-placeholder">
+                            <i class="fas fa-map-marked-alt"></i>
+                            <p>Map Loading...</p>
+                        </div>
+                        <div id="gpsMap" style="width: 100%; height: 100%; border-radius: 12px; overflow: hidden;"></div>
+                        <canvas id="mapCanvas" style="position:absolute; inset:0; pointer-events:none;"></canvas>
+                        <div class="map-overlay" id="mapOverlay" aria-hidden="false" role="region" aria-label="Tracking controls">
+                            <div class="overlay-row">
+                                <div>
+                                    <strong id="childNameOverlay">Farida Mohamed</strong>
+                                    <div id="childLastSeen" class="small-muted">Last seen: --</div>
+                                </div>
+                                <div class="overlay-toggle" title="Auto-follow bus">
+                                    <label for="autoFollow">Follow</label>
+                                    <input id="autoFollow" type="checkbox" checked aria-label="Toggle auto-follow bus">
+                                </div>
+                            </div>
+                            <div class="overlay-row">
+                                <button id="locateChildBtn" class="btn-primary" type="button">Locate Child</button>
+                                <button id="followBusBtn" class="btn-secondary" type="button">Center Bus</button>
+                            </div>
+                            <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="arrivalProgress"><i></i></div>
+                            <div class="meta"><span id="etaShort">ETA: --</span> â€¢ <button id="shareChildBtn" class="btn-secondary" type="button">Share</button></div>
+                        </div>
+                    </div>
+                    <div class="tracking-footer">
+                        <button class="btn-secondary" type="button">
+                            <i class="fas fa-phone" aria-hidden="true"></i> Contact Driver
+                        </button>
+                        <button class="btn-primary" type="button">
+                            <i class="fas fa-share-alt" aria-hidden="true"></i> Share Location
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Children Page -->
+        <div class="page" id="children">
+            <div class="children-container">
+                <div id="childrenSectionsContainer">
+                    <!-- Generated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Notifications Page -->
+        <div class="page" id="notifications">
+            <div class="notifications-container">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Notifications</h3>
+                        <button class="btn-primary" id="addNotificationBtn">
+                            <i class="fas fa-plus"></i> Test Notification
+                        </button>
+                    </div>
+                    <div class="notifications-list" id="notificationsList">
+                        <!-- Notifications will be added here by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance Page -->
+        <div class="page" id="attendance">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Attendance Records</h3>
+                </div>
+                <div class="attendance-records">
+                    <div class="attendance-summary-cards">
+                        <div class="card stat-card">
+                            <div class="stat-icon green">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>95%</h3>
+                                <p>Overall Attendance</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-icon blue">
+                                <i class="fas fa-calendar-check"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>18</h3>
+                                <p>Days Present</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-icon orange">
+                                <i class="fas fa-calendar-times"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>2</h3>
+                                <p>Days Absent</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-icon purple">
+                                <i class="fas fa-person-circle-xmark"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="missedPickupCount">1</h3>
+                                <p>Missed Pickups</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-icon blue">
+                                <i class="fas fa-person-walking-arrow-right"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="missedDropoffCount">0</h3>
+                                <p>Missed Drop-offs</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="attendance-table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Child</th>
+                                    <th>Status</th>
+                                    <th>Pickup Time</th>
+                                    <th>Drop Time</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attendanceTableBody">
+                                <!-- Generated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payments Page -->
+        <div class="page" id="payments">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Payment History</h3>
+                    <button class="btn-primary" id="makePaymentBtn">
+                        <i class="fas fa-plus"></i> Make Payment
+                    </button>
+                </div>
+                <div class="payment-summary">
+                    <div class="card stat-card">
+                        <div class="stat-icon purple">
+                            <i class="fas fa-wallet"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>EGP 1,200</h3>
+                            <p>Total Paid</p>
+                        </div>
+                    </div>
+                    <div class="card stat-card">
+                        <div class="stat-icon orange">
+                            <i class="fas fa-exclamation-circle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>EGP 300</h3>
+                            <p>Pending Payment</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card discount-panel" id="paymentDiscountsPanel">
+                    <div class="card-header">
+                        <h3><i class="fas fa-percent"></i> Usage Discounts</h3>
+                    </div>
+                    <div class="discount-list" id="paymentDiscountsList">
+                        <!-- Generated by JS -->
+                    </div>
+                </div>
+                <div class="card packages-panel" id="paymentPackagesPanel">
+                    <div class="card-header">
+                        <h3><i class="fas fa-layer-group"></i> Packages & Features</h3>
+                    </div>
+                    <div id="packagesFeaturesContainer">
+                        <!-- Generated by JS from price.html -->
+                    </div>
+                </div>
+                <div class="card family-offers-panel" id="familyOffersPanel">
+                    <div class="card-header">
+                        <h3><i class="fas fa-gift"></i> Family Offers</h3>
+                    </div>
+                    <ul class="family-offers-list" id="familyOffersList">
+                        <!-- Generated by JS -->
+                    </ul>
+                </div>
+                <div class="card family-calc-panel" id="familyCalcPanel">
+                    <div class="card-header">
+                        <h3><i class="fas fa-calculator"></i> Family Savings Calculator</h3>
+                    </div>
+                    <div class="family-calc-grid">
+                        <div class="family-calc-result">
+                            <h4>Estimated Monthly Savings</h4>
+                            <p id="familySavingValue">0 EGP</p>
+                            <div class="family-calc-lines">
+                                <div><span>Current Monthly Cost</span><strong id="familyCurrentTotal">0 EGP</strong></div>
+                                <div><span>School Monthly Cost</span><strong id="familySchoolTotal">0 EGP</strong></div>
+                            </div>
+                        </div>
+                        <div class="family-calc-controls">
+                            <div class="form-group">
+                                <label for="calcChildrenCount">Number of Children</label>
+                                <input id="calcChildrenCount" class="form-control" type="number" min="1" max="6" value="1">
+                            </div>
+                            <div class="form-group">
+                                <label for="calcCurrentCost">Current Cost per Child (Monthly)</label>
+                                <input id="calcCurrentCost" class="form-control" type="number" min="0" value="900">
+                            </div>
+                            <div class="form-group">
+                                <label for="calcPlanPrice">Plan Price per Child</label>
+                                <select id="calcPlanPrice" class="form-control">
+                                    <option value="450">Smart Plan - 450 EGP</option>
+                                    <option value="650">Premium Plan - 650 EGP</option>
+                                    <option value="950">Private VIP - 950 EGP</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="calcPaymentMode">Payment Mode</label>
+                                <select id="calcPaymentMode" class="form-control">
+                                    <option value="monthly">Monthly (0%)</option>
+                                    <option value="quarterly">Quarterly (10%)</option>
+                                    <option value="yearly">Yearly (25%)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Amount</th>
+                                <th>Method</th>
+                                <th>Status</th>
+                                <th>Invoice</th>
+                            </tr>
+                        </thead>
+                        <tbody id="paymentsTableBody">
+                            <!-- Generated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Support Page -->
+        <div class="page" id="support">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Support Center</h3>
+                </div>
+                <div class="support-options">
+                    <div class="card support-card">
+                        <i class="fas fa-headset"></i>
+                        <h4>Contact Support</h4>
+                        <p>Get help from our support team</p>
+                        <button class="btn-primary">
+                            <i class="fas fa-phone"></i> Call Now
+                        </button>
+                    </div>
+                    <div class="card support-card">
+                        <i class="fas fa-comments"></i>
+                        <h4>Live Chat</h4>
+                        <p>Chat with our support team</p>
+                        <button class="btn-primary">
+                            <i class="fas fa-comment-dots"></i> Start Chat
+                        </button>
+                    </div>
+                    <div class="card support-card">
+                        <i class="fas fa-envelope"></i>
+                        <h4>Email Support</h4>
+                        <p>Send us an email</p>
+                        <button class="btn-primary">
+                            <i class="fas fa-paper-plane"></i> Send Email
+                        </button>
+                    </div>
+                </div>
+                <div class="faq-section">
+                    <h3>Frequently Asked Questions</h3>
+                    <div class="faq-list">
+                        <!-- FAQ items -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trip History Page -->
+        <div class="page" id="trip-history">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-history"></i> Trip History</h3>
+                    <div class="card-actions">
+                        <button class="btn-secondary btn-compact" onclick="exportTableToCsv('parentTripHistoryTable', 'trip_history')">
+                            <i class="fas fa-file-excel"></i> Export Excel
+                        </button>
+                        <button class="btn-primary btn-compact" onclick="exportTableToPdf('parentTripHistoryTable', 'trip_history')">
+                            <i class="fas fa-file-pdf"></i> Export PDF
+                        </button>
+                    </div>
+                </div>
+                <div class="filters" style="margin-bottom: 20px;">
+                    <div class="filter-item">
+                        <label for="tripHistoryDateFilter" class="form-label">Date</label>
+                        <input type="date" id="tripHistoryDateFilter" class="form-control">
+                    </div>
+                    <div class="filter-item">
+                        <label for="tripHistoryRouteFilter" class="form-label">Route</label>
+                        <select id="tripHistoryRouteFilter" class="form-control">
+                            <option value="all">All Routes</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="parentTripHistoryTable">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Bus</th>
+                                <th>Driver</th>
+                                <th>Pickup Time</th>
+                                <th>Drop-off Time</th>
+                                <th>Route</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tripHistoryBody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Emergency Alerts Page -->
+        <div class="page" id="emergency-alerts">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-triangle-exclamation"></i> Emergency Alerts</h3>
+                    <span class="status-badge emergency" id="emergencyAlertsBadge">0 Active</span>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="emergencyAlertsTable">
+                        <thead>
+                            <tr>
+                                <th>Bus</th>
+                                <th>Driver</th>
+                                <th>Location</th>
+                                <th>Type</th>
+                                <th>Time</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="emergencyAlertsBody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile & Settings Page -->
+        <div class="page" id="profile-settings">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-user-cog"></i> Profile & Settings</h3>
+                </div>
+                <div class="profile-settings-grid">
+                    <div class="card">
+                        <h4>Parent Information</h4>
+                        <div class="form-group">
+                            <label for="parentName">Full Name</label>
+                            <input id="parentName" class="form-control" type="text" value="Amira Mohamed" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="parentPhone">Phone</label>
+                            <input id="parentPhone" class="form-control" type="tel" value="+20 100 123 4567" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="parentEmail">Email</label>
+                            <input id="parentEmail" class="form-control" type="email" value="amira.parent@bustracker.com" required>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h4>Account Settings</h4>
+                        <div class="form-group">
+                            <label for="parentPassword">Change Password</label>
+                            <input id="parentPassword" class="form-control" type="password" placeholder="New password">
+                        </div>
+                        <div class="form-group">
+                            <label class="overlay-toggle">
+                                <input type="checkbox" id="emailAlerts" checked>
+                                Email Notifications
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label class="overlay-toggle">
+                                <input type="checkbox" id="smsAlerts" checked>
+                                SMS Notifications
+                            </label>
+                        </div>
+                        <button class="btn-primary" type="button" onclick="saveParentSettings()">
+                            <i class="fas fa-save"></i> Save Settings
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer class="site-footer" role="contentinfo">
+        <div class="small-muted">BusTracker â€¢ v1.0</div>
+        <div class="small-muted">Last updated: <span id="lastUpdated">-</span></div>
+    </footer>
+
+    <script>
+    (function(){
+        // restore child selection
+        const sel = document.getElementById('childSelector');
+        try{
+            if(sel){
+                const saved = localStorage.getItem('selectedChild');
+                if(saved) sel.value = saved;
+                sel.addEventListener('change', ()=> localStorage.setItem('selectedChild', sel.value));
+            }
+        }catch(e){console.warn('restore child failed',e)}
+
+        // menu toggle
+        const menuBtn = document.getElementById('menuToggle');
+        const sidebar = document.querySelector('.sidebar');
+        if(menuBtn && sidebar){
+            menuBtn.addEventListener('click', ()=>{
+                if (window.innerWidth <= 768) return;
+                const expanded = menuBtn.getAttribute('aria-expanded') === 'true';
+                menuBtn.setAttribute('aria-expanded', String(!expanded));
+                sidebar.classList.toggle('collapsed');
+            });
+        }
+
+        // map + tracking helpers
+        const mapEl = document.getElementById('gpsMap');
+        let mapInited = false, mapInstance = null, busMarker = null, childMarker = null, routeLine = null;
+
+        function haversine(lat1,lon1,lat2,lon2){
+            const toRad = v => v * Math.PI/180;
+            const R=6371; const dLat = toRad(lat2-lat1); const dLon = toRad(lon2-lon1);
+            const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)*Math.sin(dLon/2);
+            const c = 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); return R*c;
+        }
+
+                function initMap(){
+            if(mapInited || typeof L === 'undefined') return; mapInited = true;
+            try{
+                mapInstance = L.map('gpsMap',{attributionControl:false}).setView([30.0444,31.2357],13);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(mapInstance);
+
+                // sample positions (replace with real data when available)
+                const busPos = [30.0460,31.2350];
+                const childPos = [30.0449,31.2390];
+                const initialDist = haversine(busPos[0],busPos[1], childPos[0],childPos[1]);
+
+                busMarker = L.marker(busPos, {icon: L.divIcon({className:'bus-marker', html:'<i class="fas fa-bus"></i>'})}).addTo(mapInstance).bindPopup('Bus #42');
+                childMarker = L.marker(childPos, {icon: L.divIcon({className:'child-marker', html:'<i class="fas fa-child"></i>'})}).addTo(mapInstance).bindPopup(document.getElementById('childNameOverlay')?.textContent || 'Child');
+
+                routeLine = L.polyline([busPos, childPos], {color:'#0ea5a4', weight:4, opacity:0.9, dashArray:'6 6'}).addTo(mapInstance);
+                updateTrackingInfo(busPos, childPos, initialDist);
+
+                // simulate bus movement towards child (gentle)
+                let t=0; const steps=120; const simulate = ()=>{
+                    t++; const lat = busPos[0] + (childPos[0]-busPos[0])*(t/steps);
+                    const lon = busPos[1] + (childPos[1]-busPos[1])*(t/steps);
+                    if(busMarker){ busMarker.setLatLng([lat,lon]); }
+                    if(routeLine){ routeLine.setLatLngs([ [lat,lon], childPos ]); }
+                    updateTrackingInfo([lat,lon], childPos, initialDist);
+                    if(autoFollow) { try{ mapInstance.setView([lat,lon],14,{animate:true}); }catch(e){} }
+                    if(t<steps) requestAnimationFrame(simulate);
+                };
+                requestAnimationFrame(simulate);
+            }catch(e){console.warn('Leaflet init failed',e)}
+        }
+
+        let autoFollow = true;
+        function updateTrackingInfo(busPos, childPos, initialDist){
+            try{
+                const dist = haversine(busPos[0],busPos[1], childPos[0], childPos[1]);
+                const speedKmh = 30; // assumed avg
+                const etaMin = Math.max(1, Math.round((dist / speedKmh) * 60));
+                const distanceEl = document.getElementById('distanceText');
+                const etaEl = document.getElementById('etaTime');
+                const trackingEta = document.getElementById('trackingEta');
+                const trackingSpeed = document.getElementById('trackingSpeed');
+                if(distanceEl) distanceEl.textContent = dist.toFixed(1) + ' km away';
+                if(etaEl) etaEl.textContent = (dist<0.05 ? 'Arrived' : etaMin + ' mins');
+                if(trackingEta) trackingEta.textContent = etaEl.textContent;
+                if(trackingSpeed) trackingSpeed.textContent = speedKmh + ' km/h';
+                const lastSeen = new Date().toLocaleTimeString();
+                const lastSeenEl = document.getElementById('childLastSeen');
+                if(lastSeenEl) lastSeenEl.textContent = 'Last seen: ' + lastSeen;
+                // update short ETA and progress
+                const etaShort = document.getElementById('etaShort');
+                if(etaShort) etaShort.textContent = (dist<0.05 ? 'Arrived' : 'ETA: ' + etaMin + 'm');
+                const progressEl = document.querySelector('#arrivalProgress > i');
+                if(progressEl){
+                    const pct = initialDist && initialDist>0 ? Math.min(100, Math.round((1 - (dist/initialDist))*100)) : 0;
+                    progressEl.style.width = pct + '%';
+                    const progWrap = document.getElementById('arrivalProgress'); if(progWrap) progWrap.setAttribute('aria-valuenow', String(pct));
+                }
+            }catch(e){console.warn('updateTrackingInfo',e)}
+        }
+
+        function showChildLocation(lat,lon){
+            if(!mapInstance) initMap();
+            const loc = (lat && lon) ? [lat,lon] : (childMarker ? childMarker.getLatLng() : [30.0449,31.2390]);
+            if(childMarker) childMarker.setLatLng(loc).openPopup();
+            if(mapInstance) mapInstance.setView(loc,16,{animate:true});
+            // small pulse
+            try{ const ring = L.circle(loc, {radius:40, color:'#0ea5a4', weight:2, fill:false}).addTo(mapInstance); setTimeout(()=> mapInstance.removeLayer(ring),1600);}catch(e){}
+        }
+
+        // observe and init map lazily
+        if(mapEl){
+            if('IntersectionObserver' in window){
+                const io = new IntersectionObserver((entries,obs)=>{ entries.forEach(e=>{ if(e.isIntersecting){ initMap(); obs.disconnect(); } }); },{rootMargin:'200px'});
+                io.observe(mapEl);
+            } else { initMap(); }
+        }
+
+        // wire overlay buttons
+        const locateBtn = document.getElementById('locateChildBtn');
+        if(locateBtn){ locateBtn.addEventListener('click', ()=>{ // try real geolocation first
+            if(navigator.geolocation){ navigator.geolocation.getCurrentPosition(pos=>{ showChildLocation(pos.coords.latitude,pos.coords.longitude); }, ()=>{ showChildLocation(); }); } else { showChildLocation(); }
+        }); }
+        const followBus = document.getElementById('followBusBtn');
+        if(followBus){ followBus.addEventListener('click', ()=>{ if(busMarker && mapInstance){ mapInstance.setView(busMarker.getLatLng(),14,{animate:true}); busMarker.openPopup(); autoFollow = true; const auto = document.getElementById('autoFollow'); if(auto) auto.checked = true; } }); }
+        const autoFollowChk = document.getElementById('autoFollow'); if(autoFollowChk){ autoFollowChk.addEventListener('change', ()=>{ autoFollow = !!autoFollowChk.checked; }); }
+        const shareBtn = document.getElementById('shareChildBtn'); if(shareBtn){ shareBtn.addEventListener('click', ()=>{
+            const coords = childMarker ? childMarker.getLatLng() : null;
+            const href = coords ? `${location.origin}${location.pathname}#child=${coords.lat.toFixed(6)},${coords.lng.toFixed(6)}` : window.location.href;
+            navigator.clipboard?.writeText(href).then(()=>{ shareBtn.textContent = 'Copied'; setTimeout(()=> shareBtn.textContent = 'Share',1200); }).catch(()=>{ alert('Copy failed, URL: '+href); });
+        }); }
+
+        // footer timestamp
+        const lastUpdated = document.getElementById('lastUpdated');
+        if(lastUpdated) lastUpdated.textContent = new Date().toLocaleString();
+    })();
+    </script>
+
+    <!-- Parent Profile Modal -->
+    <div id="parentProfileModal" class="profile-modal">
+        <div class="profile-modal-overlay" onclick="closeParentProfileModal()"></div>
+        <div class="profile-modal-content">
+            <button class="profile-modal-close" onclick="closeParentProfileModal()">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="profile-modal-header">
+                <div class="profile-modal-avatar">
+                    <img src="../../IMAGE/ADMIN.png" alt="Parent Profile">
+                    <div class="profile-status-badge active">
+                        <i class="fas fa-circle"></i>
+                        <span>Active</span>
+                    </div>
+                </div>
+                <div class="profile-modal-info">
+                    <h2>Amira Mohamed</h2>
+                    <p class="profile-role">Parent Account</p>
+                    <div class="profile-children-count">
+                        <i class="fas fa-child"></i>
+                        <span>2 Children</span>
+                    </div>
+                </div>
+            </div>
+            <div class="profile-modal-body">
+                <div class="profile-section">
+                    <h3><i class="fas fa-id-card"></i> Personal Information</h3>
+                    <div class="profile-details-grid">
+                        <div class="profile-detail-item">
+                            <span class="detail-label"><i class="fas fa-phone"></i> Phone</span>
+                            <span class="detail-value">+20 111 123 4567</span>
+                        </div>
+                        <div class="profile-detail-item">
+                            <span class="detail-label"><i class="fas fa-envelope"></i> Email</span>
+                            <span class="detail-value">amira.mohamed@email.com</span>
+                        </div>
+                        <div class="profile-detail-item">
+                            <span class="detail-label"><i class="fas fa-map-marker-alt"></i> Address</span>
+                            <span class="detail-value">Khaled Ibn El-Walid St, Sidi Bishr, Alexandria</span>
+                        </div>
+                        <div class="profile-detail-item">
+                            <span class="detail-label"><i class="fas fa-calendar-alt"></i> Member Since</span>
+                            <span class="detail-value">January 2024</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="profile-section">
+                    <h3><i class="fas fa-child"></i> Children Information</h3>
+                    <div class="children-list">
+                        <div class="child-profile-card">
+                            <div class="child-avatar">
+                                <span>FM</span>
+                            </div>
+                            <div class="child-info">
+                                <h4>Farida Mohamed</h4>
+                                <p><i class="fas fa-graduation-cap"></i> Grade 5</p>
+                                <p><i class="fas fa-bus"></i> Bus #42</p>
+                            </div>
+                            <div class="child-status">
+                                <span class="status-badge active">Active</span>
+                            </div>
+                        </div>
+                        <div class="child-profile-card">
+                            <div class="child-avatar">
+                                <span>SM</span>
+                            </div>
+                            <div class="child-info">
+                                <h4>Saif Mohamed</h4>
+                                <p><i class="fas fa-graduation-cap"></i> Grade 3</p>
+                                <p><i class="fas fa-bus"></i> Bus #42</p>
+                            </div>
+                            <div class="child-status">
+                                <span class="status-badge active">Active</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="profile-section">
+                    <h3><i class="fas fa-chart-line"></i> Account Statistics</h3>
+                    <div class="profile-stats-grid">
+                        <div class="profile-stat-card">
+                            <div class="stat-icon blue">
+                                <i class="fas fa-calendar-check"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h4>95%</h4>
+                                <p>Attendance Rate</p>
+                            </div>
+                        </div>
+                        <div class="profile-stat-card">
+                            <div class="stat-icon green">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h4>12</h4>
+                                <p>Requests Sent</p>
+                            </div>
+                        </div>
+                        <div class="profile-stat-card">
+                            <div class="stat-icon orange">
+                                <i class="fas fa-bell"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h4>8</h4>
+                                <p>Notifications</p>
+                            </div>
+                        </div>
+                        <div class="profile-stat-card">
+                            <div class="stat-icon purple">
+                                <i class="fas fa-star"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h4>4.9</h4>
+                                <p>Service Rating</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="profile-modal-footer">
+                <button class="btn-profile-primary" onclick="alert('Edit feature coming soon!')">
+                    <i class="fas fa-edit"></i> Edit Profile
+                </button>
+                <button class="btn-profile-secondary" onclick="window.location.href='parent-request.html'">
+                    <i class="fas fa-file-lines"></i> Parent Requests
+                </button>
+                <button class="btn-profile-secondary" onclick="closeParentProfileModal()">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .profile-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .profile-modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .profile-modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .profile-modal-content {
+            position: relative;
+            background: white;
+            border-radius: 24px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            animation: modalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 10001;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8) translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .profile-modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(0, 0, 0, 0.1);
+            color: #64748b;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        .profile-modal-close:hover {
+            background: #ef4444;
+            color: white;
+            transform: rotate(90deg) scale(1.1);
+        }
+
+        .profile-modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px;
+            text-align: center;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .profile-modal-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            animation: rotate 15s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .profile-modal-avatar {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+
+        .profile-modal-avatar img {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            border: 5px solid white;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            object-fit: cover;
+            animation: avatarPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes avatarPulse {
+            0%, 100% { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); }
+            50% { box-shadow: 0 10px 40px rgba(102, 126, 234, 0.6); }
+        }
+
+        .profile-status-badge {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: white;
+            color: #10b981;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .profile-status-badge i {
+            font-size: 8px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .profile-modal-info h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .profile-role {
+            font-size: 16px;
+            opacity: 0.9;
+            margin-bottom: 16px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .profile-children-count {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            position: relative;
+            z-index: 1;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .profile-children-count i {
+            font-size: 20px;
+        }
+
+        .profile-modal-body {
+            padding: 32px;
+        }
+
+        .profile-section {
+            margin-bottom: 32px;
+        }
+
+        .profile-section h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .profile-section h3 i {
+            color: #667eea;
+        }
+
+        .profile-details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+        }
+
+        .profile-detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .profile-detail-item:hover {
+            background: #f1f5f9;
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+        }
+
+        .detail-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .detail-label i {
+            color: #667eea;
+        }
+
+        .detail-value {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .children-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .child-profile-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-radius: 16px;
+            border: 2px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .child-profile-card:hover {
+            transform: translateX(8px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            border-color: #667eea;
+        }
+
+        .child-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 20px;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .child-info {
+            flex: 1;
+        }
+
+        .child-info h4 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+
+        .child-info p {
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .child-info i {
+            color: #667eea;
+            width: 16px;
+        }
+
+        .child-status {
+            flex-shrink: 0;
+        }
+
+        .profile-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 16px;
+        }
+
+        .profile-stat-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-radius: 16px;
+            border: 2px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .profile-stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .profile-stat-card .stat-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .stat-icon.blue { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .stat-icon.green { background: linear-gradient(135deg, #10b981, #059669); }
+        .stat-icon.orange { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .stat-icon.purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+
+        .stat-content h4 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 4px;
+        }
+
+        .stat-content p {
+            font-size: 13px;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .profile-modal-footer {
+            padding: 24px 32px;
+            border-top: 2px solid #e2e8f0;
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .btn-profile-primary,
+        .btn-profile-secondary {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-profile-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-profile-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-profile-secondary {
+            background: #f1f5f9;
+            color: #64748b;
+            border: 2px solid #e2e8f0;
+        }
+
+        .btn-profile-secondary:hover {
+            background: #e2e8f0;
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .profile-modal-content {
+                width: 95%;
+                max-height: 95vh;
+            }
+
+            .profile-details-grid,
+            .profile-stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .profile-modal-footer {
+                flex-direction: column;
+            }
+
+            .btn-profile-primary,
+            .btn-profile-secondary {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+
+    <script>
+        function openParentProfileModal() {
+            const modal = document.getElementById('parentProfileModal');
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeParentProfileModal() {
+            const modal = document.getElementById('parentProfileModal');
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // Close modal on ESC key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeParentProfileModal();
+            }
+        });
+    </script>
+
+    <script src="{{ asset('js/script.js') }}"></script>
+    <script src="{{ asset('js/parent-api.js') }}"></script>
+    <script src="{{ asset('js/i18n-parent.js') }}"></script>
+</body>
+</html>
+

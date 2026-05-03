@@ -1,0 +1,2729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - School Bus Tracking</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('css/admin.css') }}">
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin=""
+    >
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""
+        defer
+    ></script>
+    {{-- Seed the Sanctum API token into localStorage before any JS loads --}}
+    <script>
+    (function(){
+        var t = '{{ session('api_token', '') }}';
+        if(t){ localStorage.setItem('safestep_token', t); localStorage.setItem('token', t); }
+    })();
+    </script>
+</head>
+<body>
+    <!-- سليدر الاقسام-->
+    <div class="sidebar">
+        <div class="logo">
+            <i class="fas fa-shield-alt"></i>
+            <h2>SAFESTEP BUS</h2>
+        </div>
+        <nav class="nav-menu">
+            <a href="#" class="nav-link active" data-page="dashboard">
+                <i class="fas fa-chart-line"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="{{ url('/admin/applications') }}" class="nav-link">
+                <i class="fas fa-file-alt"></i>
+                <span>Applications</span>
+            </a>
+            <a href="#" class="nav-link" data-page="parents">
+                <i class="fas fa-users"></i>
+                <span>Parents</span>
+            </a>
+            <a href="#" class="nav-link" data-page="drivers">
+                <i class="fas fa-id-card"></i>
+                <span>Drivers</span>
+            </a>
+            <a href="#" class="nav-link" data-page="buses">
+                <i class="fas fa-bus"></i>
+                <span>Buses</span>
+            </a>
+            <a href="#" class="nav-link" data-page="reports">
+                <i class="fas fa-file-alt"></i>
+                <span>Reports</span>
+            </a>
+            <a href="#" class="nav-link" data-page="requests">
+                <i class="fas fa-inbox"></i>
+                <span>Requests</span>
+            </a>
+            <a href="#" class="nav-link" data-page="account-recovery">
+                <i class="fas fa-key"></i>
+                <span>Account Recovery</span>
+            </a>
+            <a href="#" class="nav-link" data-page="financials">
+                <i class="fas fa-dollar-sign"></i>
+                <span>Financials</span>
+            </a>
+            <a href="#" class="nav-link" data-page="maintenance">
+                <i class="fas fa-tools"></i>
+                <span>Maintenance</span>
+            </a>
+            <a href="#" class="nav-link" data-page="live-tracking">
+                <i class="fas fa-map-marker-alt"></i>
+                <span>Live Tracking</span>
+            </a>
+            <a href="#" class="nav-link" data-page="students">
+                <i class="fas fa-graduation-cap"></i>
+                <span>Students</span>
+            </a>
+            <a href="#" class="nav-link" data-page="trips">
+                <i class="fas fa-route"></i>
+                <span>Trips / Routes</span>
+            </a>
+            <a href="#" class="nav-link" data-page="notifications">
+                <i class="fas fa-bell"></i>
+                <span>Notifications</span>
+            </a>
+            <a href="#" class="nav-link" data-page="emergency-logs">
+                <i class="fas fa-triangle-exclamation"></i>
+                <span>Emergency Logs</span>
+            </a>
+            <a href="#" class="nav-link" data-page="complaints">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>Complaints</span>
+            </a>
+            <a href="#" class="nav-link" data-page="schools">
+                <i class="fas fa-school"></i>
+                <span>Schools</span>
+            </a>
+            <a href="#" class="nav-link" data-page="users">
+                <i class="fas fa-user-shield"></i>
+                <span>Users & Roles</span>
+            </a>
+            <a href="#" class="nav-link" data-page="settings">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </a>
+            <a href="#" class="nav-link" data-page="activity-logs">
+                <i class="fas fa-history"></i>
+                <span>Activity Logs</span>
+            </a>
+            <a href="{{ route('logout') }}" class="nav-link logout"
+               onclick="event.preventDefault(); localStorage.removeItem('safestep_token'); localStorage.removeItem('token'); window.location.href='{{ route('logout') }}'">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- البار  -->
+    <div class="main-content">
+        <!-- Top Navbar -->
+        <div class="topbar">
+            <div class="topbar-left">
+                <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-label="Toggle menu">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1 id="pageTitle">Dashboard Overview</h1>
+            </div>
+            <div class="topbar-right">
+                <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode">
+                    <i class="fas fa-moon"></i>
+                    <span>Dark</span>
+                </button>
+                <button class="theme-toggle lang-toggle" id="langToggle" type="button" aria-label="Switch language to Arabic">
+                    <i class="fas fa-language"></i>
+                    <span>AR</span>
+                </button>
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search...">
+                    <div class="search-results" id="globalSearchResults" aria-live="polite"></div>
+                </div>
+                <div class="notification-icon" onclick="showNotifications()">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge">5</span>
+                </div>
+                <div class="profile" style="cursor: pointer;" onclick="navigateTo('admin-profile')">
+                    <img src="../../IMAGE/ADMIN.png" alt="Admin" style="cursor: pointer;">
+                    <span>Admin User</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pages Container -->
+        <div class="pages-container">
+        <!-- Dashboard Page -->
+        <div class="page active" id="dashboard">
+            <div class="dashboard-grid">
+                <!-- Stat Cards -->
+                <div class="card stat-card">
+                    <div class="stat-icon blue">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="totalParentsStat">128</h3>
+                        <p>Total Parents</p>
+                        <span class="stat-trend up">
+                            <i class="fas fa-arrow-up"></i> 12% from last month
+                        </span>
+                    </div>
+                </div>
+
+                <div class="card stat-card">
+                    <div class="stat-icon green">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="totalDriversStat">24</h3>
+                        <p>Total Drivers</p>
+                        <span class="stat-trend up">
+                            <i class="fas fa-arrow-up"></i> 3 new this month
+                        </span>
+                    </div>
+                </div>
+
+                <div class="card stat-card">
+                    <div class="stat-icon orange">
+                        <i class="fas fa-bus"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="activeBusesStat">18</h3>
+                        <p>Active Buses</p>
+                        <span class="stat-trend">
+                            <i class="fas fa-minus"></i> No change
+                        </span>
+                    </div>
+                </div>
+
+                <div class="card stat-card">
+                    <div class="stat-icon purple">
+                        <i class="fas fa-route"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="todayTripsStat">36</h3>
+                        <p>Today's Trips</p>
+                        <span class="stat-trend up">
+                            <i class="fas fa-arrow-up"></i> 100% on schedule
+                        </span>
+                    </div>
+                </div>
+
+                <div class="card stat-card">
+                    <div class="stat-icon blue">
+                        <i class="fas fa-user-graduate"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="totalStudentsStat">412</h3>
+                        <p>Total Students</p>
+                        <span class="stat-trend up">
+                            <i class="fas fa-arrow-up"></i> 8 new enrollments
+                        </span>
+                    </div>
+                </div>
+
+                <div class="card stat-card">
+                    <div class="stat-icon green">
+                        <i class="fas fa-bus-alt"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="totalBusesStat">22</h3>
+                        <p>Total Buses</p>
+                        <span class="stat-trend">
+                            <i class="fas fa-minus"></i> Fleet steady
+                        </span>
+                    </div>
+                </div>
+
+                <div class="card stat-card">
+                    <div class="stat-icon orange">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="activeTripsStat">14</h3>
+                        <p>Active Trips</p>
+                        <span class="stat-trend up">
+                            <i class="fas fa-arrow-up"></i> Running now
+                        </span>
+                    </div>
+                </div>
+
+                <div class="card stat-card">
+                    <div class="stat-icon purple">
+                        <i class="fas fa-inbox"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="pendingRequestsStat">7</h3>
+                        <p>Pending Requests</p>
+                        <span class="stat-trend">
+                            <i class="fas fa-minus"></i> Waiting review
+                        </span>
+                    </div>
+                </div>
+
+                <div class="card stat-card">
+                    <div class="stat-icon blue">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="complaintsTodayStat">3</h3>
+                        <p>Complaints Today</p>
+                        <span class="stat-trend down">
+                            <i class="fas fa-arrow-down"></i> -2 vs yesterday
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Trips Overview الجدول -->
+                <div class="card chart-card">
+                    <div class="card-header">
+                        <h3>Trips Overview</h3>
+                        <select class="period-selector">
+                            <option>Last 7 Days</option>
+                            <option>Last 30 Days</option>
+                            <option>Last 90 Days</option>
+                        </select>
+                    </div>
+                    <canvas id="tripsChart"></canvas>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="card activity-card">
+                    <div class="card-header">
+                        <h3>Recent Activity</h3>
+                        <a href="#" class="view-all">View All</a>
+                    </div>
+                    <div class="activity-list">
+                        <div class="activity-item">
+                            <div class="activity-icon blue">
+                                <i class="fas fa-user-plus"></i>
+                            </div>
+                            <div class="activity-content">
+                                <p><strong>New parent registered</strong></p>
+                                <span>Mohamed Fawzy - 5 minutes ago</span>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon green">
+                                <i class="fas fa-bus"></i>
+                            </div>
+                            <div class="activity-content">
+                                <p><strong>Trip completed</strong></p>
+                                <span>Bus #42 - Route A - 15 minutes ago</span>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon orange">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="activity-content">
+                                <p><strong>Maintenance alert</strong></p>
+                                <span>Bus #15 - Oil change due - 1 hour ago</span>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon purple">
+                                <i class="fas fa-user-check"></i>
+                            </div>
+                            <div class="activity-content">
+                                <p><strong>Driver approved</strong></p>
+                                <span>Michael Brown - 2 hours ago</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card timeline-card">
+                    <div class="card-header">
+                        <h3>Activity Timeline</h3>
+                        <span class="small-muted">Today</span>
+                    </div>
+                    <div class="timeline-list">
+                        <div class="timeline-item">
+                            <span class="timeline-dot blue"></span>
+                            <div class="timeline-content">
+                                <p><strong>Added driver</strong> — Sara Mahmoud</p>
+                                <span>09:15 AM</span>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <span class="timeline-dot green"></span>
+                            <div class="timeline-content">
+                                <p><strong>Assigned bus</strong> — Bus #12 to Route H</p>
+                                <span>10:05 AM</span>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <span class="timeline-dot orange"></span>
+                            <div class="timeline-content">
+                                <p><strong>Approved request</strong> — Parent pickup change</p>
+                                <span>11:40 AM</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bus Status -->
+                <div class="card bus-status-card">
+                    <div class="card-header">
+                        <h3>Bus Fleet Status</h3>
+                    </div>
+                    <div class="bus-status-grid">
+                        <div class="status-item">
+                            <h4>15</h4>
+                            <p>On Route</p>
+                            <div class="status-bar">
+                                <div class="status-fill green" style="width: 85%"></div>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <h4>2</h4>
+                            <p>Maintenance</p>
+                            <div class="status-bar">
+                                <div class="status-fill orange" style="width: 11%"></div>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <h4>1</h4>
+                            <p>Idle</p>
+                            <div class="status-bar">
+                                <div class="status-fill blue" style="width: 6%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Parents Page -->
+        <div class="page" id="parents">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Parents Management</h3>
+                    <button class="btn-primary" onclick="addParent()">
+                        <i class="fas fa-plus"></i> Add Parent
+                    </button>
+                </div>
+                <div class="filters" style="margin: 16px 20px 0;">
+                    <div class="filter-item" style="max-width: 280px;">
+                        <label for="parentStatusFilter" class="form-label">Status</label>
+                        <select id="parentStatusFilter" class="form-control">
+                            <option value="all">All</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Nonactive</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="parentsTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Children</th>
+                                <th>Phone</th>
+                                <th>Email</th>
+                                <th>Application Date</th>
+                                <th>Join Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Drivers Page -->
+        <div class="page" id="drivers">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Drivers Management</h3>
+                    <button class="btn-primary" onclick="addDriver()">
+                        <i class="fas fa-plus"></i> Add Driver
+                    </button>
+                </div>
+                <div class="filters" style="margin: 16px 20px 0;">
+                    <div class="filter-item" style="max-width: 280px;">
+                        <label for="driverStatusFilter" class="form-label">Status</label>
+                        <select id="driverStatusFilter" class="form-control">
+                            <option value="all">All</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Nonactive</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="driversTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>License No.</th>
+                                <th>Phone</th>
+                                <th>Application Date</th>
+                                <th>Join Date</th>
+                                <th>Assigned Bus</th>
+                                <th>Experience</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="table-wrapper" style="margin-top: 18px;">
+                    <div style="padding: 0 2px 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                        <h4 style="margin: 0; color: var(--text-dark); font-size: 16px;">
+                            <i class="fas fa-id-card"></i> Driver Applications (Pending)
+                        </h4>
+                        <span class="status-badge pending" id="pendingDriversCount">0 Pending</span>
+                    </div>
+                    <table class="data-table" id="parentsDriversApplicantsTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>License No.</th>
+                                <th>Phone</th>
+                                <th>Application Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Buses Page -->
+        <div class="page" id="buses">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Bus Fleet Management</h3>
+                    <button class="btn-primary" onclick="addBus()">
+                        <i class="fas fa-plus"></i> Add Bus
+                    </button>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="busesTable">
+                        <thead>
+                            <tr>
+                                <th>Bus Number</th>
+                                <th>Plate Number</th>
+                                <th>Assigned Driver</th>
+                                <th>Route</th>
+                                <th>Capacity</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h3>Bus Capacity Monitoring</h3>
+                    <div class="card-actions">
+                        <button class="btn-secondary btn-compact" onclick="exportTableToCsv('busCapacityTable', 'bus_capacity')">
+                            <i class="fas fa-file-excel"></i> Export Excel
+                        </button>
+                    </div>
+                </div>
+                <div class="filters" style="margin-bottom: 20px;">
+                    <div class="filter-item">
+                        <label for="capacityStatusFilter" class="form-label">Capacity Status</label>
+                        <select id="capacityStatusFilter" class="form-control">
+                            <option value="all">All</option>
+                            <option value="available">Available Seats</option>
+                            <option value="limited">Limited</option>
+                            <option value="full">Full</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="busCapacityTable">
+                        <thead>
+                            <tr>
+                                <th>Bus Number</th>
+                                <th>Maximum Capacity</th>
+                                <th>Current Students</th>
+                                <th>Available Seats</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reports Page -->
+        <div class="page" id="reports">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                <div>
+                    <h2 style="margin: 0;
+                     color: #1f2937;
+                      font-size: 24px;">
+                      📊 Reports & Analytics</h2>
+                    <p style="margin: 4px 0 0 0;
+                     color: #6b7280;
+                      font-size: 13px;">
+                      Last updated: <span id="reportUpdateTime">Today at 14:32</span></p>
+                </div>
+                <div class="card-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button onclick="exportReportPDF()" class="btn-primary btn-compact">
+                        <i class="fas fa-file-pdf"></i> Export PDF
+                    </button>
+                    <button onclick="exportTableToCsv('statisticsTable', 'reports_summary')" class="btn-secondary btn-compact">
+                        <i class="fas fa-file-excel"></i> Export Excel
+                    </button>
+                    <button onclick="window.print()" class="btn-secondary btn-compact">
+                        <i class="fas fa-print"></i> Print
+                    </button>
+                    <select id="reportPeriod" onchange="updateReportPeriod()" class="form-control" style="max-width: 180px;">
+                        <option value="current">Current Month</option>
+                        <option value="previous">Previous Month</option>
+                        <option value="quarter">This Quarter</option>
+                        <option value="year">This Year</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="reports-grid">
+                <!-- Executive Summary -->
+                <div class="card" style="grid-column: 1/-1; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <div class="card-header" style="border-color: rgba(255,255,255,0.2); display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="color: white; margin: 0;">📋 Monthly Report Summary</h3>
+                        <span style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">ACTIVE</span>
+                    </div>
+                    <div style="padding: 16px;">
+                        <p style="margin-bottom: 16px; font-size: 14px; opacity: 0.95;">
+                            Comprehensive report on school bus transportation system performance - includes trip statistics, attendance, safety, and driver performance.
+                        </p>
+                        <div class="summary-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                            <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 6px;">
+                                <div style="font-size: 24px; font-weight: 700; margin-bottom:4px;">1,225 <span style="color: #86efac; font-size: 16px;">↑ 12%</span></div>
+                                <div style="font-size: 13px; opacity: 0.9;">Total Trips (vs last month)</div>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 6px;">
+                                <div style="font-size: 24px; font-weight: 700; margin-bottom:4px;">94.2% <span style="color: #86efac; font-size: 16px;">↑ 3%</span></div>
+                                <div style="font-size: 13px; opacity: 0.9;">On-Time Rate</div>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 6px;">
+                                <div style="font-size: 24px; font-weight: 700; margin-bottom:4px;">92% <span style="color: #fca5a5; font-size: 16px;">↓ 2%</span></div>
+                                <div style="font-size: 13px; opacity: 0.9;">Attendance Rate</div>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 6px;">
+                                <div style="font-size: 24px; font-weight: 700; margin-bottom:4px;">4 <span style="color: #86efac; font-size: 16px;">↓ 50%</span></div>
+                                <div style="font-size: 13px; opacity: 0.9;">Minor Incidents</div>
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; margin-top: 16px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 16px;">
+                            <div style="font-size: 12px;">
+                                <strong style="display: block; margin-bottom: 4px;">🎯 Overall Performance</strong>
+                                <div style="background: rgba(255,255,255,0.2); height: 6px; border-radius: 3px; overflow: hidden;">
+                                    <div style="background: #86efac; height: 100%; width: 88%;"></div>
+                                </div>
+                                <span style="font-size: 11px; opacity: 0.9;">88/100 - Excellent</span>
+                            </div>
+                            <div style="font-size: 12px;">
+                                <strong style="display: block; margin-bottom: 4px;">👥 Compliance Rate</strong>
+                                <div style="background: rgba(255,255,255,0.2); height: 6px; border-radius: 3px; overflow: hidden;">
+                                    <div style="background: #60a5fa; height: 100%; width: 95%;"></div>
+                                </div>
+                                <span style="font-size: 11px; opacity: 0.9;">95% - On Track</span>
+                            </div>
+                            <div style="font-size: 12px;">
+                                <strong style="display: block; margin-bottom: 4px;">🔒 Safety Score</strong>
+                                <div style="background: rgba(255,255,255,0.2); height: 6px; border-radius: 3px; overflow: hidden;">
+                                    <div style="background: #fbbf24; height: 100%; width: 82%;"></div>
+                                </div>
+                                <span style="font-size: 11px; opacity: 0.9;">82% - Good</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Daily Trips Chart -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Daily Trips Report</h3>
+                    </div>
+                    <canvas id="dailyTripsChart"></canvas>
+                    <div class="chart-description">
+                        <h4>📊 Daily Trips Report</h4>
+                        <p>Shows the number of completed and cancelled trips per week. Upward trend indicates improved performance and service stability.</p>
+                        <div class="chart-stats">
+                            <div class="stat"><strong>495</strong> Completed Trips</div>
+                            <div class="stat"><strong>18</strong> Cancelled Trips</div>
+                            <div class="stat"><strong>96.5%</strong> Completion Rate</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Attendance Report -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Attendance Report</h3>
+                    </div>
+                    <canvas id="attendanceChart"></canvas>
+                    <div class="chart-description">
+                        <h4>👥 Attendance Report</h4>
+                        <p>Distribution of student attendance status - on-time, late, and absent. Key metric for monitoring student punctuality.</p>
+                        <div class="chart-stats">
+                            <div class="stat">✓ <strong>92%</strong> Present</div>
+                            <div class="stat">✗ <strong>5%</strong> Absent</div>
+                            <div class="stat">⏱ <strong>3%</strong> Late</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Students Per School -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Students per School</h3>
+                    </div>
+                    <canvas id="studentsPerSchoolChart"></canvas>
+                    <div class="chart-description">
+                        <h4>🎒 Enrollment by School</h4>
+                        <p>Highlights student distribution across partner schools. Useful for route planning and capacity allocation.</p>
+                        <div class="chart-stats">
+                            <div class="stat"><strong>5</strong> Schools</div>
+                            <div class="stat"><strong>412</strong> Total Students</div>
+                            <div class="stat"><strong>3</strong> Schools at capacity</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monthly Complaints -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Monthly Complaints</h3>
+                    </div>
+                    <canvas id="monthlyComplaintsChart"></canvas>
+                    <div class="chart-description">
+                        <h4>🛡️ Complaints Trend</h4>
+                        <p>Monthly complaints trend to monitor service quality and incident resolution progress.</p>
+                        <div class="chart-stats">
+                            <div class="stat"><strong>18</strong> Total Complaints</div>
+                            <div class="stat"><strong>72%</strong> Resolved</div>
+                            <div class="stat"><strong>-15%</strong> MoM Change</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Route Performance -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Route Performance</h3>
+                    </div>
+                    <canvas id="routePerformanceChart"></canvas>
+                    <div class="chart-description">
+                        <h4>🛣️ Route Performance</h4>
+                        <p>Compares trip volume and on-time rate for each route. Blue bars = total trips, green bars = on-time percentage compliance.</p>
+                        <div class="chart-stats">
+                            <div class="stat">🏆 Best: <strong>Route I</strong> (98%)</div>
+                            <div class="stat">📍 Average: <strong>93%</strong> On-Time</div>
+                            <div class="stat">⚠️ Needs Review: <strong>Route D</strong> (88%)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Driver Performance -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Driver Performance Ranking</h3>
+                    </div>
+                    <div id="driverPerformanceList" style="max-height: 300px; overflow-y: auto;"></div>
+                    <div class="chart-description">
+                        <h4>🏅 Driver Performance Ranking</h4>
+                        <p>Drivers ranked by overall performance score (trips, on-time compliance, safety). Scores range from 88 to 98 out of 100.</p>
+                        <div class="chart-stats">
+                            <div class="stat">🥇 <strong>Amr Abdelrahman</strong> - 98/100</div>
+                            <div class="stat">📊 <strong>148</strong> Trips Completed</div>
+                            <div class="stat">✅ <strong>100%</strong> Safety Rating</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Incident Report -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Safety & Incidents</h3>
+                    </div>
+                    <canvas id="incidentChart"></canvas>
+                    <div class="chart-description">
+                        <h4>⚠️ Safety & Incidents</h4>
+                        <p>Compares incident types between current and previous month (delays, accidents, vehicle issues, driver issues).</p>
+                        <div class="chart-stats">
+                            <div class="stat">💚 Improvement: <strong>-25%</strong> Incidents</div>
+                            <div class="stat">Monitor: <strong>5</strong> Delays</div>
+                            <div class="stat">✓ Zero: <strong>0</strong> Severe Incidents</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fleet Utilization -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Fleet Utilization</h3>
+                    </div>
+                    <canvas id="fleetChart"></canvas>
+                    <div class="chart-description">
+                        <h4>🚌 Fleet Utilization</h4>
+                        <p>Current state of fleet buses - how many are active, in maintenance, and idle. Total fleet: 10 buses.</p>
+                        <div class="chart-stats">
+                            <div class="stat">✓ Active: <strong>8</strong> Buses (80%)</div>
+                            <div class="stat">🔧 Maintenance: <strong>2</strong> Buses (20%)</div>
+                            <div class="stat">💯 Availability Rate: <strong>80%</strong></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monthly Summary -->
+                <div class="card report-summary">
+                    <h3>Monthly Summary</h3>
+                    <div class="summary-grid">
+                        <div class="summary-item">
+                            <i class="fas fa-bus"></i>
+                            <div>
+                                <h4 id="totalTrips">1,080</h4>
+                                <p>Total Trips</p>
+                            </div>
+                        </div>
+                        <div class="summary-item">
+                            <i class="fas fa-users"></i>
+                            <div>
+                                <h4 id="avgAttendance">98.5%</h4>
+                                <p>Avg Attendance</p>
+                            </div>
+                        </div>
+                        <div class="summary-item">
+                            <i class="fas fa-clock"></i>
+                            <div>
+                                <h4 id="onTimeRate">95%</h4>
+                                <p>On-Time Rate</p>
+                            </div>
+                        </div>
+                        <div class="summary-item">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <div>
+                                <h4 id="incidentsCount">3</h4>
+                                <p>Incidents</p>
+                            </div>
+                        </div>
+                        <div class="summary-item">
+                            <i class="fas fa-chart-line"></i>
+                            <div>
+                                <h4 id="costPerTrip">$12.50</h4>
+                                <p>Cost Per Trip</p>
+                            </div>
+                        </div>
+                        <div class="summary-item">
+                            <i class="fas fa-fuel"></i>
+                            <div>
+                                <h4 id="fuelCost">$3,450</h4>
+                                <p>Fuel Cost</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detailed Statistics Table -->
+                <div class="card" style="grid-column: 1/-1;">
+                    <div class="card-header">
+                        <h3>Detailed Statistics</h3>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="data-table" id="statisticsTable">
+                            <thead>
+                                <tr>
+                                    <th>Route</th>
+                                    <th>Total Trips</th>
+                                    <th>On-Time %</th>
+                                    <th>Avg Passengers</th>
+                                    <th>Incidents</th>
+                                    <th>Driver</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="statisticsTableBody">
+                                <tr>
+                                    <td>Route A</td>
+                                    <td>145</td>
+                                    <td><span class="progress-bar" style="width: 96%;"></span> 96%</td>
+                                    <td>38/45</td>
+                                    <td>0</td>
+                                    <td>Ahmed Khaled</td>
+                                    <td><span class="status-badge active">Active</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Key Insights & Recommendations -->
+                <div class="card" style="grid-column: 1/-1; background: linear-gradient(135deg, #f0fdf4 0%, #e0fdf4 100%); border-left: 4px solid #10b981;">
+                    <div class="card-header">
+                        <h3 style="color: #047857;">💡 Key Insights & Recommendations</h3>
+                    </div>
+                    <div style="padding: 16px;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
+                            <div style="border-left: 3px solid #10b981; padding-left: 12px;">
+                                <h4 style="color: #047857; margin: 0 0 6px 0; font-size: 14px;">✅ Strengths</h4>
+                                <ul style="margin: 0; padding-left: 16px; font-size: 13px; color: #1f2937; line-height: 1.6;">
+                                    <li>Route I achieved highest on-time compliance rate (98%)</li>
+                                    <li>Driver Amr Abdelrahman demonstrates outstanding performance (98/100)</li>
+                                    <li>Excellent attendance rate of 92%</li>
+                                </ul>
+                            </div>
+                            <div style="border-left: 3px solid #f59e0b; padding-left: 12px;">
+                                <h4 style="color: #b45309; margin: 0 0 6px 0; font-size: 14px;">⚠️ Areas to Review</h4>
+                                <ul style="margin: 0; padding-left: 16px; font-size: 13px; color: #1f2937; line-height: 1.6;">
+                                    <li>Route D requires improvement (88% on-time rate only)</li>
+                                    <li>2 minor incidents reported in Routes D and F</li>
+                                    <li>Absence rate needs better monitoring (5%)</li>
+                                </ul>
+                            </div>
+                            <div style="border-left: 3px solid #3b82f6; padding-left: 12px;">
+                                <h4 style="color: #1e40af; margin: 0 0 6px 0; font-size: 14px;">📌 Recommendations</h4>
+                                <ul style="margin: 0; padding-left: 16px; font-size: 13px; color: #1f2937; line-height: 1.6;">
+                                    <li>Review performance with drivers on Route D</li>
+                                    <li>Provide additional safety training sessions</li>
+                                    <li>Develop attendance improvement action plan</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Professional Footer -->
+                <div class="card" style="grid-column: 1/-1; background: #f9fafb; border-top: 2px solid #e5e7eb;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; padding: 16px;">
+                        <div>
+                            <h4 style="margin: 0 0 8px 0; color: #1f2937; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Data Quality</h4>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="display: inline-block; width: 8px; height: 8px; background: #10b981; border-radius: 50%;"></span>
+                                <span style="color: #10b981; font-size: 13px; font-weight: 600;">100% Complete</span>
+                            </div>
+                            <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 12px;">All data synced</p>
+                        </div>
+                        <div>
+                            <h4 style="margin: 0 0 8px 0; color: #1f2937; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Confidence Level</h4>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="display: inline-block; width: 8px; height: 8px; background: #3b82f6; border-radius: 50%;"></span>
+                                <span style="color: #3b82f6; font-size: 13px; font-weight: 600;">High (98.5%)</span>
+                            </div>
+                            <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 12px;">Data verified</p>
+                        </div>
+                        <div>
+                            <h4 style="margin: 0 0 8px 0; color: #1f2937; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Report Period</h4>
+                            <p style="margin: 0; color: #1f2937; font-size: 13px; font-weight: 600;">Feb 1-18, 2026</p>
+                            <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 12px;">18 days active</p>
+                        </div>
+                        <div>
+                            <h4 style="margin: 0 0 8px 0; color: #1f2937; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Next Update</h4>
+                            <p style="margin: 0; color: #1f2937; font-size: 13px; font-weight: 600;">Mar 1, 2026</p>
+                            <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 12px;">11 days remaining</p>
+                        </div>
+                    </div>
+                    <div style="padding: 12px 16px; border-top: 1px solid #e5e7eb; background: #f3f4f6; border-radius: 0 0 8px 8px;">
+                        <p style="margin: 0; color: #6b7280; font-size: 12px;">
+                            <strong>Note:</strong> This report contains historical and real-time data sourced from active routes and driver tracking systems. 
+                            <span style="color: #3b82f6; cursor: pointer;">View Data Dictionary →</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Requests Page -->
+        <div class="page" id="requests">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Requests Center</h3>
+                    <span style="font-size: 14px; color: #6B7280;">Manage requests from parents and drivers</span>
+                </div>
+                <div class="filters">
+                    <div class="filter-item">
+                        <label for="requestTypeFilter" class="form-label">Request Type</label>
+                        <select id="requestTypeFilter" class="form-control">
+                            <option value="all">All</option>
+                            <option value="parent">Parents</option>
+                            <option value="driver">Drivers</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="requestStatusFilter" class="form-label">Status</label>
+                        <select id="requestStatusFilter" class="form-control">
+                            <option value="all">All</option>
+                            <option value="new">New</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="resolved">Resolved</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="requestsTable">
+                        <thead>
+                            <tr>
+                                <th>From</th>
+                                <th>Role</th>
+                                <th>Subject</th>
+                                <th>Priority</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Account Recovery Page -->
+        <div class="page" id="account-recovery">
+            <div class="recovery-summary-grid">
+                <div class="card stat-card recovery-stat">
+                    <div class="stat-icon blue">
+                        <i class="fas fa-envelope-open-text"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="recoveryPendingStat">0</h3>
+                        <p>Pending Review</p>
+                        <span class="stat-trend">Email or password requests</span>
+                    </div>
+                </div>
+                <div class="card stat-card recovery-stat">
+                    <div class="stat-icon orange">
+                        <i class="fas fa-user-clock"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="recoveryProcessingStat">0</h3>
+                        <p>In Progress</p>
+                        <span class="stat-trend">Waiting admin action</span>
+                    </div>
+                </div>
+                <div class="card stat-card recovery-stat">
+                    <div class="stat-icon green">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="recoveryCompletedStat">0</h3>
+                        <p>Completed</p>
+                        <span class="stat-trend up">Updated by admin</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header recovery-header">
+                    <div>
+                        <h3>Account Recovery Requests</h3>
+                        <p class="card-subtitle">Handle forgotten email or password requests for parents, drivers, and staff accounts.</p>
+                    </div>
+                    <button class="btn-primary" onclick="createRecoveryRequest()">
+                        <i class="fas fa-plus"></i> Add Request
+                    </button>
+                </div>
+
+                <div class="filters">
+                    <div class="filter-item">
+                        <label for="recoveryRoleFilter" class="form-label">Role</label>
+                        <select id="recoveryRoleFilter" class="form-control">
+                            <option value="all">All Roles</option>
+                            <option value="parent">Parents</option>
+                            <option value="driver">Drivers</option>
+                            <option value="staff">Administration</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="recoveryTypeFilter" class="form-label">Issue</label>
+                        <select id="recoveryTypeFilter" class="form-control">
+                            <option value="all">All Issues</option>
+                            <option value="email">Forgot Email</option>
+                            <option value="password">Forgot Password</option>
+                            <option value="both">Email & Password</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="recoveryStatusFilter" class="form-label">Status</label>
+                        <select id="recoveryStatusFilter" class="form-control">
+                            <option value="all">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="reviewing">Reviewing</option>
+                            <option value="completed">Completed</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-wrapper">
+                    <table class="data-table" id="accountRecoveryTable">
+                        <thead>
+                            <tr>
+                                <th>Requester</th>
+                                <th>Role</th>
+                                <th>Issue</th>
+                                <th>Current Email</th>
+                                <th>Requested Change</th>
+                                <th>Verified By</th>
+                                <th>Status</th>
+                                <th>Requested At</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Financials Page -->
+        <div class="page" id="financials">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Company Financials</h3>
+                    <button class="btn-primary" onclick="addFinancialEntry()">
+                        <i class="fas fa-plus"></i> Add Entry
+                    </button>
+                </div>
+                <div class="filters" style="margin-bottom: 20px;">
+                    <div class="filter-item">
+                        <label for="financialTypeFilter" class="form-label">Type</label>
+                        <select id="financialTypeFilter" class="form-control">
+                            <option value="all">All</option>
+                            <option value="income">Income</option>
+                            <option value="expense">Expense</option>
+                            <option value="profit">Profit</option>
+                            <option value="loss">Loss</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="financialPeriodFilter" class="form-label">Period</label>
+                        <select id="financialPeriodFilter" class="form-control">
+                            <option value="all">All Time</option>
+                            <option value="this_month">This Month</option>
+                            <option value="last_month">Last Month</option>
+                            <option value="this_year">This Year</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="financialsTable">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                                <th>Amount</th>
+                                <th>Entered By</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h3>Payments System</h3>
+                    <div class="card-actions">
+                        <button class="btn-secondary btn-compact" onclick="exportTableToCsv('paymentsTable', 'payments')">
+                            <i class="fas fa-file-excel"></i> Export Excel
+                        </button>
+                        <button class="btn-primary btn-compact" onclick="exportTableToPdf('paymentsTable', 'payments')">
+                            <i class="fas fa-file-pdf"></i> Export PDF
+                        </button>
+                    </div>
+                </div>
+                <div class="filters" style="margin-bottom: 20px;">
+                    <div class="filter-item">
+                        <label for="paymentStatusFilter" class="form-label">Payment Status</label>
+                        <select id="paymentStatusFilter" class="form-control">
+                            <option value="all">All</option>
+                            <option value="paid">Paid</option>
+                            <option value="pending">Pending</option>
+                            <option value="overdue">Overdue</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="paymentPeriodFilter" class="form-label">Payment Date</label>
+                        <select id="paymentPeriodFilter" class="form-control">
+                            <option value="all">All Time</option>
+                            <option value="this_month">This Month</option>
+                            <option value="last_month">Last Month</option>
+                            <option value="this_year">This Year</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="paymentsTable">
+                        <thead>
+                            <tr>
+                                <th>Parent Name</th>
+                                <th>Student</th>
+                                <th>Amount</th>
+                                <th>Payment Status</th>
+                                <th>Payment Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Maintenance Page -->
+        <div class="page" id="maintenance">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Bus Maintenance & Repairs</h3>
+                    <button class="btn-primary" onclick="addMaintenanceRecord()">
+                        <i class="fas fa-plus"></i> Add Record
+                    </button>
+                </div>
+                <div class="filters" style="margin-bottom: 20px;">
+                    <div class="filter-item">
+                        <label for="maintenanceBusFilter" class="form-label">Bus</label>
+                        <select id="maintenanceBusFilter" class="form-control">
+                            <option value="all">All Buses</option>
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="maintenanceTypeFilter" class="form-label">Type</label>
+                        <select id="maintenanceTypeFilter" class="form-control">
+                            <option value="all">All Types</option>
+                            <option value="repair">Repair</option>
+                            <option value="maintenance">Maintenance</option>
+                            <option value="inspection">Inspection</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="maintenanceTable">
+                        <thead>
+                            <tr>
+                                <th>Bus Number</th>
+                                <th>Plate Number</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                                <th>Date</th>
+                                <th>Cost</th>
+                                <th>Technician</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Tracking Page -->
+        <div class="page" id="live-tracking">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Live Bus Tracking</h3>
+                    <div class="card-actions">
+                        <button class="btn-secondary" onclick="refreshTracking()">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="filters" style="margin-bottom: 20px;">
+                    <div class="filter-item">
+                        <label for="trackingBusFilter" class="form-label">Bus</label>
+                        <select id="trackingBusFilter" class="form-control">
+                            <option value="all">All Buses</option>
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="trackingRouteFilter" class="form-label">Route</label>
+                        <select id="trackingRouteFilter" class="form-control">
+                            <option value="all">All Routes</option>
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+                </div>
+                <div class="tracking-map">
+                    <div id="trackingMapContent" class="tracking-map-panel">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="trackingTable">
+                        <thead>
+                            <tr>
+                                <th>Bus Number</th>
+                                <th>Route</th>
+                                <th>Current Location</th>
+                                <th>Speed</th>
+                                <th>Status</th>
+                                <th>Last Update</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h3>Trip History & Playback</h3>
+                    <div class="card-actions">
+                        <button class="btn-secondary btn-compact" type="button" onclick="replaySelectedTrip()">
+                            <i class="fas fa-play"></i> Replay
+                        </button>
+                    </div>
+                </div>
+                <div class="filters" style="margin-bottom: 20px;">
+                    <div class="filter-item">
+                        <label for="tripHistoryFilter" class="form-label">Past Trip</label>
+                        <select id="tripHistoryFilter" class="form-control">
+                            <option value="">Select trip</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="trip-playback-layout">
+                    <div id="tripPlaybackMap" class="trip-playback-map">
+                        <!-- Populated by JS -->
+                    </div>
+                    <div id="tripPlaybackDetails" class="trip-playback-details">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Students Page -->
+        <div class="page" id="students">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Student Management</h3>
+                    <button class="btn-primary" onclick="addStudent()">
+                        <i class="fas fa-plus"></i> Add Student
+                    </button>
+                </div>
+                <div class="filters" style="margin-bottom: 20px;">
+                    <div class="filter-item">
+                        <label for="studentSchoolFilter" class="form-label">School</label>
+                        <select id="studentSchoolFilter" class="form-control">
+                            <option value="all">All Schools</option>
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="studentGradeFilter" class="form-label">Grade</label>
+                        <select id="studentGradeFilter" class="form-control">
+                            <option value="all">All Grades</option>
+                            <option value="kindergarten">Kindergarten</option>
+                            <option value="1">Grade 1</option>
+                            <option value="2">Grade 2</option>
+                            <option value="3">Grade 3</option>
+                            <option value="4">Grade 4</option>
+                            <option value="5">Grade 5</option>
+                            <option value="6">Grade 6</option>
+                            <option value="7">Grade 7</option>
+                            <option value="8">Grade 8</option>
+                            <option value="9">Grade 9</option>
+                            <option value="10">Grade 10</option>
+                            <option value="11">Grade 11</option>
+                            <option value="12">Grade 12</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="studentStatusFilter" class="form-label">Status</label>
+                        <select id="studentStatusFilter" class="form-control">
+                            <option value="all">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="transferred">Transferred</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="studentsTable">
+                        <thead>
+                            <tr>
+                                <th>Student ID</th>
+                                <th>Name</th>
+                                <th>Grade</th>
+                                <th>School</th>
+                                <th>Parent</th>
+                                <th>Pickup Location</th>
+                                <th>Drop-off Location</th>
+                                <th>Trip</th>
+                                <th>Attendance</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h3>Real-Time Attendance Tracking</h3>
+                    <div class="card-actions">
+                        <button class="btn-secondary btn-compact" onclick="exportTableToCsv('attendanceRealtimeTable', 'attendance_realtime')">
+                            <i class="fas fa-file-excel"></i> Export Excel
+                        </button>
+                        <button class="btn-primary btn-compact" onclick="exportTableToPdf('attendanceRealtimeTable', 'attendance_realtime')">
+                            <i class="fas fa-file-pdf"></i> Export PDF
+                        </button>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="attendanceRealtimeTable">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Trip</th>
+                                <th>Bus</th>
+                                <th>Pickup Status</th>
+                                <th>Drop-off Status</th>
+                                <th>Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendanceRealtimeBody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h3>Attendance Management</h3>
+                    <div class="card-actions">
+                        <button class="btn-secondary btn-compact" onclick="exportTableToCsv('attendanceTable', 'attendance_records')">
+                            <i class="fas fa-file-excel"></i> Export Excel
+                        </button>
+                        <button class="btn-primary btn-compact" onclick="exportTableToPdf('attendanceTable', 'attendance_records')">
+                            <i class="fas fa-file-pdf"></i> Export PDF
+                        </button>
+                    </div>
+                </div>
+                <div class="filters" style="margin-bottom: 20px;">
+                    <div class="filter-item">
+                        <label for="attendancePickupFilter" class="form-label">Pickup Status</label>
+                        <select id="attendancePickupFilter" class="form-control">
+                            <option value="all">All</option>
+                            <option value="picked">Picked Up</option>
+                            <option value="pending">Pending</option>
+                            <option value="missed">Missed</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="attendanceDropoffFilter" class="form-label">Drop-off Status</label>
+                        <select id="attendanceDropoffFilter" class="form-control">
+                            <option value="all">All</option>
+                            <option value="dropped">Dropped</option>
+                            <option value="pending">Pending</option>
+                            <option value="missed">Missed</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="attendanceTable">
+                        <thead>
+                            <tr>
+                                <th>Student Name</th>
+                                <th>Trip</th>
+                                <th>Bus Number</th>
+                                <th>Pickup Status</th>
+                                <th>Drop-off Status</th>
+                                <th>Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trips / Routes Page -->
+        <div class="page" id="trips">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Trip & Route Management</h3>
+                    <button class="btn-primary" onclick="addTrip()">
+                        <i class="fas fa-plus"></i> Add Trip
+                    </button>
+                </div>
+                <div class="filters" style="margin-bottom: 20px;">
+                    <div class="filter-item">
+                        <label for="tripStatusFilter" class="form-label">Status</label>
+                        <select id="tripStatusFilter" class="form-control">
+                            <option value="all">All Trips</option>
+                            <option value="scheduled">Scheduled</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="tripDateFilter" class="form-label">Date</label>
+                        <input type="date" id="tripDateFilter" class="form-control">
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="tripsTable">
+                        <thead>
+                            <tr>
+                                <th>Trip ID</th>
+                                <th>Route Name</th>
+                                <th>Bus</th>
+                                <th>Driver</th>
+                                <th>Start Time</th>
+                                <th>End Time</th>
+                                <th>Students</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h3>Driver, Bus & Trip Assignment</h3>
+                </div>
+                <div class="filters" style="margin-bottom: 20px;">
+                    <div class="filter-item">
+                        <label for="assignmentTripSelect" class="form-label">Trip</label>
+                        <select id="assignmentTripSelect" class="form-control"></select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="assignmentBusSelect" class="form-label">Bus</label>
+                        <select id="assignmentBusSelect" class="form-control"></select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="assignmentDriverSelect" class="form-label">Driver</label>
+                        <select id="assignmentDriverSelect" class="form-control"></select>
+                    </div>
+                    <div class="filter-item" style="justify-content: flex-end;">
+                        <button class="btn-primary" type="button" onclick="applyTripAssignment()">
+                            <i class="fas fa-link"></i> Assign
+                        </button>
+                    </div>
+                </div>
+                <div class="assignment-grid" id="assignmentOverview">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h3>Route Stops</h3>
+                    <div class="card-actions">
+                        <button class="btn-secondary btn-compact" type="button" onclick="addStopToSelectedTrip()">
+                            <i class="fas fa-plus"></i> Add Stop
+                        </button>
+                    </div>
+                </div>
+                <div class="filters" style="margin-bottom: 20px;">
+                    <div class="filter-item">
+                        <label for="routeStopsTripFilter" class="form-label">Trip</label>
+                        <select id="routeStopsTripFilter" class="form-control">
+                            <option value="">Select trip</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="stopNameInput" class="form-label">Stop Name</label>
+                        <input id="stopNameInput" class="form-control" type="text" placeholder="Stop name">
+                    </div>
+                    <div class="filter-item">
+                        <label for="stopLocationInput" class="form-label">Location / Lat,Lng</label>
+                        <input id="stopLocationInput" class="form-control" type="text" placeholder="31.2101, 29.9187">
+                    </div>
+                    <div class="filter-item">
+                        <label for="stopArrivalInput" class="form-label">Expected Arrival</label>
+                        <input id="stopArrivalInput" class="form-control" type="time">
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="routeStopsTable">
+                        <thead>
+                            <tr>
+                                <th>Order</th>
+                                <th>Name</th>
+                                <th>Location</th>
+                                <th>Expected Arrival</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="routeStopsBody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notifications Page -->
+        <div class="page" id="notifications">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Notification Management</h3>
+                    <button class="btn-primary" onclick="focusBroadcastForm()">
+                        <i class="fas fa-plus"></i> Send Notification
+                    </button>
+                </div>
+                <form id="broadcastForm" class="filters" style="margin-bottom: 20px;">
+                    <div class="filter-item" style="flex: 1 1 220px;">
+                        <label for="notificationTemplateSelect" class="form-label">Template</label>
+                        <select id="notificationTemplateSelect" class="form-control">
+                            <option value="">Custom message</option>
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+                    <div class="filter-item" style="flex: 1 1 220px;">
+                        <label for="broadcastTitle" class="form-label">Title</label>
+                        <input id="broadcastTitle" class="form-control" type="text" placeholder="Enter title" required>
+                    </div>
+                    <div class="filter-item" style="flex: 1 1 220px;">
+                        <label for="broadcastType" class="form-label">Type</label>
+                        <select id="broadcastType" class="form-control">
+                            <option value="general">General</option>
+                            <option value="delay">Delay</option>
+                            <option value="route-change">Route Change</option>
+                            <option value="emergency">Emergency</option>
+                        </select>
+                    </div>
+                    <div class="filter-item" style="flex: 1 1 220px;">
+                        <label for="broadcastRecipients" class="form-label">Recipients</label>
+                        <div class="form-control" style="display:flex; gap:12px; align-items:center; padding:10px 12px;">
+                            <label style="display:flex; gap:6px; align-items:center; font-size:13px;">
+                                <input type="checkbox" id="broadcastToParents" checked> Parents
+                            </label>
+                            <label style="display:flex; gap:6px; align-items:center; font-size:13px;">
+                                <input type="checkbox" id="broadcastToDrivers" checked> Drivers
+                            </label>
+                        </div>
+                    </div>
+                    <div class="filter-item" style="flex: 1 1 100%;">
+                        <label for="broadcastMessage" class="form-label">Message</label>
+                        <textarea id="broadcastMessage" class="form-control" rows="3" placeholder="Write your message..." required></textarea>
+                    </div>
+                    <div class="filter-item" style="flex: 1 1 100%; display:flex; justify-content:flex-end;">
+                        <button type="button" class="btn-primary" onclick="sendBroadcastNotification()">
+                            <i class="fas fa-paper-plane"></i> Send To Users
+                        </button>
+                    </div>
+                </form>
+                <div class="filters" style="margin-bottom: 20px;">
+                    <div class="filter-item">
+                        <label for="notificationTypeFilter" class="form-label">Type</label>
+                        <select id="notificationTypeFilter" class="form-control">
+                            <option value="all">All Types</option>
+                            <option value="emergency">Emergency</option>
+                            <option value="delay">Delay</option>
+                            <option value="route-change">Route Change</option>
+                            <option value="general">General</option>
+                            <option value="message">Message</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="notificationStatusFilter" class="form-label">Status</label>
+                        <select id="notificationStatusFilter" class="form-control">
+                            <option value="all">All Status</option>
+                            <option value="sent">Sent</option>
+                            <option value="pending">Pending</option>
+                            <option value="failed">Failed</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="notificationsTable">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Type</th>
+                                <th>Recipients</th>
+                                <th>Sent Date</th>
+                                <th>Status</th>
+                                <th>Reply</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h3>Notification Templates</h3>
+                </div>
+                <div class="template-grid" id="notificationTemplatesGrid">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h3>Emergency Alerts</h3>
+                    <div class="card-actions">
+                        <button class="btn-secondary btn-compact" onclick="exportTableToCsv('emergencyAlertsTable', 'emergency_alerts')">
+                            <i class="fas fa-file-excel"></i> Export Excel
+                        </button>
+                    </div>
+                </div>
+                <div class="filters" style="margin-bottom: 20px;">
+                    <div class="filter-item">
+                        <label for="emergencyTypeFilter" class="form-label">Emergency Type</label>
+                        <select id="emergencyTypeFilter" class="form-control">
+                            <option value="all">All</option>
+                            <option value="breakdown">Breakdown</option>
+                            <option value="accident">Accident</option>
+                            <option value="delay">Delay</option>
+                            <option value="medical">Medical</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="emergencyAlertsTable">
+                        <thead>
+                            <tr>
+                                <th>Emergency Type</th>
+                                <th>Bus Number</th>
+                                <th>Driver</th>
+                                <th>Location</th>
+                                <th>Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h3>Smart Alerts</h3>
+                    <div class="card-actions">
+                        <button class="btn-secondary btn-compact" type="button" onclick="runSmartAlertScan()">
+                            <i class="fas fa-shield-alt"></i> Scan
+                        </button>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="smartAlertsTable">
+                        <thead>
+                            <tr>
+                                <th>Alert</th>
+                                <th>Bus</th>
+                                <th>Trip</th>
+                                <th>Severity</th>
+                                <th>Detected At</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="smartAlertsBody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Emergency Logs Page -->
+        <div class="page" id="emergency-logs">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Emergency Logs</h3>
+                    <div class="card-actions">
+                        <button class="btn-secondary btn-compact" onclick="exportTableToCsv('emergencyLogsTable', 'emergency_logs')">
+                            <i class="fas fa-file-excel"></i> Export Excel
+                        </button>
+                        <button class="btn-primary btn-compact" onclick="exportTableToPdf('emergencyLogsTable', 'emergency_logs')">
+                            <i class="fas fa-file-pdf"></i> Export PDF
+                        </button>
+                    </div>
+                </div>
+                <div class="filters" style="margin-bottom: 20px;">
+                    <div class="filter-item">
+                        <label for="emergencyLogDateFilter" class="form-label">Date</label>
+                        <input type="date" id="emergencyLogDateFilter" class="form-control">
+                    </div>
+                    <div class="filter-item">
+                        <label for="emergencyLogBusFilter" class="form-label">Bus</label>
+                        <select id="emergencyLogBusFilter" class="form-control">
+                            <option value="all">All Buses</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="emergencyLogDriverFilter" class="form-label">Driver</label>
+                        <select id="emergencyLogDriverFilter" class="form-control">
+                            <option value="all">All Drivers</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="emergencyLogTypeFilter" class="form-label">Type</label>
+                        <select id="emergencyLogTypeFilter" class="form-control">
+                            <option value="all">All Types</option>
+                            <option value="breakdown">Breakdown</option>
+                            <option value="accident">Accident</option>
+                            <option value="medical">Medical</option>
+                            <option value="delay">Delay</option>
+                            <option value="general">General</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="emergencyLogsTable">
+                        <thead>
+                            <tr>
+                                <th>Bus</th>
+                                <th>Driver</th>
+                                <th>Location</th>
+                                <th>Type</th>
+                                <th>Time</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="emergencyLogsBody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Complaints Page -->
+        <div class="page" id="complaints">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Complaints & Feedback</h3>
+                    <button class="btn-primary" onclick="addComplaint()">
+                        <i class="fas fa-plus"></i> Add Complaint
+                    </button>
+                </div>
+                <div class="filters" style="margin-bottom: 20px;">
+                    <div class="filter-item">
+                        <label for="complaintTypeFilter" class="form-label">Type</label>
+                        <select id="complaintTypeFilter" class="form-control">
+                            <option value="all">All Types</option>
+                            <option value="service">Service Quality</option>
+                            <option value="driver">Driver Behavior</option>
+                            <option value="bus">Bus Condition</option>
+                            <option value="safety">Safety Concern</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="complaintStatusFilter" class="form-label">Status</label>
+                        <select id="complaintStatusFilter" class="form-control">
+                            <option value="all">All Status</option>
+                            <option value="open">Open</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="resolved">Resolved</option>
+                            <option value="closed">Closed</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="complaintsTable">
+                        <thead>
+                            <tr>
+                                <th>Complaint ID</th>
+                                <th>Submitted By</th>
+                                <th>Type</th>
+                                <th>Subject</th>
+                                <th>Priority</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Schools Page -->
+        <div class="page" id="schools">
+            <div class="card">
+                <div class="card-header">
+                    <h3>School Management</h3>
+                    <button class="btn-primary" onclick="addSchool()">
+                        <i class="fas fa-plus"></i> Add School
+                    </button>
+                </div>
+                <div class="filters" style="margin-bottom: 20px;">
+                    <div class="filter-item">
+                        <label for="schoolTypeFilter" class="form-label">Type</label>
+                        <select id="schoolTypeFilter" class="form-control">
+                            <option value="all">All Types</option>
+                            <option value="public">Public</option>
+                            <option value="private">Private</option>
+                            <option value="international">International</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="schoolDistrictFilter" class="form-label">District</label>
+                        <select id="schoolDistrictFilter" class="form-control">
+                            <option value="all">All Districts</option>
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="schoolsTable">
+                        <thead>
+                            <tr>
+                                <th>School Name</th>
+                                <th>Type</th>
+                                <th>District</th>
+                                <th>Address</th>
+                                <th>Contact</th>
+                                <th>Students</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users & Roles Page -->
+        <div class="page" id="users">
+            <div class="card">
+                <div class="card-header">
+                    <h3>User Management & Roles</h3>
+                    <button class="btn-primary" onclick="addUser()">
+                        <i class="fas fa-plus"></i> Add User
+                    </button>
+                </div>
+                <div class="filters" style="margin-bottom: 20px;">
+                    <div class="filter-item">
+                        <label for="userRoleFilter" class="form-label">Role</label>
+                        <select id="userRoleFilter" class="form-control">
+                            <option value="all">All Roles</option>
+                            <option value="admin">Administrator</option>
+                            <option value="manager">Manager</option>
+                            <option value="driver">Driver</option>
+                            <option value="parent">Parent</option>
+                            <option value="staff">Staff</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="userStatusFilter" class="form-label">Status</label>
+                        <select id="userStatusFilter" class="form-control">
+                            <option value="all">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="suspended">Suspended</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="usersTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Department</th>
+                                <th>Last Login</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Page -->
+        <div class="page" id="settings">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-cog"></i> System Settings</h3>
+                    <div class="settings-header-info">
+                        <span class="settings-last-saved">Last saved: Today at 10:30 AM</span>
+                    </div>
+                </div>
+
+                <div class="settings-container">
+                    <!-- General Settings -->
+                    <div class="settings-section">
+                        <div class="section-header">
+                            <i class="fas fa-globe"></i>
+                            <h4>General Settings</h4>
+                        </div>
+                        <div class="settings-grid">
+                            <div class="setting-item">
+                                <label for="systemName">
+                                    <i class="fas fa-building"></i>
+                                    System Name
+                                </label>
+                                <input type="text" id="systemName" class="form-control" value="SAFESTEP BUS">
+                            </div>
+                            <div class="setting-item">
+                                <label for="systemDescription">
+                                    <i class="fas fa-info-circle"></i>
+                                    System Description
+                                </label>
+                                <textarea id="systemDescription" class="form-control" rows="2" placeholder="Enter system description...">School Bus Tracking & Management System</textarea>
+                            </div>
+                            <div class="setting-item">
+                                <label for="defaultLanguage">
+                                    <i class="fas fa-language"></i>
+                                    Default Language
+                                </label>
+                                <select id="defaultLanguage" class="form-control">
+                                    <option value="en">🇺🇸 English</option>
+                                    <option value="ar">🇪🇬 Arabic</option>
+                                    <option value="fr">🇫🇷 French</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <label for="timezone">
+                                    <i class="fas fa-clock"></i>
+                                    Timezone
+                                </label>
+                                <select id="timezone" class="form-control">
+                                    <option value="Africa/Cairo">Africa/Cairo (GMT+2)</option>
+                                    <option value="UTC">UTC</option>
+                                    <option value="Europe/London">Europe/London (GMT+1)</option>
+                                    <option value="America/New_York">America/New_York (GMT-5)</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <label for="dateFormat">
+                                    <i class="fas fa-calendar"></i>
+                                    Date Format
+                                </label>
+                                <select id="dateFormat" class="form-control">
+                                    <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                                    <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                                    <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <label for="currency">
+                                    <i class="fas fa-dollar-sign"></i>
+                                    Currency
+                                </label>
+                                <select id="currency" class="form-control">
+                                    <option value="EGP">🇪🇬 EGP (Egyptian Pound)</option>
+                                    <option value="USD">🇺🇸 USD (US Dollar)</option>
+                                    <option value="EUR">🇪🇺 EUR (Euro)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notification Settings -->
+                    <div class="settings-section">
+                        <div class="section-header">
+                            <i class="fas fa-bell"></i>
+                            <h4>Notification Settings</h4>
+                        </div>
+                        <div class="settings-grid">
+                            <div class="setting-item checkbox-setting">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="emailNotifications" checked>
+                                    <span class="checkmark"></span>
+                                    <div class="checkbox-content">
+                                        <strong>Email Notifications</strong>
+                                        <small>Send notifications via email</small>
+                                    </div>
+                                </label>
+                            </div>
+                            <div class="setting-item checkbox-setting">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="smsNotifications" checked>
+                                    <span class="checkmark"></span>
+                                    <div class="checkbox-content">
+                                        <strong>SMS Notifications</strong>
+                                        <small>Send notifications via SMS</small>
+                                    </div>
+                                </label>
+                            </div>
+                            <div class="setting-item checkbox-setting">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="pushNotifications">
+                                    <span class="checkmark"></span>
+                                    <div class="checkbox-content">
+                                        <strong>Push Notifications</strong>
+                                        <small>Send push notifications to mobile apps</small>
+                                    </div>
+                                </label>
+                            </div>
+                            <div class="setting-item checkbox-setting">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="emergencyAlerts" checked>
+                                    <span class="checkmark"></span>
+                                    <div class="checkbox-content">
+                                        <strong>Emergency Alerts</strong>
+                                        <small>Send emergency notifications immediately</small>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Security Settings -->
+                    <div class="settings-section">
+                        <div class="section-header">
+                            <i class="fas fa-shield-alt"></i>
+                            <h4>Security Settings</h4>
+                        </div>
+                        <div class="settings-grid">
+                            <div class="setting-item">
+                                <label for="sessionTimeout">
+                                    <i class="fas fa-clock"></i>
+                                    Session Timeout (minutes)
+                                </label>
+                                <input type="number" id="sessionTimeout" class="form-control" value="30" min="5" max="480">
+                            </div>
+                            <div class="setting-item">
+                                <label for="passwordPolicy">
+                                    <i class="fas fa-lock"></i>
+                                    Password Policy
+                                </label>
+                                <select id="passwordPolicy" class="form-control">
+                                    <option value="basic">Basic (8+ characters)</option>
+                                    <option value="strong">Strong (12+ chars, mixed case, numbers)</option>
+                                    <option value="very-strong">Very Strong (16+ chars, special chars)</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <label for="maxLoginAttempts">
+                                    <i class="fas fa-user-lock"></i>
+                                    Max Login Attempts
+                                </label>
+                                <input type="number" id="maxLoginAttempts" class="form-control" value="5" min="3" max="10">
+                            </div>
+                            <div class="setting-item checkbox-setting">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="twoFactorAuth">
+                                    <span class="checkmark"></span>
+                                    <div class="checkbox-content">
+                                        <strong>Two-Factor Authentication</strong>
+                                        <small>Require 2FA for admin accounts</small>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- System Settings -->
+                    <div class="settings-section">
+                        <div class="section-header">
+                            <i class="fas fa-cogs"></i>
+                            <h4>System Settings</h4>
+                        </div>
+                        <div class="settings-grid">
+                            <div class="setting-item">
+                                <label for="maxFileSize">
+                                    <i class="fas fa-file-upload"></i>
+                                    Max File Upload Size (MB)
+                                </label>
+                                <input type="number" id="maxFileSize" class="form-control" value="10" min="1" max="100">
+                            </div>
+                            <div class="setting-item">
+                                <label for="backupFrequency">
+                                    <i class="fas fa-database"></i>
+                                    Backup Frequency
+                                </label>
+                                <select id="backupFrequency" class="form-control">
+                                    <option value="daily">Daily</option>
+                                    <option value="weekly">Weekly</option>
+                                    <option value="monthly">Monthly</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <label for="logRetention">
+                                    <i class="fas fa-history"></i>
+                                    Log Retention (days)
+                                </label>
+                                <input type="number" id="logRetention" class="form-control" value="90" min="30" max="365">
+                            </div>
+                            <div class="setting-item checkbox-setting">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="maintenanceMode">
+                                    <span class="checkmark"></span>
+                                    <div class="checkbox-content">
+                                        <strong>Maintenance Mode</strong>
+                                        <small>Put system in maintenance mode</small>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bus System Settings -->
+                    <div class="settings-section">
+                        <div class="section-header">
+                            <i class="fas fa-bus"></i>
+                            <h4>Bus System Settings</h4>
+                        </div>
+                        <div class="settings-grid">
+                            <div class="setting-item">
+                                <label for="defaultBusCapacity">
+                                    <i class="fas fa-users"></i>
+                                    Default Bus Capacity
+                                </label>
+                                <input type="number" id="defaultBusCapacity" class="form-control" value="45" min="20" max="80">
+                            </div>
+                            <div class="setting-item">
+                                <label for="speedLimit">
+                                    <i class="fas fa-tachometer-alt"></i>
+                                    Speed Limit Alert (km/h)
+                                </label>
+                                <input type="number" id="speedLimit" class="form-control" value="80" min="50" max="120">
+                            </div>
+                            <div class="setting-item">
+                                <label for="routeDeviation">
+                                    <i class="fas fa-route"></i>
+                                    Route Deviation Alert (meters)
+                                </label>
+                                <input type="number" id="routeDeviation" class="form-control" value="100" min="50" max="500">
+                            </div>
+                            <div class="setting-item checkbox-setting">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="autoTracking" checked>
+                                    <span class="checkmark"></span>
+                                    <div class="checkbox-content">
+                                        <strong>Auto Tracking</strong>
+                                        <small>Automatically track bus locations</small>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-actions">
+                        <button class="btn-primary" onclick="saveSettings()">
+                            <i class="fas fa-save"></i> Save All Settings
+                        </button>
+                        <button class="btn-success" onclick="exportSettings()">
+                            <i class="fas fa-download"></i> Export Settings
+                        </button>
+                        <button class="btn-warning" onclick="importSettings()">
+                            <i class="fas fa-upload"></i> Import Settings
+                        </button>
+                        <button class="btn-danger" onclick="resetSettings()">
+                            <i class="fas fa-undo"></i> Reset to Default
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Logs Page -->
+        <div class="page" id="activity-logs">
+            <div class="activity-logs-layout">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Activity Logs</h3>
+                        <span class="status-badge active">Live Feed</span>
+                    </div>
+                    <div class="filters" style="margin-bottom: 20px;">
+                        <div class="filter-item">
+                            <label for="activityActionFilter" class="form-label">Action</label>
+                            <select id="activityActionFilter" class="form-control">
+                                <option value="all">All Actions</option>
+                                <option value="login">Login</option>
+                                <option value="create">Create</option>
+                                <option value="update">Update</option>
+                                <option value="delete">Delete</option>
+                                <option value="view">View</option>
+                                <option value="copy">Copy</option>
+                                <option value="download">Download</option>
+                            </select>
+                        </div>
+                        <div class="filter-item">
+                            <label for="activityModuleFilter" class="form-label">Module</label>
+                            <select id="activityModuleFilter" class="form-control">
+                                <option value="all">All Modules</option>
+                            </select>
+                        </div>
+                        <div class="filter-item">
+                            <label for="activityPeriodFilter" class="form-label">Period</label>
+                            <select id="activityPeriodFilter" class="form-control">
+                                <option value="all">All Time</option>
+                                <option value="this_month">This Month</option>
+                                <option value="last_month">Last Month</option>
+                                <option value="this_year">This Year</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="data-table" id="activityLogsTable">
+                            <thead>
+                                <tr>
+                                    <th>Date & Time</th>
+                                    <th>User</th>
+                                    <th>Action</th>
+                                    <th>Module</th>
+                                    <th>Description</th>
+                                    <th>IP Address</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Student QR Builder</h3>
+                        <span class="status-badge info">Linked to Logs</span>
+                    </div>
+                    <div class="qr-builder-grid">
+                        <div class="setting-item">
+                            <label for="qrStudentSelect">Student</label>
+                            <select id="qrStudentSelect" class="form-control">
+                                <option value="">Select student...</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <label for="qrZoneSelect">Zone/Region</label>
+                            <select id="qrZoneSelect" class="form-control">
+                                <option value="">Select zone...</option>
+                                <option value="zone_a">Zone A - Downtown</option>
+                                <option value="zone_b">Zone B - Suburb North</option>
+                                <option value="zone_c">Zone C - Suburb East</option>
+                                <option value="zone_d">Zone D - Suburb West</option>
+                                <option value="zone_e">Zone E - Industrial Area</option>
+                                <option value="zone_f">Zone F - Residential</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <label for="qrTripType">Trip Type</label>
+                            <select id="qrTripType" class="form-control">
+                                <option value="pickup">Pickup</option>
+                                <option value="dropoff">Drop-off</option>
+                                <option value="both">Both</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <label for="qrNoteInput">Optional Note</label>
+                        <input type="text" id="qrNoteInput" class="form-control" placeholder="Example: Gate 2 - Guardian ID required">
+                    </div>
+                    <div class="qr-actions">
+                        <button class="btn-primary" type="button" onclick="generateStudentQr()">
+                            <i class="fas fa-qrcode"></i> Generate QR
+                        </button>
+                        <button class="btn-secondary" type="button" onclick="downloadStudentQr()">
+                            <i class="fas fa-download"></i> Download
+                        </button>
+                        <button class="btn-secondary" type="button" onclick="copyStudentQrPayload()">
+                            <i class="fas fa-copy"></i> Copy Payload
+                        </button>
+                    </div>
+                    <div class="qr-preview-box" id="studentQrContainer">
+                        <div class="qr-placeholder" id="qrPlaceholder">
+                            <i class="fas fa-qrcode"></i>
+                            <p>Generate a QR code to preview it here</p>
+                        </div>
+                        <img id="studentQrImage" alt="Student QR Code">
+                    </div>
+                    <p class="qr-meta" id="qrPayloadPreview">Payload preview will appear here.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Profile Page -->
+        <div class="page" id="admin-profile">
+            <div class="profile-container">
+                <!-- Quick Header Stats -->
+                <div style="padding: 20px 30px; background: var(--card-bg); display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 0;">
+                    <div style="text-align: center; padding: 10px;">
+                        <div style="font-size: 24px; font-weight: 700; color: var(--primary-color);">99.8%</div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 5px;">System Uptime</div>
+                    </div>
+                    <div style="text-align: center; padding: 10px;">
+                        <div style="font-size: 24px; font-weight: 700; color: var(--primary-color);">127</div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 5px;">Logins Today</div>
+                    </div>
+                    <div style="text-align: center; padding: 10px;">
+                        <div style="font-size: 24px; font-weight: 700; color: var(--primary-color);">42</div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 5px;">Changes Made</div>
+                    </div>
+                    <div style="text-align: center; padding: 10px;">
+                        <div style="font-size: 24px; font-weight: 700; color: var(--success-color);">Active</div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 5px;">Status</div>
+                    </div>
+                </div>
+
+                <!-- Profile Header -->
+                <div class="profile-header">
+                    <div class="profile-banner">
+                        <div class="profile-banner-content">
+                            <div class="profile-avatar-wrapper">
+                                <img src="../../IMAGE/ADMIN.png" alt="Admin User" class="profile-avatar-img">
+                            </div>
+                            <div class="profile-info">
+                                <h1 class="profile-name">Admin User</h1>
+                                <p class="profile-title">System Administrator</p>
+                                <div class="profile-badges">
+                                    <span class="profile-badge">Administrator Access</span>
+                                    <span class="profile-badge active">Active Status</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="profile-actions">
+                        <button class="btn-secondary" onclick="editAdminProfile()">
+                            <i class="fas fa-edit"></i> <span>Edit Profile</span>
+                        </button>
+                        <button class="btn-secondary" onclick="changeAdminPassword()">
+                            <i class="fas fa-lock"></i> <span>Change Password</span>
+                        </button>
+                        <button class="btn-secondary" onclick="adminSecuritySettings()">
+                            <i class="fas fa-shield-alt"></i> <span>Security Settings</span>
+                        </button>
+                        <button class="btn-secondary" id="toggleSidebarBtn" onclick="toggleAdminSidebar()">
+                            <i class="fas fa-chevron-right"></i> <span>Info</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Profile Content Grid -->
+                <div class="profile-content-grid" id="profileContentGrid">
+                    <!-- Main Content -->
+                    <div class="profile-main">
+                        <!-- Personal Information -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Personal Information</h3>
+                            </div>
+                            <div class="card-content">
+                                <div class="info-grid">
+                                    <div class="info-field">
+                                        <label>Full Name</label>
+                                        <p>Admin User</p>
+                                    </div>
+                                    <div class="info-field">
+                                        <label>Email Address</label>
+                                        <p>admin@safestepbus.com</p>
+                                    </div>
+                                    <div class="info-field">
+                                        <label>Phone Number</label>
+                                        <p>+20 111 123 4567</p>
+                                    </div>
+                                    <div class="info-field">
+                                        <label>Department</label>
+                                        <p>Administration</p>
+                                    </div>
+                                    <div class="info-field">
+                                        <label>Date of Birth</label>
+                                        <p>January 15, 1985</p>
+                                    </div>
+                                    <div class="info-field">
+                                        <label>Gender</label>
+                                        <p>Male</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <!-- Professional Information -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Professional Information</h3>
+                            </div>
+                            <div class="card-content">
+                                <div class="info-grid">
+                                    <div class="info-field">
+                                        <label>Position</label>
+                                        <p>System Administrator</p>
+                                    </div>
+                                    <div class="info-field">
+                                        <label>Employee ID</label>
+                                        <p>ADM-001</p>
+                                    </div>
+                                    <div class="info-field">
+                                        <label>Joining Date</label>
+                                        <p>June 1, 2022</p>
+                                    </div>
+                                    <div class="info-field">
+                                        <label>Experience</label>
+                                        <p>8 Years</p>
+                                    </div>
+                                    <div class="info-field">
+                                        <label>Role</label>
+                                        <p><span class="status-badge active">Administrator</span></p>
+                                    </div>
+                                    <div class="info-field">
+                                        <label>Status</label>
+                                        <p><span class="status-badge active">Active</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <!-- Activity Log -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Recent Activities</h3>
+                                <a href="#activity-logs" onclick="navigateTo('activity-logs')" class="view-all">View All</a>
+                            </div>
+                            <div class="activity-scroll">
+                                <table class="data-table data-table-small">
+                                    <thead>
+                                        <tr>
+                                            <th>Date & Time</th>
+                                            <th>Action</th>
+                                            <th>Module</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>2024-02-19 09:15:00</td>
+                                            <td>Login</td>
+                                            <td>System</td>
+                                            <td><span class="status-badge active">Success</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>2024-02-19 09:20:00</td>
+                                            <td>View Parents List</td>
+                                            <td>Parents</td>
+                                            <td><span class="status-badge active">Success</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>2024-02-19 10:05:00</td>
+                                            <td>Edit Driver Status</td>
+                                            <td>Drivers</td>
+                                            <td><span class="status-badge active">Success</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>2024-02-19 10:30:00</td>
+                                            <td>Export Report</td>
+                                            <td>Reports</td>
+                                            <td><span class="status-badge active">Success</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>2024-02-19 11:00:00</td>
+                                            <td>Update Settings</td>
+                                            <td>Settings</td>
+                                            <td><span class="status-badge active">Success</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sidebar -->
+                    <div class="profile-sidebar">
+                        <!-- Statistics -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Quick Stats</h3>
+                            </div>
+                            <div class="card-content">
+                                <div class="stat-item">
+                                    <p>System Uptime</p>
+                                    <div class="stat-value up">99.8%</div>
+                                    <small>Last 30 days</small>
+                                </div>
+
+                                <div class="stat-item">
+                                    <p>Login Count</p>
+                                    <div class="stat-value">127</div>
+                                    <small>This month</small>
+                                </div>
+
+                                <div class="stat-item">
+                                    <p>Changes Made</p>
+                                    <div class="stat-value warn">42</div>
+                                    <small>This month</small>
+                                </div>
+
+                                <div class="stat-item">
+                                    <p>Last Login</p>
+                                    <div class="stat-value">Today, 09:15 AM</div>
+                                    <small>Alexandria, Egypt</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Permissions -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Permissions</h3>
+                            </div>
+                            <div class="card-content">
+                                <div class="permission-item">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Dashboard Access</span>
+                                </div>
+                                <div class="permission-item">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>User Management</span>
+                                </div>
+                                <div class="permission-item">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Driver Management</span>
+                                </div>
+                                <div class="permission-item">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Parent Management</span>
+                                </div>
+                                <div class="permission-item">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Reports Access</span>
+                                </div>
+                                <div class="permission-item">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>System Settings</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- System Overview -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>System Overview</h3>
+                            </div>
+                            <div class="card-content">
+                                <div class="info-grid">
+                                    <div class="info-field">
+                                        <label>System Version</label>
+                                        <p>2.1.0</p>
+                                    </div>
+                                    <div class="info-field">
+                                        <label>Last Update</label>
+                                        <p>February 20, 2026</p>
+                                    </div>
+                                    <div class="info-field">
+                                        <label>Database Size</label>
+                                        <p>2.45 GB</p>
+                                    </div>
+                                    <div class="info-field">
+                                        <label>Total Users</label>
+                                        <p>1,256</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Security Status -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Security Status</h3>
+                            </div>
+                            <div class="card-content">
+                                <div class="permission-item">
+                                    <i class="fas fa-shield-alt" style="color: #10b981;"></i>
+                                    <span>SSL Certificate Valid</span>
+                                </div>
+                                <div class="permission-item">
+                                    <i class="fas fa-lock" style="color: #10b981;"></i>
+                                    <span>Two-Factor Authentication Enabled</span>
+                                </div>
+                                <div class="permission-item">
+                                    <i class="fas fa-user-check" style="color: #10b981;"></i>
+                                    <span>Session Security: Active</span>
+                                </div>
+                                <div class="permission-item">
+                                    <i class="fas fa-exclamation-circle" style="color: #f59e0b;"></i>
+                                    <span>Password Last Changed: 45 days ago</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Access -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Quick Access</h3>
+                            </div>
+                            <div class="card-content">
+                                <div class="info-grid">
+                                    <div class="info-field">
+                                        <label>Favorite Pages</label>
+                                        <p>Dashboard, Reports, Drivers</p>
+                                    </div>
+                                    <div class="info-field">
+                                        <label>Notifications</label>
+                                        <p>12 pending</p>
+                                    </div>
+                                    <div class="info-field">
+                                        <label>Tasks</label>
+                                        <p>5 in progress</p>
+                                    </div>
+                                    <div class="info-field">
+                                        <label>Reports</label>
+                                        <p>3 scheduled</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <script src="{{ asset('js/admin.js') }}"></script>
+    <script src="{{ asset('js/i18n-admin.js') }}"></script>
+</body>
+</html>
