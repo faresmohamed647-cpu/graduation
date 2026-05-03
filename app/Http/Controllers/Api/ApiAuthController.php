@@ -60,8 +60,8 @@ class ApiAuthController extends Controller
             ]);
         }
 
-        // Revoke old tokens for this device
-        $user->tokens()->delete();
+        // Revoke old API tokens (preserve dashboard-session tokens)
+        $user->tokens()->where('name', 'safestep')->delete();
         $token = $user->createToken('safestep')->plainTextToken;
 
         return response()->json([

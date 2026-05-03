@@ -45,7 +45,22 @@ class AdminApplicationController extends Controller
             'rejected' => Application::where('status', 'rejected')->count(),
         ];
 
-        return view('admin.applications', compact('applications', 'stats'));
+        // Ensure we always have a valid Sanctum token for the dashboard JS.
+        // If the session lost it (e.g. server restart), create one on-the-fly.
+        $apiToken = session('api_token');
+        if (!$apiToken && auth()->check()) {
+            $user = auth()->user();
+            $user->tokens()->where('name', 'dashboard-session')->delete();
+            $apiToken = $user->createToken('dashboard-session')->plainTextToken;
+            session(['api_token' => $apiToken]);
+        }
+
+        return view('admin.applications', [
+            'applications' => $applications,
+            'stats'        => $stats,
+            'apiToken'     => $apiToken ?? '',
+            'adminName'    => auth()->user()?->name ?? 'Admin',
+        ]);
     }
 
     /**
