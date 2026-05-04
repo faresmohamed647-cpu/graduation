@@ -158,6 +158,10 @@
                 <i class="fas fa-file-alt"></i>
                 <span>Parent Requests</span>
             </a>
+            <a href="/dashboard/parent" class="nav-link" data-page="my-applications">
+                <i class="fas fa-folder-open"></i>
+                <span>My Applications</span>
+            </a>
             <a href="{{ route('logout') }}" class="nav-link logout"
                onclick="event.preventDefault(); localStorage.removeItem('safestep_token'); localStorage.removeItem('token'); window.location.href='{{ route('logout') }}'">
                 <i class="fas fa-sign-out-alt"></i>

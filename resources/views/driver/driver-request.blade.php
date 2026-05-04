@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>Driver Request - School Bus Tracking</title>
   <link rel="stylesheet" href="{{ asset('css/driver.css') }}">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -1302,6 +1303,9 @@
   </div>
 
   <script>
+    // Server-injected API token for authenticated requests
+    window.__API_TOKEN = '{{ $apiToken ?? '' }}';
+
     const driverForm = document.getElementById('driverRequestForm');
     const themeToggleBtn = document.getElementById('themeToggle');
     const THEME_STORAGE_KEY = 'safestep-theme';
@@ -1416,7 +1420,8 @@
       };
 
       try {
-        const token = localStorage.getItem('token') || localStorage.getItem('safestep_token');
+        const token = window.__API_TOKEN || localStorage.getItem('token') || localStorage.getItem('safestep_token');
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
         const res = await fetch('/api/requests', {
           method: 'POST',
           headers: {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class ApplicationController extends Controller
@@ -23,7 +24,8 @@ class ApplicationController extends Controller
             'notes'      => ['nullable', 'string', 'max:1000'],
         ]);
 
-        DB::table('applications')->insert([
+        \App\Models\Application::create([
+            'user_id'    => auth()->id(),
             'full_name'  => $data['full_name'],
             'email'      => $data['email'],
             'phone'      => $data['phone'],
@@ -32,8 +34,6 @@ class ApplicationController extends Controller
             'experience' => $data['experience'],
             'notes'      => $data['notes'],
             'status'     => 'pending',
-            'created_at' => now(),
-            'updated_at' => now(),
         ]);
 
         return back()->with('success', 'Application submitted successfully! We will review it and contact you soon.');

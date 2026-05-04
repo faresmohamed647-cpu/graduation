@@ -148,6 +148,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/location', [DriverApiController::class, 'updateLocation']);
         Route::get('/students', [DriverApiController::class, 'myStudents']);
         Route::get('/notifications', [DriverApiController::class, 'notifications']);
+        Route::get('/requests', [DriverApiController::class, 'requests']);
     });
 
     // ── Parent routes ──
@@ -159,5 +160,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/notifications', [ParentApiController::class, 'notifications']);
         Route::post('/notifications/{id}/read', [ParentApiController::class, 'markNotificationRead']);
         Route::post('/notifications/read-all', [ParentApiController::class, 'markAllRead']);
+        Route::get('/requests', [ParentApiController::class, 'requests']);
     });
 });

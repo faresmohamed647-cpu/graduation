@@ -50,7 +50,22 @@ class ApplicationController extends Controller
                 $notes = trim($notes . ($notes !== '' ? PHP_EOL : '') . 'meta:' . json_encode($roleMetadata, JSON_UNESCAPED_UNICODE));
             }
 
+            // Try to link application to authenticated user if available
+            $userId = null;
+            try {
+                $userId = $request->user()?->id;
+            } catch (\Throwable $e) {
+                // Not authenticated, that's fine for public applications
+            }
+
+            // Also try to match by email if no auth user
+            if (!$userId) {
+                $matchedUser = \App\Models\User::where('email', $data['email'])->first();
+                $userId = $matchedUser?->id;
+            }
+
             $application = Application::create([
+                'user_id' => $userId,
                 'full_name' => $data['name'],
                 'email' => $data['email'],
                 'phone' => $data['phone'],

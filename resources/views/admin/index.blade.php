@@ -94,7 +94,7 @@
         </div>
         <p class="subtitle">اختر لوحة الدخول المناسبة لك</p>
         <div class="cards">
-            <a href="/admin" class="card">
+            <a href="/admin/applications" class="card">
                 <i class="fas fa-user-shield"></i>
                 <h3>لوحة الإدارة</h3>
                 <p>Admin Dashboard</p>

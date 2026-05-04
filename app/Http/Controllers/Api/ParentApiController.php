@@ -63,4 +63,52 @@ class ParentApiController extends Controller
         $request->user()->unreadNotifications->markAsRead();
         return response()->json(['success' => true, 'message' => 'All marked as read']);
     }
+
+    /**
+     * Get parent's applications/requests from the database.
+     */
+    public function requests(Request $request)
+    {
+        $user = $request->user();
+
+        $applications = \App\Models\Application::where('role', 'parent')
+            ->where(function ($q) use ($user) {
+                $q->where('user_id', $user->id)
+                  ->orWhere('email', $user->email);
+            })
+            ->latest()
+            ->get()
+            ->map(fn ($app) => [
+                'id'         => $app->id,
+                'full_name'  => $app->full_name,
+                'email'      => $app->email,
+                'phone'      => $app->phone,
+                'address'    => $app->address,
+                'status'     => $app->status,
+                'notes'      => $app->clean_notes,
+                'metadata'   => $app->metadata,
+                'created_at' => $app->created_at->toIso8601String(),
+            ]);
+
+        // Also get reports/requests
+        $reports = \App\Models\Report::where('user_id', $user->id)
+            ->latest()
+            ->get()
+            ->map(fn ($r) => [
+                'id'         => $r->id,
+                'type'       => $r->type,
+                'title'      => $r->title,
+                'body'       => json_decode($r->body, true),
+                'status'     => $r->status,
+                'created_at' => $r->created_at->toIso8601String(),
+            ]);
+
+        return response()->json([
+            'success' => true,
+            'data'    => [
+                'applications' => $applications,
+                'requests'     => $reports,
+            ],
+        ]);
+    }
 }

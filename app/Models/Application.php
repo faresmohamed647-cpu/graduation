@@ -14,6 +14,7 @@ class Application extends Model
     public const ROLE_ADMIN  = ApplicationRole::Admin->value;
 
     protected $fillable = [
+        'user_id',
         'full_name',
         'email',
         'phone',
@@ -23,6 +24,11 @@ class Application extends Model
         'notes',
         'status',
     ];
+
+    public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 
     protected $casts = [
         'created_at' => 'datetime',

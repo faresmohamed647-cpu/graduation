@@ -9,10 +9,15 @@ class ParentDashboardController extends Controller
 {
     /**
      * Display parent applications dashboard.
+     * Shows ONLY the authenticated user's applications.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $applications = Application::where('role', 'parent')
+        $user = $request->user();
+        $applications = Application::where(function ($q) {
+                $q->where('user_id', auth()->id())
+                  ->orWhere('email', auth()->user()->email);
+            })
             ->latest()
             ->paginate(10);
 
@@ -22,8 +27,15 @@ class ParentDashboardController extends Controller
     /**
      * Return application details as JSON (for modal).
      */
-    public function show(Application $application)
+    public function show(Request $request, Application $application)
     {
+        $user = $request->user();
+
+        // Ensure user can only view their own applications
+        if ($application->user_id !== $user->id && $application->email !== $user->email) {
+            abort(403, 'Unauthorized');
+        }
+
         $metadata = [];
         $cleanNotes = $application->notes;
 
