@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Parent Dashboard - School Bus Tracking</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -101,9 +102,13 @@
     <script>
     (function(){
         var t = '{{ $apiToken ?? '' }}';
+        window.__API_TOKEN = t;
+        window.__INITIAL_PAGE = 'dashboard';
         if(t){ localStorage.setItem('safestep_token', t); localStorage.setItem('token', t); }
     })();
     </script>
+    <script src="{{ asset('js/api-service.js') }}"></script>
+    <script src="{{ asset('js/spa-navigation.js') }}"></script>
 </head>
 <body>
     <a href="#dashboard" class="sr-only skip-link">Skip to content</a>
@@ -154,11 +159,11 @@
                 <i class="fas fa-user-cog"></i>
                 <span>Profile & Settings</span>
             </a>
-            <a href="/parent/request" class="nav-link" data-page="requests">
+            <a href="/parent/request" class="nav-link external-link" data-page="requests">
                 <i class="fas fa-file-alt"></i>
                 <span>Parent Requests</span>
             </a>
-            <a href="/dashboard/parent" class="nav-link" data-page="my-applications">
+            <a href="/parent/applications" class="nav-link external-link" data-page="my-applications">
                 <i class="fas fa-folder-open"></i>
                 <span>My Applications</span>
             </a>
@@ -233,17 +238,19 @@
                     </div>
                     <div class="driver-content">
                         <div class="driver-avatar">
-                            <img src="https://source.unsplash.com/200x200/?egyptian,driver,portrait&sig=12" alt="Driver">
+                            <img src="https://source.unsplash.com/200x200/?egyptian,driver,portrait&sig=12" alt="Driver" onerror="this.src='https://ui-avatars.com/api/?name={{ urlencode($latestTrip?->driver?->user?->name ?? 'Driver') }}&background=764ba2&color=fff'">
                         </div>
                         <div class="driver-details">
-                            <h4>Omer mohamed</h4>
-                            <p><i class="fas fa-phone"></i> 01234567890</p>
-                            <p><i class="fas fa-bus"></i> Bus #42</p>
-                            <p><i class="fas fa-star"></i> Rating: 4.8/5.0</p>
+                            <h4>{{ $latestTrip?->driver?->user?->name ?? 'No Driver Assigned' }}</h4>
+                            <p><i class="fas fa-phone"></i> {{ $latestTrip?->driver?->phone ?? '—' }}</p>
+                            <p><i class="fas fa-bus"></i> {{ $latestTrip?->bus?->number ? 'Bus #'.$latestTrip->bus->number : '—' }}</p>
+                            <p><i class="fas fa-route"></i> {{ $latestTrip?->route?->name ?? '—' }}</p>
                         </div>
-                        <button class="btn-call" type="button">
+                        @if($latestTrip?->driver?->phone)
+                        <button class="btn-call" type="button" onclick="window.location.href='tel:{{ $latestTrip->driver->phone }}'">
                             <i class="fas fa-phone-alt"></i> Call Driver
                         </button>
+                        @endif
                     </div>
                 </div>
                 <!-- Quick Stats -->
@@ -253,7 +260,7 @@
             <i class="fas fa-children"></i>
         </div>
         <div class="stat-details">
-            <h3>2</h3>
+            <h3>{{ $stats['children_count'] ?? 0 }}</h3>
             <p>Total Children</p>
         </div>
     </div>
@@ -263,7 +270,7 @@
             <i class="fas fa-check-circle"></i>
         </div>
         <div class="stat-details">
-            <h3>100%</h3>
+            <h3>{{ ($stats['children_count'] ?? 0) > 0 ? round((($stats['attendance_present'] ?? 0) / (($stats['attendance_present'] ?? 0) + ($stats['attendance_absent'] ?? 0) + 0.001)) * 100) : 0 }}%</h3>
             <p>Today Attendance</p>
         </div>
     </div>
@@ -431,7 +438,7 @@
                                 <i class="fas fa-check-circle"></i>
                             </div>
                             <div class="stat-info">
-                                <h3>95%</h3>
+                                <h3>{{ ($stats['children_count'] ?? 0) > 0 ? round((($stats['attendance_present'] ?? 0) / (($stats['attendance_present'] ?? 0) + ($stats['attendance_absent'] ?? 0) + 0.001)) * 100) : 0 }}%</h3>
                                 <p>Overall Attendance</p>
                             </div>
                         </div>
@@ -440,7 +447,7 @@
                                 <i class="fas fa-calendar-check"></i>
                             </div>
                             <div class="stat-info">
-                                <h3>18</h3>
+                                <h3>{{ $stats['attendance_present'] ?? 0 }}</h3>
                                 <p>Days Present</p>
                             </div>
                         </div>
@@ -449,7 +456,7 @@
                                 <i class="fas fa-calendar-times"></i>
                             </div>
                             <div class="stat-info">
-                                <h3>2</h3>
+                                <h3>{{ $stats['attendance_absent'] ?? 0 }}</h3>
                                 <p>Days Absent</p>
                             </div>
                         </div>
@@ -458,7 +465,7 @@
                                 <i class="fas fa-person-circle-xmark"></i>
                             </div>
                             <div class="stat-info">
-                                <h3 id="missedPickupCount">1</h3>
+                                <h3 id="missedPickupCount">{{ $stats['attendance_absent'] ?? 0 }}</h3>
                                 <p>Missed Pickups</p>
                             </div>
                         </div>
@@ -730,15 +737,15 @@
                         <h4>Parent Information</h4>
                         <div class="form-group">
                             <label for="parentName">Full Name</label>
-                            <input id="parentName" class="form-control" type="text" value="Amira Mohamed" required>
+                            <input id="parentName" class="form-control" type="text" value="{{ auth()->user()?->name ?? '' }}" required>
                         </div>
                         <div class="form-group">
                             <label for="parentPhone">Phone</label>
-                            <input id="parentPhone" class="form-control" type="tel" value="+20 100 123 4567" required>
+                            <input id="parentPhone" class="form-control" type="tel" value="{{ auth()->user()?->parentProfile?->phone ?? '' }}" required>
                         </div>
                         <div class="form-group">
                             <label for="parentEmail">Email</label>
-                            <input id="parentEmail" class="form-control" type="email" value="amira.parent@bustracker.com" required>
+                            <input id="parentEmail" class="form-control" type="email" value="{{ auth()->user()?->email ?? '' }}" required>
                         </div>
                     </div>
                     <div class="card">
@@ -906,6 +913,53 @@
     })();
     </script>
 
+    <script>
+    window.__PARENT_DATA = {
+        children: @json($children),
+        attendance: @json($attendanceRecords),
+        applications: @json($applications),
+        stats: @json($stats)
+    };
+    (function(){
+        const container = document.getElementById('childrenSectionsContainer');
+        if(container && window.__PARENT_DATA.children.length){
+            container.innerHTML = window.__PARENT_DATA.children.map(child => `
+                <div class="child-card" style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:12px;">
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#0ea5a4,#2563eb);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;">${child.full_name.charAt(0)}</div>
+                        <div>
+                            <strong style="color:#1e293b;font-size:15px;">${child.full_name}</strong>
+                            <div style="color:#64748b;font-size:13px;">Grade ${child.grade || '—'} &bull; ${child.school_name || '—'}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        } else if(container) {
+            container.innerHTML = '<div style="text-align:center;padding:24px;color:#94a3b8;"><i class="fas fa-inbox" style="font-size:24px;margin-bottom:8px;display:block;"></i>No children registered.</div>';
+        }
+
+        const tbody = document.getElementById('attendanceTableBody');
+        if(tbody && window.__PARENT_DATA.attendance.length){
+            tbody.innerHTML = window.__PARENT_DATA.attendance.map(a => {
+                const date = a.trip?.trip_date ? new Date(a.trip.trip_date).toLocaleDateString() : '—';
+                const pickup = a.picked_up_at ? new Date(a.picked_up_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '—';
+                const dropoff = a.dropped_off_at ? new Date(a.dropped_off_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '—';
+                const statusBg = a.status==='present'?'rgba(34,197,94,.15)':a.status==='absent'?'rgba(239,68,68,.15)':'rgba(99,102,241,.15)';
+                const statusColor = a.status==='present'?'#4ade80':a.status==='absent'?'#f87171':'#a5b4fc';
+                return `<tr>
+                    <td>${date}</td>
+                    <td>${a.student?.full_name || '—'}</td>
+                    <td><span style="background:${statusBg};color:${statusColor};padding:2px 8px;border-radius:4px;font-size:12px;text-transform:capitalize;">${a.status}</span></td>
+                    <td>${pickup}</td>
+                    <td>${dropoff}</td>
+                </tr>`;
+            }).join('');
+        } else if(tbody) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:#94a3b8;">No attendance records found.</td></tr>';
+        }
+    })();
+    </script>
+
     <!-- Parent Profile Modal -->
     <div id="parentProfileModal" class="profile-modal">
         <div class="profile-modal-overlay" onclick="closeParentProfileModal()"></div>
@@ -922,11 +976,11 @@
                     </div>
                 </div>
                 <div class="profile-modal-info">
-                    <h2>Amira Mohamed</h2>
+                    <h2>{{ $userName ?? 'Parent' }}</h2>
                     <p class="profile-role">Parent Account</p>
                     <div class="profile-children-count">
                         <i class="fas fa-child"></i>
-                        <span>2 Children</span>
+                        <span>{{ $stats['children_count'] ?? 0 }} Children</span>
                     </div>
                 </div>
             </div>
@@ -936,51 +990,42 @@
                     <div class="profile-details-grid">
                         <div class="profile-detail-item">
                             <span class="detail-label"><i class="fas fa-phone"></i> Phone</span>
-                            <span class="detail-value">+20 111 123 4567</span>
+                            <span class="detail-value">{{ auth()->user()?->parentProfile?->phone ?? '—' }}</span>
                         </div>
                         <div class="profile-detail-item">
                             <span class="detail-label"><i class="fas fa-envelope"></i> Email</span>
-                            <span class="detail-value">amira.mohamed@email.com</span>
+                            <span class="detail-value">{{ auth()->user()?->email ?? '—' }}</span>
                         </div>
                         <div class="profile-detail-item">
                             <span class="detail-label"><i class="fas fa-map-marker-alt"></i> Address</span>
-                            <span class="detail-value">Khaled Ibn El-Walid St, Sidi Bishr, Alexandria</span>
+                            <span class="detail-value">{{ auth()->user()?->parentProfile?->address ?? '—' }}</span>
                         </div>
                         <div class="profile-detail-item">
                             <span class="detail-label"><i class="fas fa-calendar-alt"></i> Member Since</span>
-                            <span class="detail-value">January 2024</span>
+                            <span class="detail-value">{{ auth()->user()?->created_at?->format('F Y') ?? '—' }}</span>
                         </div>
                     </div>
                 </div>
                 <div class="profile-section">
                     <h3><i class="fas fa-child"></i> Children Information</h3>
                     <div class="children-list">
+                        @forelse($children as $child)
                         <div class="child-profile-card">
                             <div class="child-avatar">
-                                <span>FM</span>
+                                <span>{{ substr($child->full_name, 0, 2) }}</span>
                             </div>
                             <div class="child-info">
-                                <h4>Farida Mohamed</h4>
-                                <p><i class="fas fa-graduation-cap"></i> Grade 5</p>
-                                <p><i class="fas fa-bus"></i> Bus #42</p>
+                                <h4>{{ $child->full_name }}</h4>
+                                <p><i class="fas fa-graduation-cap"></i> Grade {{ $child->grade ?? '—' }}</p>
+                                <p><i class="fas fa-school"></i> {{ $child->school_name ?? '—' }}</p>
                             </div>
                             <div class="child-status">
-                                <span class="status-badge active">Active</span>
+                                <span class="status-badge {{ $child->active ? 'active' : 'inactive' }}">{{ $child->active ? 'Active' : 'Inactive' }}</span>
                             </div>
                         </div>
-                        <div class="child-profile-card">
-                            <div class="child-avatar">
-                                <span>SM</span>
-                            </div>
-                            <div class="child-info">
-                                <h4>Saif Mohamed</h4>
-                                <p><i class="fas fa-graduation-cap"></i> Grade 3</p>
-                                <p><i class="fas fa-bus"></i> Bus #42</p>
-                            </div>
-                            <div class="child-status">
-                                <span class="status-badge active">Active</span>
-                            </div>
-                        </div>
+                        @empty
+                        <p style="color:#94a3b8;padding:12px;">No children registered.</p>
+                        @endforelse
                     </div>
                 </div>
                 <div class="profile-section">
@@ -991,7 +1036,7 @@
                                 <i class="fas fa-calendar-check"></i>
                             </div>
                             <div class="stat-content">
-                                <h4>95%</h4>
+                                <h4>{{ ($stats['children_count'] ?? 0) > 0 ? round((($stats['attendance_present'] ?? 0) / (($stats['attendance_present'] ?? 0) + ($stats['attendance_absent'] ?? 0) + 0.001)) * 100) : 0 }}%</h4>
                                 <p>Attendance Rate</p>
                             </div>
                         </div>
@@ -1000,7 +1045,7 @@
                                 <i class="fas fa-check-circle"></i>
                             </div>
                             <div class="stat-content">
-                                <h4>12</h4>
+                                <h4>{{ $applications->count() ?? 0 }}</h4>
                                 <p>Requests Sent</p>
                             </div>
                         </div>
@@ -1009,8 +1054,8 @@
                                 <i class="fas fa-bell"></i>
                             </div>
                             <div class="stat-content">
-                                <h4>8</h4>
-                                <p>Notifications</p>
+                                <h4>{{ $stats['applications_pending'] ?? 0 }}</h4>
+                                <p>Pending Requests</p>
                             </div>
                         </div>
                         <div class="profile-stat-card">
@@ -1018,8 +1063,8 @@
                                 <i class="fas fa-star"></i>
                             </div>
                             <div class="stat-content">
-                                <h4>4.9</h4>
-                                <p>Service Rating</p>
+                                <h4>{{ $stats['children_count'] ?? 0 }}</h4>
+                                <p>Children</p>
                             </div>
                         </div>
                     </div>
@@ -1029,8 +1074,11 @@
                 <button class="btn-profile-primary" onclick="alert('Edit feature coming soon!')">
                     <i class="fas fa-edit"></i> Edit Profile
                 </button>
-                <button class="btn-profile-secondary" onclick="window.location.href='parent-request.html'">
+                <button class="btn-profile-secondary" onclick="window.location.href='{{ url('/parent/request') }}'">
                     <i class="fas fa-file-lines"></i> Parent Requests
+                </button>
+                <button class="btn-profile-secondary" onclick="window.location.href='{{ url('/parent/applications') }}'">
+                    <i class="fas fa-folder-open"></i> My Applications
                 </button>
                 <button class="btn-profile-secondary" onclick="closeParentProfileModal()">
                     Close
@@ -1498,6 +1546,7 @@
     <script src="{{ asset('js/script.js') }}"></script>
     <script src="{{ asset('js/parent-api.js') }}"></script>
     <script src="{{ asset('js/i18n-parent.js') }}"></script>
+    <script src="{{ asset('js/ajax-forms.js') }}"></script>
 </body>
 </html>
 

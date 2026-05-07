@@ -1,6 +1,8 @@
-﻿// Navigation
+// Navigation
 
-// Data arrays
+// Data arrays (Refactored)
+let applicationsData = [];
+
 const parentsData = [
      { id: 1, name: 'Sarah Ahmed', children: 'Ahmed, Laila', phone: '+20 111 123 4567', email: 'sarah.ahmed@email.com', applicationDate: '2023-01-15', joinDate: '2023-02-01', status: 'active' },
     { id: 2, name: 'Mohamed Hassan', children: 'Youssef', phone: '+20 111 234 5678', email: 'mohamed.hassan@email.com', applicationDate: '2023-03-10', joinDate: '2023-03-25', status: 'active' },
@@ -492,6 +494,8 @@ function initSelectFilters() {
     const bindings = [
         { id: 'parentStatusFilter', render: renderParents },
         { id: 'driverStatusFilter', render: renderDrivers },
+        { id: 'applicationRoleFilter', render: renderApplications },
+        { id: 'applicationStatusFilter', render: renderApplications },
         { id: 'recoveryRoleFilter', render: renderAccountRecovery },
         { id: 'recoveryTypeFilter', render: renderAccountRecovery },
         { id: 'recoveryStatusFilter', render: renderAccountRecovery },
@@ -928,12 +932,18 @@ navLinks.forEach(link => {
             targetPage.classList.add('active');
         } else {
             console.error('Page not found:', pageId);
+            const dashboardPage = document.getElementById('dashboard');
+            if (dashboardPage) dashboardPage.classList.add('active');
+            return;
         }
         
         pageTitle.textContent = link.querySelector('span').textContent;
         
         // Render appropriate table when page becomes active
-        if (pageId === 'parents') {
+        if (pageId === 'applications') {
+            renderApplications();
+            loadApplicationsFromApi();
+        } else if (pageId === 'parents') {
             renderParents();
         } else if (pageId === 'drivers') {
             renderDrivers();
@@ -1010,6 +1020,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Render all tables initially
     renderParents();
+    renderApplications();
     renderDrivers();
     renderAccountRecovery();
     renderRequests();
@@ -1038,6 +1049,11 @@ document.addEventListener('DOMContentLoaded', () => {
     updateNotificationBadge();
     initSelectFilters();
     initStudentQrTools();
+
+    const initialPage = window.__INITIAL_ADMIN_PAGE || 'dashboard';
+    if (initialPage !== 'dashboard') {
+        navigateTo(initialPage);
+    }
 
     if (newlyAddedStudent) {
         autoGenerateStudentQrForStudent(newlyAddedStudent);
@@ -1139,6 +1155,114 @@ function renderPendingDriverApplicantsForParents() {
         `;
         tbody.appendChild(tr);
     });
+}
+
+function applicationStatusClass(status) {
+    return status || 'pending';
+}
+
+function escapeSafeStepHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    }[char]));
+}
+
+function renderApplications() {
+    const tbody = document.querySelector('#applicationsTable tbody');
+    if (!tbody) return;
+
+    const roleFilter = document.getElementById('applicationRoleFilter')?.value || 'all';
+    const statusFilter = document.getElementById('applicationStatusFilter')?.value || 'all';
+    const filtered = applicationsData
+        .filter(app => roleFilter === 'all' || String(app.role || '').toLowerCase() === roleFilter)
+        .filter(app => statusFilter === 'all' || app.status === statusFilter);
+
+    tbody.innerHTML = '';
+
+    if (!filtered.length) {
+        renderEmptyRow(tbody, 6, 'No applications found.');
+        return;
+    }
+
+    filtered.forEach(app => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>${escapeSafeStepHtml(app.full_name || app.name || 'Applicant')}</strong></td>
+            <td>${escapeSafeStepHtml(app.email)}</td>
+            <td>${escapeSafeStepHtml(String(app.role || '').toLowerCase())}</td>
+            <td><span id="admin-app-status-${app.id}" class="status-badge ${applicationStatusClass(app.status)}">${escapeSafeStepHtml(app.status || 'pending')}</span></td>
+            <td>${safestepDate(app.created_at)}</td>
+            <td>
+                <div class="table-actions">
+                    <button class="btn btn-success" style="padding:6px 12px;font-size:12px;" onclick="updateApplicationStatus(${app.id}, 'accepted')">
+                        <i class="fas fa-check"></i> Approve
+                    </button>
+                    <button class="btn btn-danger" style="padding:6px 12px;font-size:12px;" onclick="updateApplicationStatus(${app.id}, 'rejected')">
+                        <i class="fas fa-times"></i> Reject
+                    </button>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    reapplyGlobalSearch();
+}
+
+async function loadApplicationsFromApi() {
+    try {
+        const response = await safestepApi('/api/admin/applications');
+        safestepReplaceArray(applicationsData, response.data || []);
+        renderApplications();
+        updateStatValue('pendingRequestsStat', applicationsData.filter(app => app.status === 'pending').length);
+        console.log('ADMIN APPLICATIONS API LOADED', applicationsData.length);
+    } catch (error) {
+        console.warn('Failed to load admin applications:', error.message);
+        renderApplications();
+    }
+}
+
+async function updateApplicationStatus(id, status) {
+    const buttons = document.querySelectorAll(`button[onclick*="updateApplicationStatus(${id},"]`);
+    buttons.forEach(button => {
+        button.disabled = true;
+        button.dataset.originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    });
+
+    try {
+        const response = await safestepApi(`/api/admin/applications/${id}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status })
+        });
+
+        const updated = response.data;
+        const index = applicationsData.findIndex(app => Number(app.id) === Number(id));
+        if (index >= 0) applicationsData[index] = updated;
+
+        const badge = document.getElementById(`admin-app-status-${id}`);
+        if (badge) {
+            badge.textContent = status;
+            badge.className = `status-badge ${applicationStatusClass(status)}`;
+        }
+
+        renderApplications();
+        showToast('Application updated successfully', 'success');
+        console.log('ADMIN APPLICATION STATUS UPDATED', id, status);
+    } catch (error) {
+        showToast('Unable to update application', 'error');
+        console.error('Application status update failed:', error);
+    } finally {
+        buttons.forEach(button => {
+            button.disabled = false;
+            button.innerHTML = button.dataset.originalText || 'Save';
+        });
+    }
 }
 
 function addParent() {
@@ -3234,17 +3358,20 @@ let requestsData = [
 ];
 
 function normalizeRequest(request, fallbackId) {
-    const normalizedRole = request.role || request.user_role || 'parent';
+    const normalizedRole = request.role || request.user_role || (request.user?.role) || 'parent';
     const normalizedStatus = request.status || 'new';
+    const userName = request.user?.name || request.from || request.full_name || 'Unknown User';
 
     return {
         id: request.id || fallbackId,
-        from: request.from || request.full_name || 'Unknown User',
+        from: userName,
         role: normalizedRole === 'driver' ? 'driver' : 'parent',
         subject: request.subject || request.request_type || 'General request',
+        description: request.description || '',
         priority: request.priority || 'medium',
         status: normalizedStatus,
-        createdAt: request.createdAt || request.created_at || new Date().toISOString()
+        createdAt: request.createdAt || request.created_at || new Date().toISOString(),
+        raw: request
     };
 }
 
@@ -3277,17 +3404,17 @@ function renderRequests() {
                 </td>
                 <td>
                     <span class="status-badge ${req.status}">
-                        ${req.status === 'new' ? 'New' : req.status === 'in_progress' ? 'In Progress' : 'Resolved'}
+                        ${req.status === 'pending' ? 'New' : req.status === 'in-progress' || req.status === 'in_progress' ? 'In Progress' : req.status === 'resolved' ? 'Resolved' : req.status === 'rejected' ? 'Rejected' : req.status}
                     </span>
                 </td>
                 <td>${req.createdAt}</td>
                 <td>
                     <div class="table-actions">
-                        ${req.status !== 'resolved' ? `
+                        ${req.status !== 'resolved' && req.status !== 'rejected' ? `
                             <button class="btn btn-success" style="padding: 6px 10px; font-size: 12px;" onclick="markRequestResolved(${req.id})">
                                 <i class="fas fa-check"></i> Resolve
                             </button>
-                            ${req.status === 'new' ? `
+                            ${req.status === 'pending' ? `
                                 <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px;" onclick="markRequestInProgress(${req.id})">
                                     <i class="fas fa-play"></i> Start
                                 </button>
@@ -3314,30 +3441,58 @@ function updateRequestStatusById(id, nextStatus) {
     return true;
 }
 
-function markRequestInProgress(id) {
-    if (!updateRequestStatusById(id, 'in_progress')) return;
-    renderRequests();
+async function markRequestInProgress(id) {
+    try {
+        await safestepApi(`/api/admin/service-requests/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'in-progress' })
+        });
+        if (!updateRequestStatusById(id, 'in_progress')) return;
+        renderRequests();
+        showToast('Request marked as in progress.', 'success');
+    } catch (err) {
+        console.warn('Failed to update request status:', err.message);
+        alert('Failed to update request. Please try again.');
+    }
 }
 
-function markRequestResolved(id) {
+async function markRequestResolved(id) {
     const req = getNormalizedRequests().find(r => r.id === id);
     if (!req) return;
     if (confirm('Mark this request as resolved?')) {
-        if (!updateRequestStatusById(id, 'resolved')) return;
-        renderRequests();
-        alert('Request marked as resolved.');
+        try {
+            await safestepApi(`/api/admin/service-requests/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'resolved' })
+            });
+            if (!updateRequestStatusById(id, 'resolved')) return;
+            renderRequests();
+            showToast('Request marked as resolved.', 'success');
+        } catch (err) {
+            console.warn('Failed to resolve request:', err.message);
+            alert('Failed to update request. Please try again.');
+        }
     }
 }
 
 function viewRequest(id) {
     const req = getNormalizedRequests().find(r => r.id === id);
     if (!req) return;
+    const raw = req.raw || {};
+    const notes = raw.notes || '';
+    const description = raw.description || '';
+    const metadata = raw.metadata ? JSON.stringify(raw.metadata, null, 2) : '';
     alert(
         `Request from: ${req.from} (${req.role})\n` +
         `Subject: ${req.subject}\n` +
         `Priority: ${req.priority}\n` +
         `Status: ${req.status}\n` +
-        `Created: ${req.createdAt}`
+        `Created: ${req.createdAt}\n\n` +
+        `Description:\n${description}\n\n` +
+        (notes ? `Notes:\n${notes}\n\n` : '') +
+        (metadata ? `Metadata:\n${metadata}` : '')
     );
 }
 
@@ -3731,18 +3886,18 @@ function updateMonthlySummary() {
 }
 
 // Load requests from API
-function loadRequestsFromApi() {
-    fetch('http://localhost:4000/api/requests')
-        .then(res => res.json())
-        .then(data => {
-            if (data && data.length) {
-                requestsData.push(...data);
-                renderRequests();
-            }
-        })
-        .catch(() => {
+async function loadRequestsFromApi() {
+    try {
+        const response = await safestepApi('/api/admin/service-requests');
+        const items = response.data?.data || response.data || [];
+        if (items.length) {
+            requestsData = items;
             renderRequests();
-        });
+        }
+    } catch (err) {
+        console.warn('Failed to load service requests:', err.message);
+        renderRequests();
+    }
 }
 
 function loadRequestsFromStorage() {
@@ -3765,6 +3920,11 @@ function focusBroadcastForm() {
     const title = document.getElementById('broadcastTitle');
     if (title) title.focus();
 }
+
+document.getElementById('broadcastForm')?.addEventListener('submit', function(event) {
+    event.preventDefault();
+    sendBroadcastNotification();
+});
 
 function storeBroadcast(payload) {
     try {
@@ -4472,7 +4632,24 @@ function navigateTo(pageId) {
                 }
             });
 
-            if (pageId === 'live-tracking') {
+            if (pageId === 'applications') {
+                renderApplications();
+                loadApplicationsFromApi();
+            } else if (pageId === 'parents') {
+                renderParents();
+            } else if (pageId === 'drivers') {
+                renderDrivers();
+            } else if (pageId === 'buses') {
+                renderBuses();
+            } else if (pageId === 'reports') {
+                renderStatisticsTable();
+                renderDriverPerformance();
+            } else if (pageId === 'requests') {
+                renderRequests();
+            } else if (pageId === 'financials') {
+                renderFinancials();
+                renderPayments();
+            } else if (pageId === 'live-tracking') {
                 renderLiveTracking();
                 renderTripPlayback();
             } else if (pageId === 'account-recovery') {
@@ -4681,15 +4858,36 @@ function safestepDate(value) {
 
 async function hydrateAdminDashboardFromApi() {
     try {
-        const [stats, parents, drivers, students, trips, buses, notifications] = await Promise.all([
+        const settled = await Promise.allSettled([
             safestepApi('/api/admin/dashboard/stats'),
+            safestepApi('/api/admin/applications'),
             safestepApi('/api/admin/parents?per_page=all'),
             safestepApi('/api/admin/drivers?per_page=all'),
             safestepApi('/api/admin/students?per_page=all'),
             safestepApi('/api/admin/trips'),
             safestepApi('/api/admin/buses?per_page=all'),
-            safestepApi('/api/admin/notifications')
+            safestepApi('/api/admin/notifications'),
+            safestepApi('/api/admin/service-requests')
         ]);
+        const safeResult = (index, fallback = { data: [] }) =>
+            settled[index].status === 'fulfilled' ? settled[index].value : fallback;
+
+        const stats = safeResult(0, { data: {} });
+        const applications = safeResult(1);
+        const parents = safeResult(2);
+        const drivers = safeResult(3);
+        const students = safeResult(4);
+        const trips = safeResult(5);
+        const buses = safeResult(6);
+        const notifications = safeResult(7);
+        const serviceRequests = safeResult(8);
+
+        // Load service requests into requestsData for the Requests Center
+        const serviceReqItems = serviceRequests.data?.data || serviceRequests.data || [];
+        if (serviceReqItems.length) {
+            requestsData = serviceReqItems;
+            renderRequests();
+        }
 
         if (stats.data) {
             updateStatValue('totalParentsStat', stats.data.total_parents ?? 0);
@@ -4699,9 +4897,13 @@ async function hydrateAdminDashboardFromApi() {
             updateStatValue('activeBusesStat', stats.data.active_buses ?? 0);
             updateStatValue('activeTripsStat', stats.data.active_trips ?? 0);
             updateStatValue('todayTripsStat', stats.data.today_trips ?? 0);
-            updateStatValue('pendingRequestsStat', stats.data.pending_requests ?? 0);
+            const pendingApps = (applications.data || []).filter(a => a.status === 'pending').length;
+            const pendingServiceReqs = (serviceReqItems || []).filter(r => r.status === 'pending').length;
+            updateStatValue('pendingRequestsStat', stats.data.pending_requests ?? (pendingApps + pendingServiceReqs));
             updateStatValue('complaintsTodayStat', stats.data.complaints_today ?? 0);
         }
+
+        safestepReplaceArray(applicationsData, applications.data || []);
 
         safestepReplaceArray(parentsData, (parents.data || []).map(parent => ({
             id: parent.id,
@@ -4771,12 +4973,19 @@ async function hydrateAdminDashboardFromApi() {
         })));
 
         renderParents();
+        renderApplications();
         renderDrivers();
         renderStudents();
         renderTrips();
         renderBuses();
         renderNotifications();
         updateNotificationBadge();
+        console.log('ADMIN DASHBOARD API HYDRATED', {
+            applications: applicationsData.length,
+            parents: parentsData.length,
+            drivers: driversData.length,
+            buses: busesData.length
+        });
     } catch (error) {
         console.warn('SafeStep API hydration skipped:', error.message);
     }

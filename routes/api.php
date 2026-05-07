@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AdminAttendanceController;
+use App\Http\Controllers\Api\AdminApplicationController;
 use App\Http\Controllers\Api\AdminBusController;
 use App\Http\Controllers\Api\AdminDashboardController;
 use App\Http\Controllers\Api\AdminDriverController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\Api\ApplicationController;
 use App\Http\Controllers\Api\DriverApiController;
 use App\Http\Controllers\Api\ParentApiController;
 use App\Http\Controllers\Api\RequestApiController;
+use App\Http\Controllers\Api\ServiceRequestController;
 use Illuminate\Support\Facades\Route;
 
 // ── Public Auth ──
@@ -58,6 +60,13 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::post('/requests', [RequestApiController::class, 'store']);
+
+    // Service Requests (dedicated parent/driver request system)
+    Route::post('/service-requests', [ServiceRequestController::class, 'store']);
+    Route::get('/service-requests/my', [ServiceRequestController::class, 'myRequests']);
+
+    // Unified applications endpoint (user-specific)
+    Route::get('/applications', [ApplicationController::class, 'index']);
 
     // ── Admin routes ──
     Route::prefix('admin')->middleware('role:admin')->group(function () {
@@ -135,6 +144,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/users/{user}', [AdminUserController::class, 'update']);
         Route::delete('/users/{user}', [AdminUserController::class, 'destroy']);
         Route::get('/roles', [AdminUserController::class, 'roles']);
+
+        // Applications
+        Route::get('/applications', [AdminApplicationController::class, 'index']);
+        Route::patch('/applications/{application}/status', [AdminApplicationController::class, 'updateStatus']);
+
+        // Service Requests
+        Route::get('/service-requests', [ServiceRequestController::class, 'index']);
+        Route::get('/service-requests/stats', [ServiceRequestController::class, 'stats']);
+        Route::get('/service-requests/{serviceRequest}', [ServiceRequestController::class, 'show']);
+        Route::put('/service-requests/{serviceRequest}', [ServiceRequestController::class, 'update']);
     });
 
     // ── Driver routes ──

@@ -67,8 +67,8 @@
                         <i class="fas fa-route"></i>
                     </div>
                     <div class="stat-info">
-                        <h2 id="reportTripsCount">0</h2>
-                        <p>Trips (This Week)</p>
+                        <h2 id="reportTripsCount">{{ $trips->count() }}</h2>
+                        <p>Total Trips</p>
                     </div>
                 </div>
 
@@ -77,8 +77,8 @@
                         <i class="fas fa-check-circle"></i>
                     </div>
                     <div class="stat-info">
-                        <h2 id="reportAttendanceRate">0%</h2>
-                        <p>Attendance Rate</p>
+                        <h2 id="reportAttendanceRate">{{ $trips->where('status', 'completed')->count() }}</h2>
+                        <p>Completed</p>
                     </div>
                 </div>
 
@@ -87,8 +87,8 @@
                         <i class="fas fa-triangle-exclamation"></i>
                     </div>
                     <div class="stat-info">
-                        <h2 id="reportIncidentsCount">0</h2>
-                        <p>Incidents</p>
+                        <h2 id="reportIncidentsCount">{{ $trips->where('status', 'cancelled')->count() }}</h2>
+                        <p>Cancelled</p>
                     </div>
                 </div>
 
@@ -114,7 +114,33 @@
                                 </tr>
                             </thead>
                             <tbody id="driverReportsBody">
-                                <!-- Populated by backend later -->
+                                @forelse($trips as $trip)
+                                <tr>
+                                    <td>{{ $trip->trip_date?->format('M d, Y') ?? '—' }}</td>
+                                    <td>{{ $trip->route?->name ?? '—' }}</td>
+                                    <td>{{ ucfirst($trip->shift ?? 'morning') }}</td>
+                                    <td>{{ $trip->attendance?->count() ?? 0 }}</td>
+                                    <td>
+                                        @if($trip->status === 'completed')
+                                            <span class="badge" style="background:rgba(34,197,94,.15);color:#4ade80;padding:2px 8px;border-radius:4px;font-size:12px;">Completed</span>
+                                        @elseif($trip->status === 'active')
+                                            <span class="badge" style="background:rgba(59,130,246,.15);color:#60a5fa;padding:2px 8px;border-radius:4px;font-size:12px;">Active</span>
+                                        @elseif($trip->status === 'cancelled')
+                                            <span class="badge" style="background:rgba(239,68,68,.15);color:#f87171;padding:2px 8px;border-radius:4px;font-size:12px;">Cancelled</span>
+                                        @else
+                                            <span class="badge" style="background:rgba(99,102,241,.15);color:#a5b4fc;padding:2px 8px;border-radius:4px;font-size:12px;">{{ ucfirst($trip->status) }}</span>
+                                        @endif
+                                    </td>
+                                    <td>{{ Str::limit($trip->meta['notes'] ?? '—', 40) }}</td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="6" style="text-align:center;padding:24px;color:#94a3b8;">
+                                        <i class="fas fa-inbox" style="font-size:24px;margin-bottom:8px;display:block;"></i>
+                                        No trip records found.
+                                    </td>
+                                </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>

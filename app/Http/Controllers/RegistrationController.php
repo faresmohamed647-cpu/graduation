@@ -58,7 +58,27 @@ class RegistrationController extends Controller
                 'message'          => $data['student_message'] ?? null,
                 'active'           => true,
             ]);
+
+            \App\Models\Application::create([
+                'user_id'    => $user->id,
+                'full_name'  => $user->name,
+                'email'      => $user->email,
+                'phone'      => $data['student_phone'],
+                'address'    => $data['student_address'],
+                'role'       => 'parent',
+                'experience' => $data['student_message'] ?? 'Parent registration',
+                'notes'      => 'meta:{"student_state":"' . $data['student_state'] . '","student_relationship":"' . $data['student_relationship'] . '","student_count":' . $data['student_count'] . ',"student_degree":"' . $data['student_degree'] . '","student_education_system":"' . $data['student_education_system'] . '","school_name":"' . $data['school_name'] . '","school_address":"' . $data['school_address'] . '","school_starting":"' . $data['school_starting'] . '"}',
+                'status'     => 'pending',
+            ]);
         });
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Registration completed successfully. You can log in now.',
+                'redirect' => url('/login'),
+            ], 201);
+        }
 
         return redirect('/login')->with('success', 'تم التسجيل بنجاح! سجّل دخولك الآن بالإيميل والباسورد.');
     }
@@ -113,9 +133,29 @@ class RegistrationController extends Controller
                 'status'         => 'interview_scheduled',
                 'interview_date' => $interviewDate,
             ]);
+
+            \App\Models\Application::create([
+                'user_id'    => $user->id,
+                'full_name'  => $data['owner_full_name'],
+                'email'      => $user->email,
+                'phone'      => $data['owner_phone'],
+                'address'    => $data['owner_address'],
+                'role'       => 'driver',
+                'experience' => $data['owner_message'] ?? 'Driver registration',
+                'notes'      => 'meta:{"owner_state":"' . $data['owner_state'] . '","owner_age":' . $data['owner_age'] . ',"owner_gender":"' . $data['owner_gender'] . '","car_type":"' . $data['car_type'] . '","car_model":"' . $data['car_model'] . '","car_plate":"' . $data['car_plate'] . '"}',
+                'status'     => 'pending',
+            ]);
         });
 
         $formattedDate = $interviewDate->format('Y-m-d h:i A');
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'status' => 'success',
+                'message' => "Registration completed successfully. Interview date: {$formattedDate}.",
+                'redirect' => url('/login'),
+            ], 201);
+        }
 
         return redirect('/login')->with('success', "تم التسجيل بنجاح! تم تحديد ميعاد المقابلة: {$formattedDate}. سيتم تفعيل حسابك بعد المقابلة.");
     }

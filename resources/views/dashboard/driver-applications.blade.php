@@ -82,10 +82,13 @@
     </style>
 </head>
 <body>
+<!-- DEBUG: THIS IS THE REAL DRIVER APPLICATIONS PAGE -->
+    <script>window.__API_TOKEN = '{{ $apiToken ?? '' }}';</script>
     <div class="dash-header">
         <h1><i class="fas fa-id-card"></i> Driver Dashboard — My Applications</h1>
         <div class="header-actions">
-            <a href="{{ url('/apply/driver') }}" class="header-btn primary"><i class="fas fa-plus"></i> New Application</a>
+            <button class="header-btn primary" onclick="openAppModal()" type="button"><i class="fas fa-plus"></i> New Application</button>
+            <a href="{{ url('/driver') }}" class="header-btn"><i class="fas fa-arrow-left"></i> Dashboard</a>
             <a href="{{ url('/') }}" class="header-btn"><i class="fas fa-home"></i> Home</a>
             <a href="{{ url('/logout') }}" class="header-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
         </div>
@@ -133,7 +136,7 @@
             <i class="fas fa-folder-open"></i>
             <h3>No Applications Yet</h3>
             <p>You haven't submitted any driver applications. Start by applying now!</p>
-            <a href="{{ url('/apply/driver') }}" class="header-btn primary"><i class="fas fa-plus"></i> Submit Application</a>
+            <button class="header-btn primary" onclick="openAppModal()" type="button"><i class="fas fa-plus"></i> Submit Application</button>
         </div>
         @endif
     </div>
@@ -150,7 +153,110 @@
         </div>
     </div>
 
+    <!-- Application Form Modal -->
+    <div class="modal-overlay" id="appFormModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-plus-circle"></i> New Application</h3>
+                <button class="modal-close" onclick="closeAppFormModal()">&times;</button>
+            </div>
+            <form id="appForm" class="ajax-form" action="/apply/submit" method="POST" style="padding:24px;">
+                @csrf
+                <input type="hidden" name="role" value="Driver">
+                <div class="detail-grid" style="margin-bottom:14px;">
+                    <div class="detail-item full">
+                        <label class="detail-label">Full Name</label>
+                        <input type="text" name="full_name" class="form-control" required placeholder="e.g., Ahmed Mohamed Hassan" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;">
+                    </div>
+                    <div class="detail-item full">
+                        <label class="detail-label">Email</label>
+                        <input type="email" name="email" class="form-control" required placeholder="your.email@example.com" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;">
+                    </div>
+                    <div class="detail-item full">
+                        <label class="detail-label">Phone</label>
+                        <input type="tel" name="phone" class="form-control" required placeholder="+20 100 123 4567" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;">
+                    </div>
+                    <div class="detail-item full">
+                        <label class="detail-label">Address</label>
+                        <input type="text" name="address" class="form-control" required placeholder="Your address..." style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;">
+                    </div>
+                    <div class="detail-item full">
+                        <label class="detail-label">Experience / Request Type</label>
+                        <input type="text" name="experience" class="form-control" required placeholder="e.g., maintenance, leave, schedule..." style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;">
+                    </div>
+                    <div class="detail-item full">
+                        <label class="detail-label">Notes</label>
+                        <textarea name="notes" class="form-control" rows="3" placeholder="Additional details..." style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;resize:vertical;"></textarea>
+                    </div>
+                </div>
+                <div id="appFormError" style="color:var(--danger);font-size:13px;margin-bottom:10px;display:none;"></div>
+                <div id="appFormSuccess" style="color:var(--success);font-size:13px;margin-bottom:10px;display:none;"></div>
+                <div style="text-align:right;">
+                    <button type="button" class="btn-close" onclick="closeAppFormModal()" style="margin-right:8px;">Cancel</button>
+                    <button type="submit" class="header-btn primary" id="appFormSubmit" style="border:none;cursor:pointer;"><i class="fas fa-paper-plane"></i> Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 <script>
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+    }[char]));
+}
+
+function renderApplications(applications) {
+    const content = document.querySelector('.dash-content');
+    if (!content) return;
+    if (!applications.length) {
+        content.innerHTML = `<div class="empty-state">
+            <i class="fas fa-folder-open"></i>
+            <h3>No Applications Yet</h3>
+            <p>No requests yet</p>
+            <button class="header-btn primary" onclick="openAppModal()" type="button"><i class="fas fa-plus"></i> Submit Application</button>
+        </div>`;
+        return;
+    }
+
+    content.innerHTML = `<div class="app-cards">${applications.map((app, index) => `
+        <div class="app-card ${index === 0 ? 'latest' : ''}">
+            <div class="card-main">
+                <h3>${escapeHtml(app.full_name)}</h3>
+                <div class="card-meta">
+                    <span><i class="fas fa-envelope"></i> ${escapeHtml(app.email)}</span>
+                    <span><i class="fas fa-phone"></i> ${escapeHtml(app.phone)}</span>
+                    <span><i class="fas fa-calendar"></i> ${escapeHtml((app.created_at || '').slice(0, 10))}</span>
+                </div>
+            </div>
+            <div class="card-actions">
+                <span class="badge badge-${escapeHtml(app.status)}">${escapeHtml(app.status)}</span>
+                <button class="view-btn" onclick="viewApp(${app.id})"><i class="fas fa-eye"></i> Details</button>
+            </div>
+        </div>
+    `).join('')}</div>`;
+}
+
+async function loadApplications() {
+    if (!window.__API_TOKEN) return;
+    try {
+        const res = await fetch('/api/applications?role=driver', {
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': 'Bearer ' + window.__API_TOKEN
+            }
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.status === 'success') {
+            renderApplications(data.data || []);
+        }
+    } catch (error) {
+        console.warn('Failed to refresh driver applications', error);
+    }
+}
+
+setInterval(loadApplications, 10000);
+
 function viewApp(id) {
     const modal = document.getElementById('detailModal');
     const content = document.getElementById('detailContent');
@@ -181,6 +287,75 @@ function viewApp(id) {
 }
 function closeModal() { document.getElementById('detailModal').classList.remove('active'); }
 document.getElementById('detailModal').addEventListener('click', e => { if (e.target.id === 'detailModal') closeModal(); });
+
+function openAppModal() {
+    document.getElementById('appFormError').style.display = 'none';
+    document.getElementById('appFormSuccess').style.display = 'none';
+    document.getElementById('appForm').reset();
+    document.getElementById('appFormModal').classList.add('active');
+}
+function closeAppFormModal() { document.getElementById('appFormModal').classList.remove('active'); }
+document.getElementById('appFormModal').addEventListener('click', e => { if (e.target.id === 'appFormModal') closeAppFormModal(); });
+
+document.getElementById('appForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const errorBox = document.getElementById('appFormError');
+    const successBox = document.getElementById('appFormSuccess');
+    const submitBtn = document.getElementById('appFormSubmit');
+    errorBox.style.display = 'none';
+    successBox.style.display = 'none';
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+
+    const formData = new FormData(this);
+    try {
+        const res = await fetch('/apply/submit', {
+            method: 'POST',
+            headers: { 'Accept': 'application/json' },
+            body: formData
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            errorBox.textContent = data.message || 'Submission failed. Please check your input.';
+            errorBox.style.display = 'block';
+            return;
+        }
+        successBox.textContent = 'Application submitted successfully!';
+        successBox.style.display = 'block';
+        this.reset();
+        loadApplications();
+        const app = data.data;
+        if (app && document.querySelector('.app-cards')) {
+            const card = document.createElement('div');
+            card.className = 'app-card latest';
+            card.style.borderColor = 'rgba(34,197,94,.3)';
+            card.innerHTML = `
+                <div class="card-main">
+                    <h3>${app.full_name}</h3>
+                    <div class="card-meta">
+                        <span><i class="fas fa-envelope"></i> ${app.email}</span>
+                        <span><i class="fas fa-phone"></i> ${app.phone}</span>
+                        <span><i class="fas fa-calendar"></i> Just now</span>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <span class="badge badge-${app.status}">${app.status}</span>
+                    <button class="view-btn" onclick="viewApp(${app.id})"><i class="fas fa-eye"></i> Details</button>
+                </div>`;
+            document.querySelector('.app-cards').prepend(card);
+            const emptyState = document.querySelector('.empty-state');
+            if (emptyState) emptyState.remove();
+        }
+        setTimeout(() => closeAppFormModal(), 1200);
+    } catch (err) {
+        errorBox.textContent = 'Network error. Please try again.';
+        errorBox.style.display = 'block';
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit';
+    }
+});
 </script>
+<script src="{{ asset('js/ajax-forms.js') }}"></script>
 </body>
 </html>

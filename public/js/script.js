@@ -92,47 +92,30 @@ function initThemeToggle() {
 
 initThemeToggle();
 
-navLinks.forEach(link => {
-    link.addEventListener('click', (e) => {
-        e.preventDefault();
-        
-        navLinks.forEach(l => l.classList.remove('active'));
-        link.classList.add('active');
-        
-        pages.forEach(page => page.classList.remove('active'));
-        
-        const pageId = link.getAttribute('data-page');
-        const targetPage = document.getElementById(pageId);
-        
-        if (targetPage) {
-            targetPage.classList.add('active');
-        }
-        
-        pageTitle.textContent = link.querySelector('span').textContent;
-        
-        if (pageId === 'tracking') {
-            initMap();
-            initGpsMap();
-            startGpsUpdates();
-        } else if (pageId === 'attendance') {
-            renderAttendanceTable();
-            updateAttendanceSummary();
-        } else if (pageId === 'payments') {
-            renderPaymentsTable();
-            renderPaymentDiscounts();
-            renderPackagesAndFeaturesFromPrice();
-            renderFamilyOffers();
-            initFamilySavingsCalculator();
-        } else if (pageId === 'trip-history') {
-            renderTripHistory();
-        } else if (pageId === 'emergency-alerts') {
-            renderEmergencyAlerts();
-        } else if (pageId === 'profile-settings') {
-            initProfileSettings();
-        }
-        
-        if (isMobileView()) setMobileSidebarState(false);
-    });
+// Global navigation handler
+document.addEventListener('spa:pageChanged', (e) => {
+    const pageId = e.detail.pageId;
+    
+    if (pageId === 'tracking') {
+        initMap();
+        initGpsMap();
+        startGpsUpdates();
+    } else if (pageId === 'attendance') {
+        renderAttendanceTable();
+        updateAttendanceSummary();
+    } else if (pageId === 'payments') {
+        renderPaymentsTable();
+        renderPaymentDiscounts();
+        renderPackagesAndFeaturesFromPrice();
+        renderFamilyOffers();
+        initFamilySavingsCalculator();
+    } else if (pageId === 'trip-history') {
+        renderTripHistory();
+    } else if (pageId === 'emergency-alerts') {
+        renderEmergencyAlerts();
+    } else if (pageId === 'profile-settings') {
+        initProfileSettings();
+    }
 });
 
 // Logout functionality

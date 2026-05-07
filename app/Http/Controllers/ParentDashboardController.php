@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Application;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ParentDashboardController extends Controller
 {
@@ -18,10 +19,17 @@ class ParentDashboardController extends Controller
                 $q->where('user_id', auth()->id())
                   ->orWhere('email', auth()->user()->email);
             })
+            ->where(DB::raw('LOWER(role)'), 'parent')
             ->latest()
             ->paginate(10);
+        $apiToken = session('api_token');
+        if (!$apiToken && $user) {
+            $user->tokens()->where('name', 'dashboard-session')->delete();
+            $apiToken = $user->createToken('dashboard-session')->plainTextToken;
+            session(['api_token' => $apiToken]);
+        }
 
-        return view('dashboard.parent-applications', compact('applications'));
+        return view('dashboard.parent-applications', compact('applications', 'apiToken'));
     }
 
     /**

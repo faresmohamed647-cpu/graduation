@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Driver Dashboard - School Bus Tracking</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -92,9 +93,13 @@
     <script>
     (function(){
         var t = '{{ $apiToken ?? '' }}';
+        window.__API_TOKEN = t;
+        window.__INITIAL_PAGE = 'dashboard';
         if(t){ localStorage.setItem('safestep_token', t); localStorage.setItem('token', t); }
     })();
     </script>
+    <script src="{{ asset('js/api-service.js') }}"></script>
+    <script src="{{ asset('js/spa-navigation.js') }}"></script>
 </head>
 <body>
     <!-- Sidebar -->
@@ -132,11 +137,11 @@
                 <i class="fas fa-history"></i>
                 <span>Trip History</span>
             </a>
-            <a href="/driver/request" class="nav-link" data-page="requests">
+            <a href="/driver/request" class="nav-link external-link" data-page="requests">
                 <i class="fas fa-file-alt"></i>
                 <span>Driver Requests</span>
             </a>
-            <a href="/dashboard/driver" class="nav-link" data-page="my-applications">
+            <a href="/driver/applications" class="nav-link external-link" data-page="my-applications">
                 <i class="fas fa-folder-open"></i>
                 <span>My Applications</span>
             </a>
@@ -202,7 +207,7 @@
                         <i class="fas fa-users"></i>
                     </div>
                     <div class="stat-info">
-                        <h2 id="totalStudents">24</h2>
+                        <h2 id="totalStudents">{{ $todayTrip?->attendance?->count() ?? 0 }}</h2>
                         <p>Students Today</p>
                     </div>
                 </div>
@@ -224,7 +229,7 @@
                         <i class="fas fa-check-circle"></i>
                     </div>
                     <div class="stat-info">
-                        <h2 id="presentCount">0</h2>
+                        <h2 id="presentCount">{{ $todayTrip?->attendance?->where('status', 'present')->count() ?? 0 }}</h2>
                         <p>Present Students</p>
                     </div>
                 </div>
@@ -341,7 +346,7 @@
                             <i class="fas fa-bus"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>2</h3>
+                            <h3>{{ $stats['trips_today'] ?? 0 }}</h3>
                             <p>Trips Today</p>
                         </div>
                     </div>
@@ -350,7 +355,7 @@
                             <i class="fas fa-check-circle"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>1</h3>
+                            <h3>{{ $stats['trips_completed'] ?? 0 }}</h3>
                             <p>Completed</p>
                         </div>
                     </div>
@@ -359,7 +364,7 @@
                             <i class="fas fa-clock"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>1</h3>
+                            <h3>{{ max(0, ($stats['trips_today'] ?? 0) - ($stats['trips_completed'] ?? 0)) }}</h3>
                             <p>Upcoming</p>
                         </div>
                     </div>
@@ -440,7 +445,7 @@
                         </span>
                         <span class="summary-item absent">
                             <i class="fas fa-times"></i>
-                            Absent: <strong id="summaryAbsent">24</strong>
+                            Absent: <strong id="summaryAbsent">{{ $todayTrip?->attendance?->where('status', 'absent')->count() ?? 0 }}</strong>
                         </span>
                     </div>
                 </div>
@@ -597,7 +602,7 @@
                     </div>
                 </div>
                 <div class="profile-modal-info">
-                    <h2>Omer Mohamed</h2>
+                    <h2>{{ $userName ?? 'Driver' }}</h2>
                     <p class="profile-role">Bus Driver</p>
                     <div class="profile-rating">
                         <i class="fas fa-star"></i>
@@ -615,27 +620,27 @@
                     <div class="profile-details-grid">
                         <div class="profile-detail-item">
                             <span class="detail-label"><i class="fas fa-phone"></i> Phone</span>
-                            <span class="detail-value">+20 100 123 4567</span>
+                            <span class="detail-value">{{ $todayTrip?->driver?->phone ?? '—' }}</span>
                         </div>
                         <div class="profile-detail-item">
                             <span class="detail-label"><i class="fas fa-envelope"></i> Email</span>
-                            <span class="detail-value">omer.mohamed@bustracker.com</span>
+                            <span class="detail-value">{{ auth()->user()?->email ?? '—' }}</span>
                         </div>
                         <div class="profile-detail-item">
                             <span class="detail-label"><i class="fas fa-bus"></i> Bus Number</span>
-                            <span class="detail-value">Bus #42</span>
+                            <span class="detail-value">{{ $todayTrip?->bus?->number ? 'Bus #'.$todayTrip->bus->number : '—' }}</span>
                         </div>
                         <div class="profile-detail-item">
                             <span class="detail-label"><i class="fas fa-route"></i> Route</span>
-                            <span class="detail-value">Route A - Morning</span>
+                            <span class="detail-value">{{ $todayTrip?->route?->name ?? '—' }}</span>
                         </div>
                         <div class="profile-detail-item">
                             <span class="detail-label"><i class="fas fa-id-badge"></i> License</span>
-                            <span class="detail-value">DL-123456</span>
+                            <span class="detail-value">{{ $todayTrip?->driver?->license_number ?? '—' }}</span>
                         </div>
                         <div class="profile-detail-item">
                             <span class="detail-label"><i class="fas fa-briefcase"></i> Experience</span>
-                            <span class="detail-value">5 Years</span>
+                            <span class="detail-value">{{ $todayTrip?->driver?->experience ? $todayTrip->driver->experience.' Years' : '—' }}</span>
                         </div>
                     </div>
                 </div>
@@ -656,7 +661,7 @@
                                 <i class="fas fa-users"></i>
                             </div>
                             <div class="stat-content">
-                                <h4>24</h4>
+                                <h4>{{ $todayTrip?->attendance?->count() ?? 0 }}</h4>
                                 <p>Students Served</p>
                             </div>
                         </div>
@@ -665,7 +670,7 @@
                                 <i class="fas fa-calendar-check"></i>
                             </div>
                             <div class="stat-content">
-                                <h4>180</h4>
+                                <h4>{{ $stats['trips_completed'] ?? 0 }}</h4>
                                 <p>Trips Completed</p>
                             </div>
                         </div>
@@ -685,8 +690,11 @@
                 <button class="btn-profile-primary" onclick="alert('Contact feature coming soon!')">
                     <i class="fas fa-phone"></i> Contact Driver
                 </button>
-                <button class="btn-profile-secondary" onclick="window.location.href='driver-request.html'">
+                <button class="btn-profile-secondary" onclick="window.location.href='{{ url('/driver/request') }}'">
                     <i class="fas fa-file-lines"></i> Driver Requests
+                </button>
+                <button class="btn-profile-secondary" onclick="window.location.href='{{ url('/driver/applications') }}'">
+                    <i class="fas fa-folder-open"></i> My Applications
                 </button>
                 <button class="btn-profile-secondary" onclick="closeDriverProfileModal()">
                     Close
@@ -1084,6 +1092,102 @@
                 closeDriverProfileModal();
             }
         });
+    </script>
+
+    <script>
+    window.__DRIVER_DATA = {
+        todayTrip: @json($todayTrip),
+        trips: @json($trips),
+        applications: @json($applications),
+        stats: @json($stats)
+    };
+    (function(){
+        // Populate students grid
+        const studentsGrid = document.getElementById('studentsGrid');
+        const attendanceList = window.__DRIVER_DATA.todayTrip?.attendance || [];
+        if(studentsGrid && attendanceList.length){
+            studentsGrid.innerHTML = attendanceList.map(a => {
+                const student = a.student || {};
+                const statusClass = a.status === 'present' ? 'present' : (a.status === 'absent' ? 'absent' : 'pending');
+                return `
+                <div class="student-card ${statusClass}" style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px;">
+                    <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#0ea5a4,#2563eb);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;">${(student.full_name || 'S').charAt(0)}</div>
+                    <div style="flex:1;">
+                        <strong style="color:#1e293b;font-size:14px;">${student.full_name || 'Student'}</strong>
+                        <div style="color:#64748b;font-size:12px;">Status: <span style="text-transform:capitalize;">${a.status}</span></div>
+                    </div>
+                    <span style="background:${a.status==='present'?'rgba(34,197,94,.15)':a.status==='absent'?'rgba(239,68,68,.15)':'rgba(99,102,241,.15)'};color:${a.status==='present'?'#4ade80':a.status==='absent'?'#f87171':'#a5b4fc'};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;text-transform:uppercase;">${a.status}</span>
+                </div>`;
+            }).join('');
+            // Update summary counts
+            const presentCount = attendanceList.filter(a=>a.status==='present').length;
+            const absentCount = attendanceList.filter(a=>a.status==='absent').length;
+            const presentEl = document.getElementById('summaryPresent');
+            const absentEl = document.getElementById('summaryAbsent');
+            if(presentEl) presentEl.textContent = presentCount;
+            if(absentEl) absentEl.textContent = absentCount;
+        } else if(studentsGrid){
+            studentsGrid.innerHTML = '<div style="text-align:center;padding:24px;color:#94a3b8;"><i class="fas fa-inbox" style="font-size:24px;margin-bottom:8px;display:block;"></i>No students assigned for today.</div>';
+        }
+
+        // Populate attendance table (today trip page)
+        const attendanceBody = document.getElementById('attendanceTableBody');
+        if(attendanceBody && attendanceList.length){
+            attendanceBody.innerHTML = attendanceList.map(a => {
+                const student = a.student || {};
+                const pickup = a.picked_up_at ? new Date(a.picked_up_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '—';
+                const dropoff = a.dropped_off_at ? new Date(a.dropped_off_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '—';
+                return `<tr>
+                    <td>${student.full_name || '—'}</td>
+                    <td>${pickup}</td>
+                    <td>${dropoff}</td>
+                    <td><span style="background:${a.status==='present'?'rgba(34,197,94,.15)':a.status==='absent'?'rgba(239,68,68,.15)':'rgba(99,102,241,.15)'};color:${a.status==='present'?'#4ade80':a.status==='absent'?'#f87171':'#a5b4fc'};padding:2px 8px;border-radius:4px;font-size:12px;text-transform:uppercase;">${a.status}</span></td>
+                </tr>`;
+            }).join('');
+        } else if(attendanceBody){
+            attendanceBody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:#94a3b8;">No attendance records for today.</td></tr>';
+        }
+
+        // Populate trip history
+        const tripHistoryBody = document.getElementById('tripHistoryBody');
+        const trips = window.__DRIVER_DATA.trips || [];
+        if(tripHistoryBody && trips.length){
+            tripHistoryBody.innerHTML = trips.map(t => {
+                const date = t.trip_date ? new Date(t.trip_date).toLocaleDateString() : '—';
+                const routeName = t.route?.name || '—';
+                const type = t.shift || 'morning';
+                const duration = '—';
+                const students = t.attendance_count || 0;
+                const statusBadge = t.status === 'completed' ? '<span style="background:rgba(34,197,94,.15);color:#4ade80;padding:2px 8px;border-radius:4px;font-size:12px;">Completed</span>' :
+                    t.status === 'active' ? '<span style="background:rgba(59,130,246,.15);color:#60a5fa;padding:2px 8px;border-radius:4px;font-size:12px;">Active</span>' :
+                    '<span style="background:rgba(99,102,241,.15);color:#a5b4fc;padding:2px 8px;border-radius:4px;font-size:12px;">' + (t.status || 'Pending') + '</span>';
+                return `<tr>
+                    <td>${date}</td>
+                    <td>${routeName}</td>
+                    <td>${type}</td>
+                    <td>${duration}</td>
+                    <td>${students}</td>
+                    <td>${statusBadge}</td>
+                </tr>`;
+            }).join('');
+        } else if(tripHistoryBody){
+            tripHistoryBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#94a3b8;">No trip history found.</td></tr>';
+        }
+    })();
+    </script>
+    <script src="{{ asset('js/ajax-forms.js') }}"></script>
+    <script>
+    document.addEventListener('spa:pageChanged', (e) => {
+        const pageId = e.detail.pageId;
+        console.log('[Driver SPA] Page changed to:', pageId);
+        
+        // Handle any driver-specific page init here
+        if (pageId === 'trip') {
+            // init trip logic
+        } else if (pageId === 'route') {
+            if (typeof initDriverGpsMap === 'function') initDriverGpsMap();
+        }
+    });
     </script>
 </body>
 </html>

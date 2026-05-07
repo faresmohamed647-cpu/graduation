@@ -296,7 +296,7 @@
                 <span id="alertErrorMsg">Something went wrong. Please try again.</span>
             </div>
 
-            <form id="applicationForm" novalidate>
+            <form id="applicationForm" class="ajax-form" novalidate data-action="/api/applications">
                 <input type="hidden" name="role" value="{{ $activeRole ?? 'parent' }}">
 
                 {{-- Personal Info --}}
@@ -514,5 +514,6 @@
     });
 })();
 </script>
+<script src="{{ asset('js/ajax-forms.js') }}"></script>
 </body>
 </html>

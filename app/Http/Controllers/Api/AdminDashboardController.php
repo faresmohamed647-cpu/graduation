@@ -7,6 +7,7 @@ use App\Models\Bus;
 use App\Models\BusRoute;
 use App\Models\Driver;
 use App\Models\ParentProfile;
+use App\Models\ServiceRequest;
 use App\Models\Student;
 use App\Models\Trip;
 use App\Models\User;
@@ -31,7 +32,7 @@ class AdminDashboardController extends Controller
                 'today_trips'       => Trip::whereDate('trip_date', $today)->count(),
                 'total_routes'      => BusRoute::count(),
                 'total_users'       => User::count(),
-                'pending_requests'  => 0,
+                'pending_requests'  => ServiceRequest::where('status', 'pending')->count(),
                 'complaints_today'  => 0,
             ],
         ]);

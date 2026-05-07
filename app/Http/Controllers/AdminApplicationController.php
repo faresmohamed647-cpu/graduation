@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Application;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class AdminApplicationController extends Controller
@@ -17,7 +18,7 @@ class AdminApplicationController extends Controller
 
         // Filter by role
         if ($request->filled('role') && $request->input('role') !== 'all') {
-            $query->where('role', $request->input('role'));
+            $query->where(DB::raw('LOWER(role)'), strtolower($request->input('role')));
         }
 
         // Filter by status

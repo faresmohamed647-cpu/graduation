@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Admin Dashboard - School Bus Tracking</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,11 +27,16 @@
     <script>
     (function(){
         var t = '{{ session('api_token', '') }}';
+        window.__API_TOKEN = t;
+        window.__INITIAL_PAGE = '{{ $initialAdminPage ?? 'dashboard' }}';
         if(t){ localStorage.setItem('safestep_token', t); localStorage.setItem('token', t); }
     })();
     </script>
+    <script src="{{ asset('js/api-service.js') }}"></script>
+    <script src="{{ asset('js/spa-navigation.js') }}"></script>
 </head>
 <body>
+<!-- DEBUG: THIS IS THE REAL ADMIN DASHBOARD -->
     <!-- سليدر الاقسام-->
     <div class="sidebar">
         <div class="logo">
@@ -42,7 +48,7 @@
                 <i class="fas fa-chart-line"></i>
                 <span>Dashboard</span>
             </a>
-            <a href="{{ url('/admin/applications') }}" class="nav-link">
+            <a href="#" class="nav-link" data-page="applications">
                 <i class="fas fa-file-alt"></i>
                 <span>Applications</span>
             </a>
@@ -172,7 +178,7 @@
                         <i class="fas fa-users"></i>
                     </div>
                     <div class="stat-info">
-                        <h3 id="totalParentsStat">128</h3>
+                        <h3 id="totalParentsStat">{{ $stats['parents_count'] ?? 0 }}</h3>
                         <p>Total Parents</p>
                         <span class="stat-trend up">
                             <i class="fas fa-arrow-up"></i> 12% from last month
@@ -185,7 +191,7 @@
                         <i class="fas fa-user-tie"></i>
                     </div>
                     <div class="stat-info">
-                        <h3 id="totalDriversStat">24</h3>
+                        <h3 id="totalDriversStat">{{ $stats['drivers_count'] ?? 0 }}</h3>
                         <p>Total Drivers</p>
                         <span class="stat-trend up">
                             <i class="fas fa-arrow-up"></i> 3 new this month
@@ -198,7 +204,7 @@
                         <i class="fas fa-bus"></i>
                     </div>
                     <div class="stat-info">
-                        <h3 id="activeBusesStat">18</h3>
+                        <h3 id="activeBusesStat">{{ $stats['buses_count'] ?? 0 }}</h3>
                         <p>Active Buses</p>
                         <span class="stat-trend">
                             <i class="fas fa-minus"></i> No change
@@ -211,7 +217,7 @@
                         <i class="fas fa-route"></i>
                     </div>
                     <div class="stat-info">
-                        <h3 id="todayTripsStat">36</h3>
+                        <h3 id="todayTripsStat">{{ $stats['trips_today'] ?? 0 }}</h3>
                         <p>Today's Trips</p>
                         <span class="stat-trend up">
                             <i class="fas fa-arrow-up"></i> 100% on schedule
@@ -224,7 +230,7 @@
                         <i class="fas fa-user-graduate"></i>
                     </div>
                     <div class="stat-info">
-                        <h3 id="totalStudentsStat">412</h3>
+                        <h3 id="totalStudentsStat">{{ $stats['students_count'] ?? 0 }}</h3>
                         <p>Total Students</p>
                         <span class="stat-trend up">
                             <i class="fas fa-arrow-up"></i> 8 new enrollments
@@ -237,7 +243,7 @@
                         <i class="fas fa-bus-alt"></i>
                     </div>
                     <div class="stat-info">
-                        <h3 id="totalBusesStat">22</h3>
+                        <h3 id="totalBusesStat">{{ $stats['buses_count'] ?? 0 }}</h3>
                         <p>Total Buses</p>
                         <span class="stat-trend">
                             <i class="fas fa-minus"></i> Fleet steady
@@ -250,7 +256,7 @@
                         <i class="fas fa-clock"></i>
                     </div>
                     <div class="stat-info">
-                        <h3 id="activeTripsStat">14</h3>
+                        <h3 id="activeTripsStat">{{ $stats['trips_active'] ?? 0 }}</h3>
                         <p>Active Trips</p>
                         <span class="stat-trend up">
                             <i class="fas fa-arrow-up"></i> Running now
@@ -263,7 +269,7 @@
                         <i class="fas fa-inbox"></i>
                     </div>
                     <div class="stat-info">
-                        <h3 id="pendingRequestsStat">7</h3>
+                        <h3 id="pendingRequestsStat">{{ ($stats['applications_pending'] ?? 0) + ($stats['service_requests_pending'] ?? 0) }}</h3>
                         <p>Pending Requests</p>
                         <span class="stat-trend">
                             <i class="fas fa-minus"></i> Waiting review
@@ -276,7 +282,7 @@
                         <i class="fas fa-exclamation-triangle"></i>
                     </div>
                     <div class="stat-info">
-                        <h3 id="complaintsTodayStat">3</h3>
+                        <h3 id="complaintsTodayStat">{{ $stats['reports_open'] ?? 0 }}</h3>
                         <p>Complaints Today</p>
                         <span class="stat-trend down">
                             <i class="fas fa-arrow-down"></i> -2 vs yesterday
@@ -301,45 +307,26 @@
                 <div class="card activity-card">
                     <div class="card-header">
                         <h3>Recent Activity</h3>
-                        <a href="#" class="view-all">View All</a>
+                        <a href="{{ url('/admin/applications') }}" class="view-all">View All</a>
                     </div>
                     <div class="activity-list">
+                        @forelse($recentApplications as $app)
                         <div class="activity-item">
-                            <div class="activity-icon blue">
-                                <i class="fas fa-user-plus"></i>
+                            <div class="activity-icon {{ $app->role === 'parent' ? 'blue' : ($app->role === 'driver' ? 'green' : 'purple') }}">
+                                <i class="fas fa-{{ $app->role === 'parent' ? 'user-plus' : ($app->role === 'driver' ? 'id-card' : 'file-alt') }}"></i>
                             </div>
                             <div class="activity-content">
-                                <p><strong>New parent registered</strong></p>
-                                <span>Mohamed Fawzy - 5 minutes ago</span>
+                                <p><strong>New {{ ucfirst($app->role) }} application</strong> — <span class="badge badge-{{ $app->status }}">{{ $app->status }}</span></p>
+                                <span>{{ $app->full_name }} • {{ $app->created_at->diffForHumans() }}</span>
                             </div>
                         </div>
+                        @empty
                         <div class="activity-item">
-                            <div class="activity-icon green">
-                                <i class="fas fa-bus"></i>
-                            </div>
                             <div class="activity-content">
-                                <p><strong>Trip completed</strong></p>
-                                <span>Bus #42 - Route A - 15 minutes ago</span>
+                                <p style="color:#94a3b8;">No recent activity.</p>
                             </div>
                         </div>
-                        <div class="activity-item">
-                            <div class="activity-icon orange">
-                                <i class="fas fa-exclamation-triangle"></i>
-                            </div>
-                            <div class="activity-content">
-                                <p><strong>Maintenance alert</strong></p>
-                                <span>Bus #15 - Oil change due - 1 hour ago</span>
-                            </div>
-                        </div>
-                        <div class="activity-item">
-                            <div class="activity-icon purple">
-                                <i class="fas fa-user-check"></i>
-                            </div>
-                            <div class="activity-content">
-                                <p><strong>Driver approved</strong></p>
-                                <span>Michael Brown - 2 hours ago</span>
-                            </div>
-                        </div>
+                        @endforelse
                     </div>
                 </div>
 
@@ -401,6 +388,59 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Applications Page -->
+        <div class="page" id="applications">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Applications Management</h3>
+                    <div class="card-actions">
+                        <button class="btn-secondary btn-compact" type="button" onclick="loadApplicationsFromApi()">
+                            <i class="fas fa-rotate"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="filters" style="margin: 16px 20px 0;">
+                    <div class="filter-item" style="max-width: 280px;">
+                        <label for="applicationRoleFilter" class="form-label">Role</label>
+                        <select id="applicationRoleFilter" class="form-control">
+                            <option value="all">All roles</option>
+                            <option value="parent">Parent</option>
+                            <option value="driver">Driver</option>
+                            <option value="admin">Admin</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="filter-item" style="max-width: 280px;">
+                        <label for="applicationStatusFilter" class="form-label">Status</label>
+                        <select id="applicationStatusFilter" class="form-control">
+                            <option value="all">All statuses</option>
+                            <option value="pending">Pending</option>
+                            <option value="reviewed">Reviewed</option>
+                            <option value="accepted">Accepted</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="applicationsTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Created At</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td colspan="6">Loading applications...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -1612,7 +1652,7 @@
                         <i class="fas fa-plus"></i> Send Notification
                     </button>
                 </div>
-                <form id="broadcastForm" class="filters" style="margin-bottom: 20px;">
+                <form id="broadcastForm" class="filters ajax-form" style="margin-bottom: 20px;">
                     <div class="filter-item" style="flex: 1 1 220px;">
                         <label for="notificationTemplateSelect" class="form-label">Template</label>
                         <select id="notificationTemplateSelect" class="form-control">
@@ -2725,5 +2765,65 @@
 
     <script src="{{ asset('js/admin.js') }}"></script>
     <script src="{{ asset('js/i18n-admin.js') }}"></script>
+    <script src="{{ asset('js/ajax-forms.js') }}"></script>
+    <script>
+    // SPA Event handler for Admin Dashboard (Replaces legacy navigation logic)
+    document.addEventListener('spa:pageChanged', (e) => {
+        const pageId = e.detail.pageId;
+        console.log('[Admin SPA] Rendering for page:', pageId);
+        
+        // Trigger the original render logic
+        if (pageId === 'applications' && typeof renderApplications === 'function') {
+            renderApplications();
+            if (typeof loadApplicationsFromApi === 'function') loadApplicationsFromApi();
+        } else if (pageId === 'parents' && typeof renderParents === 'function') {
+            renderParents();
+        } else if (pageId === 'drivers' && typeof renderDrivers === 'function') {
+            renderDrivers();
+        } else if (pageId === 'buses' && typeof renderBuses === 'function') {
+            renderBuses();
+        } else if (pageId === 'requests' && typeof renderRequests === 'function') {
+            renderRequests();
+        } else if (pageId === 'account-recovery' && typeof renderAccountRecovery === 'function') {
+            renderAccountRecovery();
+        } else if (pageId === 'financials' && typeof renderFinancials === 'function') {
+            renderFinancials();
+        } else if (pageId === 'maintenance' && typeof renderMaintenance === 'function') {
+            renderMaintenance();
+        } else if (pageId === 'live-tracking' && typeof renderLiveTracking === 'function') {
+            renderLiveTracking();
+            if (typeof renderTripPlayback === 'function') renderTripPlayback();
+        } else if (pageId === 'students' && typeof renderStudents === 'function') {
+            renderStudents();
+            if (typeof renderAttendance === 'function') renderAttendance();
+            if (typeof renderAttendanceRealtime === 'function') renderAttendanceRealtime();
+        } else if (pageId === 'trips' && typeof renderTrips === 'function') {
+            renderTrips();
+            if (typeof renderAssignmentOverview === 'function') renderAssignmentOverview();
+            if (typeof renderRouteStops === 'function') renderRouteStops();
+        } else if (pageId === 'notifications' && typeof renderNotifications === 'function') {
+            renderNotifications();
+            if (typeof renderNotificationTemplates === 'function') renderNotificationTemplates();
+            if (typeof renderEmergencyAlerts === 'function') renderEmergencyAlerts();
+        } else if (pageId === 'complaints' && typeof renderComplaints === 'function') {
+            renderComplaints();
+        } else if (pageId === 'schools' && typeof renderSchools === 'function') {
+            renderSchools();
+        } else if (pageId === 'users' && typeof renderUsers === 'function') {
+            renderUsers();
+        } else if (pageId === 'activity-logs' && typeof renderActivityLogs === 'function') {
+            renderActivityLogs();
+            if (typeof initStudentQrTools === 'function') initStudentQrTools();
+        } else if (pageId === 'emergency-logs' && typeof renderEmergencyLogs === 'function') {
+            renderEmergencyLogs();
+            if (typeof renderSmartAlerts === 'function') renderSmartAlerts();
+        }
+        
+        if (typeof applyGlobalSearch === 'function') {
+            const searchInput = document.querySelector('.search-box input');
+            applyGlobalSearch(searchInput ? searchInput.value : '');
+        }
+    });
+    </script>
 </body>
 </html>

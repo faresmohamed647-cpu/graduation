@@ -27,7 +27,7 @@
           <button type="button" class="pay-option"><i class="fab fa-apple-pay"></i> Apple Pay</button>
         </div>
 
-        <form class="pay-form">
+        <form class="pay-form ajax-form">
           <div class="field">
             <label for="fullName">Card holder full name</label>
             <input id="fullName" type="text" placeholder="Enter your full name" required>
@@ -61,5 +61,20 @@
       </aside>
     </section>
   </main>
+  <script>
+    document.querySelector('.pay-form')?.addEventListener('submit', function (event) {
+      event.preventDefault();
+      const button = this.querySelector('button[type="submit"]');
+      if (button) {
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-check"></i> Payment request saved';
+        setTimeout(() => {
+          button.disabled = false;
+          button.innerHTML = '<i class="fas fa-lock"></i> Checkout';
+        }, 1800);
+      }
+    });
+  </script>
+  <script src="{{ asset('js/ajax-forms.js') }}"></script>
 </body>
 </html>

@@ -30,7 +30,7 @@ class RequestApiController extends Controller
         ]);
 
         return response()->json([
-            'success' => true,
+            'status' => 'success',
             'message' => 'Request submitted successfully.',
             'data' => $report,
         ], 201);

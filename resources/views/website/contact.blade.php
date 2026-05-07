@@ -100,7 +100,7 @@
                     <h1 class="mb-4">Contact Us For Any Inquiry</h1>
                     <p class="mb-4">Need help tracking your child's school bus or managing alerts?Reach out to us and we'll assist you as quickly as possible <a href="https://htmlcodex.com/contact-form">Download Now</a>.</p>
                     <div class="bg-light p-4">
-                        <form>
+                        <form class="ajax-form">
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <div class="form-floating">
@@ -220,6 +220,7 @@
 
 <!-- Language Support -->
 <script src='{{ asset('js/language.js') }}'></script>
+<script src="{{ asset('js/ajax-forms.js') }}"></script>
 
 </body>
 

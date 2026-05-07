@@ -82,7 +82,7 @@
 
     <!-- ===== Parent Login Form ===== -->
     <div class="form-container join-student-container">
-        <form action="{{ url('/login') }}" method="POST">
+        <form class="ajax-form" action="{{ url('/login') }}" method="POST">
             @csrf
             <h1>🎓 Parent Login</h1>
             <p class="subtitle">Sign in with your registered email & password</p>
@@ -122,7 +122,7 @@
 
     <!-- ===== Car Owner / Driver Login Form ===== -->
     <div class="form-container join-us">
-        <form action="{{ url('/login') }}" method="POST">
+        <form class="ajax-form" action="{{ url('/login') }}" method="POST">
             @csrf
             <h1>🚗 Driver Login</h1>
             <p class="subtitle">Sign in with your registered email & password</p>
@@ -209,6 +209,7 @@ window.addEventListener("load", () => {
 });
 </script>
 <script src="{{ asset('js/public-theme.js') }}"></script>
+<script src="{{ asset('js/ajax-forms.js') }}"></script>
 <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
 
 </body>

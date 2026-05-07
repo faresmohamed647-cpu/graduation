@@ -10,7 +10,7 @@
 <body>
     <!-- From Uiverse.io by zanina-yassine --> 
 <div class="modal">
-<form class="form">
+<form class="form ajax-form">
   <div class="payment--options">
     <button name="paypal" type="button">
       <svg xml:space="preserve" viewBox="0 0 124 33" height="33px" width="124px" y="0px" x="0px" id="Layer_1" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg">
@@ -92,6 +92,7 @@
 <!-- Language Support -->
 <script src='{{ asset('js/language.js') }}'></script>
 <script src="{{ asset('js/public-theme.js') }}"></script>
+<script src="{{ asset('js/ajax-forms.js') }}"></script>
 
 </body>
 </html>

@@ -413,7 +413,7 @@
                     <p class="text-muted small">Sign in to track your child's bus in real-time.</p>
                 </div>
 
-                <form action="{{ url('/login') }}" method="POST">
+                <form class="ajax-form" action="{{ url('/login') }}" method="POST">
                     @csrf
                     <input type="hidden" name="role" value="parent">
                     
@@ -461,7 +461,7 @@
                     <div class="step" id="step-3">3</div>
                 </div>
 
-                <form action="{{ url('/register/parent') }}" method="POST" id="multiStepForm">
+                <form class="ajax-form" action="{{ url('/register/parent') }}" method="POST" id="multiStepForm">
                     @csrf
                     
                     <!-- Step 1: Basic Info -->
@@ -628,5 +628,6 @@
             }
         }
     </script>
+    <script src="{{ asset('js/ajax-forms.js') }}"></script>
 </body>
 </html>

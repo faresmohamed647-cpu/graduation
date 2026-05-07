@@ -5,6 +5,7 @@
     <meta charset="utf-8">
     <title>Apply Now - SafeStep</title>
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <link href="{{ asset('img/icon.jpg') }}" rel="icon">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -60,7 +61,7 @@
 
             <div id="responseMessage" style="display: none;" class="alert alert-success"></div>
 
-            <form id="applicationForm">
+            <form id="applicationForm" class="ajax-form" action="/apply/submit" method="POST">
                 @csrf
                 <div class="row g-3">
                     <div class="col-md-6">
@@ -97,7 +98,7 @@
                         <textarea name="notes" class="form-control" rows="2" placeholder="Any additional information or certifications..."></textarea>
                     </div>
                     <div class="col-12 text-center mt-4">
-                        <button class="btn btn-primary w-100 py-3" type="submit">Submit Professional Application</button>
+                        <button class="btn btn-primary w-100 py-3" type="submit" data-loading-text="Submitting...">Submit Professional Application</button>
                     </div>
                 </div>
             </form>
@@ -114,30 +115,6 @@
     <!-- JavaScript Libraries -->
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <script>
-        $(document).ready(function() {
-            $('#applicationForm').on('submit', function(e) {
-                e.preventDefault();
-                const $btn = $(this).find('button');
-                $btn.prop('disabled', true).text('Submitting...');
-
-                $.ajax({
-                    url: '/api/applications',
-                    method: 'POST',
-                    data: $(this).serialize(),
-                    success: function(response) {
-                        $('#applicationForm').hide();
-                        $('#responseMessage').removeClass('alert-danger').addClass('alert-success').text(response.message).fadeIn();
-                    },
-                    error: function(xhr) {
-                        $btn.prop('disabled', false).text('Submit Application');
-                        const message = xhr.responseJSON?.message || Object.values(xhr.responseJSON?.errors || {})?.[0]?.[0] || 'Something went wrong. Please try again.';
-                        $('#responseMessage').removeClass('alert-success').addClass('alert-danger').text(message).fadeIn();
-                    }
-                });
-            });
-        });
-    </script>
+    <script src="{{ asset('js/ajax-forms.js') }}"></script>
 </body>
 </html>

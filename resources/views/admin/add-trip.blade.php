@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="{{ asset('css/add-form.css') }}">
 </head>
 <body>
-  <div class="container"><div class="top"><a class="back-link" href="/admin"><i class="fas fa-arrow-left"></i> Back To Admin</a></div><div class="card"><div class="card-header"><h1 id="pageTitle"></h1><p id="pageSubtitle"></p></div><form class="form" id="addForm"></form></div></div>
+  <div class="container"><div class="top"><a class="back-link" href="/admin"><i class="fas fa-arrow-left"></i> Back To Admin</a></div><div class="card"><div class="card-header"><h1 id="pageTitle"></h1><p id="pageSubtitle"></p></div><form class="form ajax-form" id="addForm"></form></div></div>
   <script src="{{ asset('js/add-form.js') }}"></script>
   <script>
     renderAddForm({ title: 'Add Trip', subtitle: 'Create a new route trip.', fields: [
@@ -27,5 +27,6 @@
       { name: 'status', label: 'Status', type: 'select', required: true, options: [{ value: 'scheduled', label: 'Scheduled' }, { value: 'in-progress', label: 'In Progress' }, { value: 'completed', label: 'Completed' }] }
     ]});
   </script>
+  <script src="{{ asset('js/ajax-forms.js') }}"></script>
 </body>
 </html>

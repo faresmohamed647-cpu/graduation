@@ -45,7 +45,7 @@
 
         <!-- ===== Parent (Student) Form ===== -->
         <div class="form-container join-student-container">
-            <form action="{{ url('/register/parent') }}" method="POST" data-request-role="parent">
+            <form class="ajax-form" action="{{ url('/register/parent') }}" method="POST" data-request-role="parent">
                 @csrf
                 <h1>Join as a Student</h1>
 
@@ -183,7 +183,7 @@
 
         <!-- ===== Car Owner Form ===== -->
         <div class="form-container join-us">
-            <form action="{{ url('/register/driver') }}" method="POST" data-request-role="driver">
+            <form class="ajax-form" action="{{ url('/register/driver') }}" method="POST" data-request-role="driver">
                 @csrf
                 <h1>Join as a Car Owner</h1>
 
@@ -335,3 +335,4 @@
 
 <!-- Language Support -->
 <script src='{{ asset('js/language.js') }}'></script>
+<script src="{{ asset('js/ajax-forms.js') }}"></script>

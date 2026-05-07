@@ -6,11 +6,34 @@ use App\Enums\ApplicationRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ApplicationRequest;
 use App\Models\Application;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class ApplicationController extends Controller
 {
+    public function index(\Illuminate\Http\Request $request)
+    {
+        $user = $request->user();
+        $role = $request->input('role');
+
+        $query = Application::query()
+            ->where(function ($q) use ($user) {
+                $q->where('user_id', $user->id)
+                  ->orWhere('email', $user->email);
+            })
+            ->latest();
+
+        if ($role) {
+            $query->where(DB::raw('LOWER(role)'), strtolower($role));
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $query->limit(50)->get(),
+        ]);
+    }
+
     public function store(ApplicationRequest $request)
     {
         try {

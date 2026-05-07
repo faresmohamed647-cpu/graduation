@@ -31,7 +31,7 @@ Route::get('/logout', [AuthController::class, 'logout'])->middleware('auth')->na
 
 // Dedicated dashboard paths (used by role-based login redirect)
 Route::prefix('dashboard')->middleware('auth')->group(function () {
-    Route::redirect('/admin', '/admin/applications')->middleware('role:admin');
+    Route::redirect('/admin', '/admin')->middleware('role:admin');
 
     Route::get('/driver', [DriverDashboardController::class, 'index'])->middleware('role:driver');
     Route::get('/driver/applications/{application}', [DriverDashboardController::class, 'show'])->middleware('role:driver');
@@ -77,29 +77,38 @@ foreach ($websitePages as $page) {
 
 // Protected role dashboards (static views for now)
 Route::prefix('admin')->middleware(['auth', 'role:admin'])->group(function () {
-    Route::redirect('/', '/admin/applications');
+    Route::get('/', [AdminController::class, 'dashboard']);
 
-    // Applications management
-    Route::get('/applications', [AdminApplicationController::class, 'index']);
+    // Original admin dashboard sections
+    Route::get('/applications', [AdminController::class, 'section'])->defaults('section', 'applications');
+    Route::get('/parents', [AdminController::class, 'section'])->defaults('section', 'parents');
+    Route::get('/drivers', [AdminController::class, 'section'])->defaults('section', 'drivers');
+    Route::get('/buses', [AdminController::class, 'section'])->defaults('section', 'buses');
+    Route::get('/reports', [AdminController::class, 'section'])->defaults('section', 'reports');
+    Route::get('/requests', [AdminController::class, 'section'])->defaults('section', 'requests');
+    Route::get('/account-recovery', [AdminController::class, 'section'])->defaults('section', 'account-recovery');
+    Route::get('/financials', [AdminController::class, 'section'])->defaults('section', 'financials');
+
+    // Applications web actions kept for legacy forms/modals
     Route::get('/applications/{application}', [AdminApplicationController::class, 'show']);
     Route::patch('/applications/{application}/status', [AdminApplicationController::class, 'updateStatus']);
     Route::delete('/applications/{application}', [AdminApplicationController::class, 'destroy']);
 
     // Admin sub-pages that already exist as Blade (keep UI, prevent 404)
     // All legacy admin pages are now redirected to the unified SPA dashboard
-    Route::redirect('/add-user', '/admin/applications');
-    Route::redirect('/add-trip', '/admin/applications');
-    Route::redirect('/add-student', '/admin/applications');
-    Route::redirect('/add-school', '/admin/applications');
-    Route::redirect('/add-parent', '/admin/applications');
-    Route::redirect('/add-driver', '/admin/applications');
-    Route::redirect('/add-bus', '/admin/applications');
-    Route::redirect('/add-complaint', '/admin/applications');
-    Route::redirect('/add-maintenance-record', '/admin/applications');
-    Route::redirect('/add-financial-entry', '/admin/applications');
-    Route::redirect('/add-entry', '/admin/applications');
-    Route::redirect('/price', '/admin/applications');
-    Route::redirect('/qr', '/admin/applications');
+    Route::redirect('/add-user', '/admin');
+    Route::redirect('/add-trip', '/admin');
+    Route::redirect('/add-student', '/admin');
+    Route::redirect('/add-school', '/admin');
+    Route::redirect('/add-parent', '/admin');
+    Route::redirect('/add-driver', '/admin');
+    Route::redirect('/add-bus', '/admin');
+    Route::redirect('/add-complaint', '/admin');
+    Route::redirect('/add-maintenance-record', '/admin');
+    Route::redirect('/add-financial-entry', '/admin');
+    Route::redirect('/add-entry', '/admin');
+    Route::redirect('/price', '/admin');
+    Route::redirect('/qr', '/admin');
 
     // Legacy .html links used inside templates
     Route::redirect('/admin.html', '/admin', 301);
@@ -108,9 +117,8 @@ Route::prefix('admin')->middleware(['auth', 'role:admin'])->group(function () {
 Route::prefix('driver')->middleware(['auth', 'role:driver'])->group(function () {
     Route::get('/', [DriverController::class, 'dashboard']);
     Route::get('/report', [DriverController::class, 'report']);
-    Route::get('/request', function () {
-        return view('driver.driver-request', ['apiToken' => session('api_token', '')]);
-    });
+    Route::get('/request', [DriverController::class, 'requests']);
+    Route::get('/applications', [DriverController::class, 'applications']);
 
     Route::post('/trips/{trip}/start', [TripController::class, 'start']);
     Route::post('/trips/{trip}/end', [TripController::class, 'end']);
@@ -124,9 +132,8 @@ Route::prefix('driver')->middleware(['auth', 'role:driver'])->group(function () 
 Route::prefix('parent')->middleware(['auth', 'role:parent'])->group(function () {
     Route::get('/', [ParentController::class, 'dashboard']);
     Route::get('/report', [ParentController::class, 'report']);
-    Route::get('/request', function () {
-        return view('parent.parent-request', ['apiToken' => session('api_token', '')]);
-    });
+    Route::get('/request', [ParentController::class, 'requests']);
+    Route::get('/applications', [ParentController::class, 'applications']);
 
     Route::redirect('/parent.html', '/parent', 301);
     Route::redirect('/parent-request.html', '/parent/request', 301);

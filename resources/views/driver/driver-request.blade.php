@@ -961,6 +961,37 @@
       </div>
     </div>
 
+    <!-- MY REQUESTS -->
+    <div class="card" style="margin-bottom: 20px;" id="myRequestsCard">
+      <div class="card-header" style="background: linear-gradient(135deg, #0ea5a4, #2563eb);">
+        <h3><i class="fas fa-list-check"></i> My Requests (<span id="myRequestsCount">{{ $applications->count() }}</span>)</h3>
+        <p>Your previously submitted requests</p>
+      </div>
+      <div class="form-section" id="myRequestsList">
+        @forelse($applications as $app)
+        <div class="request-item" data-id="{{ $app->id }}" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <strong style="color: #1e293b;">{{ $app->subject ?? $app->experience }}</strong>
+            <span style="background: {{ $app->status === 'pending' ? '#fef2f2' : ($app->status === 'accepted' ? '#f0fdf4' : '#f0f9ff') }}; color: {{ $app->status === 'pending' ? '#dc2626' : ($app->status === 'accepted' ? '#16a34a' : '#1e40af') }}; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase;">{{ $app->status }}</span>
+          </div>
+          <div style="color: #64748b; font-size: 13px; margin-top: 6px;">
+            <i class="fas fa-calendar"></i> {{ $app->created_at->format('M d, Y') }}
+            <span style="margin: 0 8px;">|</span>
+            <i class="fas fa-envelope"></i> {{ $app->email }}
+          </div>
+          @if($app->notes)
+          <div style="color: #475569; font-size: 13px; margin-top: 6px; border-top: 1px dashed #e2e8f0; padding-top: 6px;">{{ Str::limit($app->notes, 120) }}</div>
+          @endif
+        </div>
+        @empty
+        <div id="noRequestsMsg" style="text-align:center;padding:24px;color:#94a3b8;">
+          <i class="fas fa-inbox" style="font-size:24px;margin-bottom:8px;display:block;"></i>
+          No requests yet. Submit your first request below.
+        </div>
+        @endforelse
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-header">
         <h3>
@@ -972,7 +1003,7 @@
       <div class="form-section">
         <div id="alertContainer"></div>
 
-        <form id="driverRequestForm">
+        <form id="driverRequestForm" class="ajax-form" action="/apply/submit" method="POST" data-keep-values>
           <!-- Personal Information Section -->
           <div class="form-section-title">
             <i class="fas fa-user"></i> Personal Information
@@ -988,6 +1019,7 @@
               id="driverName" 
               class="form-control" 
               placeholder="e.g., Ahmed Mohamed Hassan" 
+              value="{{ $user->name ?? '' }}"
               required
             >
             <div class="helper-text">Your name as it appears in official records</div>
@@ -1005,6 +1037,7 @@
                 class="form-control" 
                 placeholder="+20 100 123 4567" 
                 pattern="[0-9+\s\-\(\)]+"
+                value="{{ $user->driverProfile->phone ?? '' }}"
                 required
               >
             </div>
@@ -1019,6 +1052,7 @@
                 id="driverEmail" 
                 class="form-control" 
                 placeholder="your.email@example.com" 
+                value="{{ $user->email ?? '' }}"
                 required
               >
             </div>
@@ -1306,6 +1340,60 @@
     // Server-injected API token for authenticated requests
     window.__API_TOKEN = '{{ $apiToken ?? '' }}';
 
+    function requestStatusStyle(status) {
+      if (status === 'accepted') return { bg: '#f0fdf4', color: '#16a34a' };
+      if (status === 'rejected') return { bg: '#fee2e2', color: '#dc2626' };
+      if (status === 'pending') return { bg: '#fef2f2', color: '#dc2626' };
+      return { bg: '#f0f9ff', color: '#1e40af' };
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+      }[char]));
+    }
+
+    function renderMyRequests(applications) {
+      const list = document.getElementById('myRequestsList');
+      const count = document.getElementById('myRequestsCount');
+      if (!list) return;
+      if (count) count.textContent = applications.length;
+      if (!applications.length) {
+        list.innerHTML = '<div id="noRequestsMsg" style="text-align:center;padding:24px;color:#94a3b8;"><i class="fas fa-inbox" style="font-size:24px;margin-bottom:8px;display:block;"></i>No requests yet</div>';
+        return;
+      }
+      list.innerHTML = applications.map(app => {
+        const style = requestStatusStyle(app.status);
+        return `<div class="request-item" data-id="${app.id}" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <strong style="color:#1e293b;">${escapeHtml(app.experience || 'Request')}</strong>
+            <span style="background:${style.bg};color:${style.color};padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;text-transform:uppercase;">${escapeHtml(app.status)}</span>
+          </div>
+          <div style="color:#64748b;font-size:13px;margin-top:6px;">
+            <i class="fas fa-calendar"></i> ${escapeHtml((app.created_at || '').slice(0, 10))}
+            <span style="margin:0 8px;">|</span>
+            <i class="fas fa-envelope"></i> ${escapeHtml(app.email)}
+          </div>
+          ${app.notes ? `<div style="color:#475569;font-size:13px;margin-top:6px;border-top:1px dashed #e2e8f0;padding-top:6px;">${escapeHtml(app.notes).slice(0, 120)}</div>` : ''}
+        </div>`;
+      }).join('');
+    }
+
+    async function loadMyRequests() {
+      if (!window.__API_TOKEN) return;
+      try {
+        const res = await fetch('/api/service-requests/my', {
+          headers: { 'Accept': 'application/json', 'Authorization': 'Bearer ' + window.__API_TOKEN }
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.status === 'success') renderMyRequests(data.data || []);
+      } catch (error) {
+        console.warn('Failed to refresh driver requests', error);
+      }
+    }
+
+    setInterval(loadMyRequests, 10000);
+
     const driverForm = document.getElementById('driverRequestForm');
     const themeToggleBtn = document.getElementById('themeToggle');
     const THEME_STORAGE_KEY = 'safestep-theme';
@@ -1382,7 +1470,6 @@
     driverForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      // Validation
       if (!document.getElementById('acknowledgment').checked) {
         showAlert('Please confirm that the information is accurate', 'error');
         return;
@@ -1393,76 +1480,88 @@
       submitBtn.disabled = true;
       submitBtn.innerHTML = '<div class="spinner"></div><span>Submitting...</span>';
 
-      // Build payload with all fields
-      const payload = {
-        user_role: 'driver',
-        full_name: document.getElementById('driverName').value.trim(),
-        contact_phone: document.getElementById('driverPhone').value.trim(),
-        contact_email: document.getElementById('driverEmail').value.trim(),
-        employee_id: document.getElementById('employeeId').value.trim(),
-        license_number: document.getElementById('driverLicense').value.trim(),
-        bus_number: document.getElementById('busNumber').value.trim(),
+      const requestType = document.getElementById('requestType').value;
+      const subject = document.getElementById('subject').value.trim();
+      const description = document.getElementById('description').value.trim();
+      const priority = document.querySelector('input[name="priority"]:checked').value;
+
+      // Build metadata with full request context
+      const metadata = {
+        driverName: document.getElementById('driverName').value.trim(),
+        driverEmail: document.getElementById('driverEmail').value.trim(),
+        driverPhone: document.getElementById('driverPhone').value.trim(),
+        busNumber: document.getElementById('busNumber').value,
         route: document.getElementById('route').value,
-        years_experience: document.getElementById('yearsExperience').value,
-        employment_status: document.getElementById('employmentStatus').value,
-        request_type: document.getElementById('requestType').value,
-        subject: document.getElementById('subject').value.trim(),
-        priority: document.querySelector('input[name="priority"]:checked').value,
-        description: document.getElementById('description').value.trim(),
-        
-        // Additional fields for specific request types
-        leave_start_date: document.getElementById('leaveStartDate')?.value || null,
-        leave_end_date: document.getElementById('leaveEndDate')?.value || null,
-        leave_type: document.getElementById('leaveType')?.value || null,
-        maintenance_type: document.getElementById('maintenanceType')?.value || null,
-        maintenance_urgency: document.getElementById('maintenanceUrgency')?.value || null,
-        created_at: new Date().toISOString()
+        leaveStartDate: document.getElementById('leaveStartDate')?.value || null,
+        leaveEndDate: document.getElementById('leaveEndDate')?.value || null,
+        leaveType: document.getElementById('leaveType')?.value || null,
+        maintenanceType: document.getElementById('maintenanceType')?.value || null,
+        maintenanceUrgency: document.getElementById('maintenanceUrgency')?.value || null,
       };
 
+      const token = window.__API_TOKEN || localStorage.getItem('safestep_token') || localStorage.getItem('token') || '';
+
       try {
-        const token = window.__API_TOKEN || localStorage.getItem('token') || localStorage.getItem('safestep_token');
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-        const res = await fetch('/api/requests', {
+        const res = await fetch('/api/service-requests', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'Authorization': token ? `Bearer ${token}` : ''
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            ...(token ? { 'Authorization': 'Bearer ' + token } : {})
           },
           body: JSON.stringify({
-            request_type: payload.request_type || 'driver-request',
-            subject: payload.subject || 'Driver request',
-            description: payload.description || '',
-            context: payload
+            request_type: requestType,
+            subject: subject,
+            description: description,
+            priority: priority,
+            notes: `Subject: ${subject}\nPriority: ${priority}\nBus: ${metadata.busNumber}\nRoute: ${metadata.route}`,
+            metadata: metadata
           })
         });
 
-        if (res.status === 401) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('safestep_token');
-          window.location.href = '/login';
-          return;
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok || data.status === 'error') {
+          throw new Error(data.message || 'Failed to submit request');
         }
 
-        if (res.status === 403) {
-          showAlert('Access Denied', 'error');
-          return;
-        }
-
-        if (!res.ok) {
-          throw new Error('Failed to send request');
-        }
-
-        showAlert('✓ Your request has been submitted successfully! Reference ID: ' + Math.random().toString(36).substr(2, 9).toUpperCase(), 'success');
+        showAlert('✓ Request saved successfully!', 'success');
         driverForm.reset();
-        charCount.textContent = '0';
-        document.getElementById('priorityMedium').checked = true;
-        leaveFields.style.display = 'none';
-        maintenanceFields.style.display = 'none';
-        
+        loadMyRequests();
+
+        // Dynamically prepend new request without reload
+        const req = data.data;
+        if (req) {
+          const list = document.getElementById('myRequestsList');
+          const noMsg = document.getElementById('noRequestsMsg');
+          if (noMsg) noMsg.remove();
+
+          const countSpan = document.getElementById('myRequestsCount');
+          if (countSpan) countSpan.textContent = (parseInt(countSpan.textContent) || 0) + 1;
+
+          const card = document.createElement('div');
+          card.className = 'request-item';
+          card.style.cssText = 'background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-bottom:10px;border-left:4px solid #6366f1;';
+          const statusBg = req.status === 'pending' ? '#fef2f2' : (req.status === 'resolved' ? '#f0fdf4' : '#f0f9ff');
+          const statusColor = req.status === 'pending' ? '#dc2626' : (req.status === 'resolved' ? '#16a34a' : '#1e40af');
+          card.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <strong style="color:#1e293b;">${req.request_type || 'Request'}</strong>
+              <span style="background:${statusBg};color:${statusColor};padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;text-transform:uppercase;">${req.status}</span>
+            </div>
+            <div style="color:#64748b;font-size:13px;margin-top:6px;">
+              <i class="fas fa-calendar"></i> Just now
+              <span style="margin:0 8px;">|</span>
+              <i class="fas fa-envelope"></i> ${req.subject || ''}
+            </div>
+          `;
+          list.prepend(card);
+        }
+
       } catch (err) {
         console.warn('Error sending driver request', err);
-        showAlert('⚠ Error: Unable to submit your request right now.', 'error');
+        showAlert('⚠ ' + err.message, 'error');
       } finally {
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalText;
@@ -1488,5 +1587,6 @@
 
     console.log('🚗 Driver Request Form initialized');
   </script>
+  <script src="{{ asset('js/ajax-forms.js') }}"></script>
 </body>
 </html>

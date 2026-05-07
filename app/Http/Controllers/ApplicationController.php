@@ -3,8 +3,6 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 class ApplicationController extends Controller
 {
@@ -14,17 +12,21 @@ class ApplicationController extends Controller
      */
     public function submit(Request $request)
     {
+        $request->merge([
+            'role' => strtolower((string) $request->input('role')),
+        ]);
+
         $data = $request->validate([
             'full_name'  => ['required', 'string', 'max:255'],
             'email'      => ['required', 'email', 'max:255'],
             'phone'      => ['required', 'string', 'max:30'],
             'address'    => ['required', 'string', 'max:255'],
-            'role'       => ['required', 'string', 'in:Admin,Driver,Parent,Other'],
+            'role'       => ['required', 'string', 'in:admin,driver,parent,other'],
             'experience' => ['required', 'string', 'max:2000'],
             'notes'      => ['nullable', 'string', 'max:1000'],
         ]);
 
-        \App\Models\Application::create([
+        $application = \App\Models\Application::create([
             'user_id'    => auth()->id(),
             'full_name'  => $data['full_name'],
             'email'      => $data['email'],
@@ -35,6 +37,14 @@ class ApplicationController extends Controller
             'notes'      => $data['notes'],
             'status'     => 'pending',
         ]);
+
+        if ($request->expectsJson() || $request->header('Accept') === 'application/json') {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Application submitted successfully!',
+                'data' => $application,
+            ]);
+        }
 
         return back()->with('success', 'Application submitted successfully! We will review it and contact you soon.');
     }

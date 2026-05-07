@@ -172,7 +172,7 @@
         <p id="pageSubtitle">Create a new entry and submit it to admin records.</p>
       </div>
 
-      <form class="form" id="addEntryForm">
+      <form class="form ajax-form" id="addEntryForm">
         <div class="field">
           <label for="entryName">Name</label>
           <input id="entryName" type="text" required placeholder="Enter name">
@@ -277,5 +277,6 @@
       }
     });
   </script>
+  <script src="{{ asset('js/ajax-forms.js') }}"></script>
 </body>
 </html>

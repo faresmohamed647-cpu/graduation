@@ -2,31 +2,7 @@ function safestepReplaceArray(target, items) {
     target.splice(0, target.length, ...items);
 }
 
-async function safestepApi(url) {
-    const token = localStorage.getItem('token') || localStorage.getItem('safestep_token');
-    const response = await fetch(url, {
-        credentials: 'same-origin',
-        headers: {
-            'Accept': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-            'Authorization': token ? `Bearer ${token}` : ''
-        }
-    });
-
-    if (response.status === 401) {
-        localStorage.removeItem('safestep_token');
-        localStorage.removeItem('token');
-        window.location.href = '/login?role=parent';
-        return;
-    }
-
-    if (response.status === 403) {
-        throw new Error('Access Denied');
-    }
-
-    if (!response.ok) throw new Error(`API ${response.status}: ${url}`);
-    return response.json();
-}
+// Using global ApiService (aliased as safestepApi)
 
 async function hydrateParentDashboardFromApi() {
     try {

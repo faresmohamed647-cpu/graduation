@@ -124,7 +124,7 @@
 </head>
 <body>
     <div class="wrap">
-        <form id="loginForm" class="card">
+        <form id="loginForm" class="card ajax-form">
             @csrf
             <div class="brand">
                 <div class="icon-wrap">
@@ -181,6 +181,7 @@
     </div>
 
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="{{ asset('js/ajax-forms.js') }}"></script>
     <script>
         $(document).ready(function() {
             // Check URL for role hint

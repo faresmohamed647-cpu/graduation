@@ -65,7 +65,7 @@
                         <i class="fas fa-child"></i>
                     </div>
                     <div class="stat-info">
-                        <h3 id="parentReportChildren">0</h3>
+                        <h3 id="parentReportChildren">{{ $children->count() }}</h3>
                         <p>Children</p>
                     </div>
                 </div>
@@ -75,7 +75,7 @@
                         <i class="fas fa-clipboard-check"></i>
                     </div>
                     <div class="stat-info">
-                        <h3 id="parentReportAttendance">0%</h3>
+                        <h3 id="parentReportAttendance">{{ $attendanceRecords->count() > 0 ? round($attendanceRecords->where('status', 'present')->count() / $attendanceRecords->count() * 100) : 0 }}%</h3>
                         <p>Attendance (This Month)</p>
                     </div>
                 </div>
@@ -85,8 +85,8 @@
                         <i class="fas fa-bell"></i>
                     </div>
                     <div class="stat-info">
-                        <h3 id="parentReportAlerts">0</h3>
-                        <p>Alerts</p>
+                        <h3 id="parentReportAlerts">{{ $attendanceRecords->where('status', 'absent')->count() }}</h3>
+                        <p>Absences</p>
                     </div>
                 </div>
 
@@ -114,7 +114,30 @@
                                 </tr>
                             </thead>
                             <tbody id="parentReportsBody">
-                                <!-- Populated by backend later -->
+                                @forelse($attendanceRecords as $record)
+                                <tr>
+                                    <td>{{ $record->trip?->trip_date?->format('M d, Y') ?? '—' }}</td>
+                                    <td>{{ $record->student?->full_name ?? '—' }}</td>
+                                    <td>{{ $record->picked_up_at?->format('h:i A') ?? '—' }}</td>
+                                    <td>{{ $record->dropped_off_at?->format('h:i A') ?? '—' }}</td>
+                                    <td>
+                                        @if($record->status === 'present')
+                                            <span class="badge" style="background:rgba(34,197,94,.15);color:#4ade80;padding:2px 8px;border-radius:4px;font-size:12px;">Present</span>
+                                        @elseif($record->status === 'absent')
+                                            <span class="badge" style="background:rgba(239,68,68,.15);color:#f87171;padding:2px 8px;border-radius:4px;font-size:12px;">Absent</span>
+                                        @else
+                                            <span class="badge" style="background:rgba(99,102,241,.15);color:#a5b4fc;padding:2px 8px;border-radius:4px;font-size:12px;">{{ $record->status }}</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="5" style="text-align:center;padding:24px;color:#94a3b8;">
+                                        <i class="fas fa-inbox" style="font-size:24px;margin-bottom:8px;display:block;"></i>
+                                        No attendance records found.
+                                    </td>
+                                </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>
