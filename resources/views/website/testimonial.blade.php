@@ -1,24 +1,24 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="utf-8">
     <title>SCHOOL BUS TRACKING</title>
-      <!-- Ø¹Ù„Ø´Ø§Ù† Ø§Ù„ØªØ§Ø¨Ù„Øª ÙˆØ§Ù„Ù…ÙˆØ¨ÙŠÙ„-->
+      <!-- علشان التابلت والموبيل-->
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <!-- Ù…ÙƒØ§Ù† ÙƒÙ„Ù…Ø§Øª Ø§Ù„Ø¨Ø­Ø« ÙˆØ§Ù„ÙˆØµÙ (Ù„Ø³Ù‡ ÙØ§Ø¶ÙŠÙŠÙ† Ù…Ø´ Ù…Ø´ØºÙ„Ù‡Ù… )-->
+    <!-- مكان كلمات البحث والوصف (لسه فاضيين مش مشغلهم )-->
     <meta content="" name="keywords">
     <meta content="" name="description">
 
-    <!-- Ø§Ù„Ø§ÙŠÙ‚ÙˆÙ†Ø© Ø§Ù„ÙŠ ÙÙˆÙ‚ -->
+    <!-- الايقونة الي فوق -->
     <link href="{{ asset('img/icon.jpg') }}" rel="icon">
 
-    <!--ØªØ­Ù…ÙŠÙ„ Ø®Ø·ÙˆØ· Inter Ùˆ Roboto preconnect ÙŠØ³Ø±Ù‘Ø¹ Ø§Ù„ØªØ­Ù…ÙŠÙ„   -->
+    <!--تحميل خطوط Inter و Roboto preconnect يسرّع التحميل   -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Roboto:wght@500;700&display=swap" rel="stylesheet">
 
-    <!--Ø§Ù„Ø®Ø·ÙˆØ· ÙˆØ§Ù„Ø§ÙŠÙ‚ÙˆÙ†Ø§Øª Ø§Ù„ØµØºÙŠØ±Ø©  -->
+    <!--الخطوط والايقونات الصغيرة  -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
 
@@ -69,7 +69,7 @@
                 </div>
                 <a href="contact.html" class="nav-item nav-link">Contact</a>
             </div>
-            <h4 class="m-0 pe-lg-5 d-none d-lg-block"><i class="fa fa-headphones text-primary me-3"></i>+012 345 6789</h4>
+            <h4 class="m-0 pe-lg-5 d-none d-lg-block"><i class="fa fa-headphones text-primary me-3"></i>+20 3 123 4567</h4>
         </div>
     </nav>
     <!-- Navbar End -->
@@ -155,9 +155,9 @@
             <div class="row g-5">
                 <div class="col-lg-3 col-md-6">
                     <h4 class="text-light mb-4">Address</h4>
-                    <p class="mb-2"><i class="fa fa-map-marker-alt me-3"></i>123 Street, New York, USA</p>
-                    <p class="mb-2"><i class="fa fa-phone-alt me-3"></i>+012 345 67890</p>
-                    <p class="mb-2"><i class="fa fa-envelope me-3"></i>info@example.com</p>
+                    <p class="mb-2"><i class="fa fa-map-marker-alt me-3"></i>Alexandria, Egypt</p>
+                    <p class="mb-2"><i class="fa fa-phone-alt me-3"></i>+20 3 123 4567</p>
+                    <p class="mb-2"><i class="fa fa-envelope me-3"></i>info@safestep.com</p>
                     <div class="d-flex pt-2">
                         <a class="btn btn-outline-light btn-social" href=""><i class="fab fa-twitter"></i></a>
                         <a class="btn btn-outline-light btn-social" href=""><i class="fab fa-facebook-f"></i></a>
@@ -194,7 +194,7 @@
             <div class="copyright">
                 <div class="row">
                     <div class="col-md-6 text-center text-md-start mb-3 mb-md-0">
-                        &copy; <a class="border-bottom" href="#">Your Site Name</a>, All Right Reserved.
+                        &copy; <a class="border-bottom" href="#">SafeStep Bus</a>, All Right Reserved.
                     </div>
                 </div>
             </div>

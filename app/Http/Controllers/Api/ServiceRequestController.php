@@ -157,6 +157,37 @@ class ServiceRequestController extends Controller
     }
 
     /**
+     * Public: Store a quote request from website (no auth required).
+     */
+    public function storePublic(Request $request)
+    {
+        $data = $request->validate([
+            'request_type' => ['required', 'string', 'max:100'],
+            'subject' => ['required', 'string', 'max:255'],
+            'description' => ['required', 'string'],
+            'priority' => ['nullable', 'string', 'in:low,medium,high'],
+            'notes' => ['nullable', 'string'],
+        ]);
+
+        $serviceRequest = ServiceRequest::create([
+            'user_id' => null,
+            'role' => 'guest',
+            'request_type' => $data['request_type'],
+            'subject' => $data['subject'],
+            'description' => $data['description'],
+            'priority' => $data['priority'] ?? 'medium',
+            'notes' => $data['notes'] ?? null,
+            'status' => 'pending',
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Quote request submitted successfully.',
+            'data' => $serviceRequest,
+        ], 201);
+    }
+
+    /**
      * Admin: Get requests statistics.
      */
     public function stats(Request $request)

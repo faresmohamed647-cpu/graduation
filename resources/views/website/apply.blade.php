@@ -74,7 +74,7 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Phone Number</label>
-                        <input type="text" name="phone" class="form-control" required placeholder="+012 345 6789">
+                        <input type="text" name="phone" class="form-control" required placeholder="+20 3 123 4567">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Position / Role Applying For</label>

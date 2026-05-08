@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\AdminParentController;
 use App\Http\Controllers\Api\AdminRouteController;
 use App\Http\Controllers\Api\AdminStudentController;
 use App\Http\Controllers\Api\AdminTripController;
+use App\Http\Controllers\Api\AdminMiscController;
 use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\ApiAuthController;
 use App\Http\Controllers\Api\ApplicationController;
@@ -27,6 +28,10 @@ Route::prefix('auth')->group(function () {
 
 Route::post('/applications', [ApplicationController::class, 'store'])
     ->middleware(['application.token', 'throttle:30,1']);
+
+// Public quote request (no auth required)
+Route::post('/public/quote', [ServiceRequestController::class, 'storePublic'])
+    ->middleware('throttle:30,1');
 
 /*
 |--------------------------------------------------------------------------
@@ -99,6 +104,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/parents', [AdminParentController::class, 'store']);
         Route::put('/parents/{parent}', [AdminParentController::class, 'update']);
         Route::delete('/parents/{parent}', [AdminParentController::class, 'destroy']);
+        Route::post('/parents/{parent}/approve', [AdminParentController::class, 'approve']);
+        Route::post('/parents/{parent}/reject', [AdminParentController::class, 'reject']);
 
         // Buses CRUD
         Route::get('/buses', [AdminBusController::class, 'index']);
@@ -144,6 +151,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/users/{user}', [AdminUserController::class, 'update']);
         Route::delete('/users/{user}', [AdminUserController::class, 'destroy']);
         Route::get('/roles', [AdminUserController::class, 'roles']);
+
+        // Misc (Schools, Financials, Maintenance)
+        Route::post('/schools', [AdminMiscController::class, 'storeSchool']);
+        Route::post('/financial-entries', [AdminMiscController::class, 'storeFinancialEntry']);
+        Route::post('/maintenance-records', [AdminMiscController::class, 'storeMaintenanceRecord']);
 
         // Applications
         Route::get('/applications', [AdminApplicationController::class, 'index']);

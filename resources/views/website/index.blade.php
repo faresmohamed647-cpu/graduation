@@ -87,6 +87,9 @@
         <button onclick="setLanguage('ar')">العربية</button>
     </div>
 </div>
+<button type="button" class="dark-mode-toggle" onclick="toggleDarkMode()" title="Toggle Dark Mode">
+    <i class="fas fa-moon"></i>
+</button>
 </div>
 
 
@@ -107,8 +110,8 @@
                                 <h5 class="text-white text-uppercase mb-3 animated slideInDown">Your ticket to peace of mind!</h5>
                                 <h1 class="display-3 text-white animated slideInDown mb-4">#1 Place For Your <span class="text-primary">SAFTY</span> of your children</h1>
                                 <p class="fs-5 fw-medium text-white mb-4 pb-2">Trusted by leading schools across multiple regions</p>
-                                <a href="" class="btn btn-primary py-md-3 px-md-5 me-3 animated slideInLeft">STUDENT FOLLOW-UP</a>
-                                <a href="" class="btn btn-secondary py-md-3 px-md-5 animated slideInRight">Free session</a>
+                                <a href="{{ url('/apply/parent') }}" class="btn btn-primary py-md-3 px-md-5 me-3 animated slideInLeft">STUDENT FOLLOW-UP</a>
+                                <a href="{{ url('/apply/parent') }}" class="btn btn-secondary py-md-3 px-md-5 animated slideInRight">Free session</a>
                             </div>
                         </div>
                     </div>
@@ -181,7 +184,7 @@ Learn More</p>
                         <i class="fa fa-headphones fa-2x flex-shrink-0 bg-primary p-3 text-white"></i>
                         <div class="ps-4">
                             <h6>Call for any query!</h6>
-                            <h3 class="text-primary m-0">+012 345 6789</h3>
+                            <h3 class="text-primary m-0">+20 3 123 4567</h3>
                         </div>
                     </div>
                 </div>
@@ -417,7 +420,7 @@ Learn More</p>
                         <i class="fa fa-headphones fa-2x flex-shrink-0 bg-primary p-3 text-white"></i>
                         <div class="ps-4">
                             <h6>Call for any query!</h6>
-                            <h3 class="text-primary m-0">+012 345 6789</h3>
+                            <h3 class="text-primary m-0">+20 3 123 4567</h3>
                         </div>
                     </div>
                 </div>
@@ -604,9 +607,9 @@ Learn More</p>
             <div class="row g-5">
                 <div class="col-lg-3 col-md-6">
                     <h4 class="text-light mb-4">Address</h4>
-                    <p class="mb-2"><i class="fa fa-map-marker-alt me-3"></i>123 Street, New York, USA</p>
-                    <p class="mb-2"><i class="fa fa-phone-alt me-3"></i>+012 345 67890</p>
-                    <p class="mb-2"><i class="fa fa-envelope me-3"></i>info@example.com</p>
+                    <p class="mb-2"><i class="fa fa-map-marker-alt me-3"></i>Alexandria, Egypt</p>
+                    <p class="mb-2"><i class="fa fa-phone-alt me-3"></i>+20 3 123 4567</p>
+                    <p class="mb-2"><i class="fa fa-envelope me-3"></i>info@safestep.com</p>
                     <div class="d-flex pt-2">
                         <a class="btn btn-outline-light btn-social" href=""><i class="fab fa-twitter"></i></a>
                         <a class="btn btn-outline-light btn-social" href=""><i class="fab fa-facebook-f"></i></a>
@@ -644,7 +647,7 @@ Learn More</p>
             <div class="copyright">
                 <div class="row">
                     <div class="col-md-6 text-center text-md-start mb-3 mb-md-0">
-                        &copy; <a class="border-bottom" href="#">Your Site Name</a>, All Right Reserved.
+                        &copy; <a class="border-bottom" href="#">SafeStep Bus</a>, All Right Reserved.
                     </div>
                 </div>
             </div>
@@ -653,29 +656,203 @@ Learn More</p>
     <!-- Footer End -->
 
 
-    <!-- Chat Button -->
-<div class="chat-widget" onclick="toggleChat()">
-    <i class="fa fa-comments"></i>
+    <!-- AI Chat Button -->
+<div class="chat-widget" onclick="toggleChat()" title="Ask SafeStep AI">
+    <i class="fa fa-robot"></i>
 </div>
 
-<!-- Chat Box -->
+<!-- AI Chat Box -->
 <div class="chat-box" id="chatBox">
     <div class="chat-header">
-        💬 Live Support
+        <span>🤖 SafeStep AI Assistant</span>
         <span onclick="toggleChat()" class="chat-close">&times;</span>
     </div>
 
-    <div class="chat-body">
-        <p><strong>Support:</strong> Hello 👋<br>How can we help you?</p>
+    <div class="chat-body" id="chatBody">
+        <div class="chat-message bot" id="chatWelcome">
+            <strong>SafeStep AI:</strong> <span id="chatWelcomeText">Hello! 👋 I'm your SafeStep Bus assistant.<br>Ask me anything about our school bus tracking services, safety features, registration, or pricing!</span>
+        </div>
     </div>
 
     <div class="chat-footer">
-        <input type="text" placeholder="Type your message..." />
-        <button>Send</button>
+        <input type="text" id="chatInput" placeholder="Ask about SafeStep..." onkeypress="if(event.key==='Enter') sendChatMessage()" />
+        <button onclick="sendChatMessage()">Send</button>
     </div>
 </div>
 
+<style>
+.chat-message {
+    padding: 10px 14px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    max-width: 85%;
+    font-size: 13px;
+    line-height: 1.5;
+    animation: fadeIn 0.3s ease;
+}
+.chat-message.bot {
+    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    color: #1e3a8a;
+    align-self: flex-start;
+    margin-right: auto;
+}
+.chat-message.user {
+    background: linear-gradient(135deg, #1d4ed8, #1e3a8a);
+    color: #fff;
+    align-self: flex-end;
+    margin-left: auto;
+    text-align: right;
+}
+#chatBody {
+    display: flex;
+    flex-direction: column;
+}
+</style>
 
+<script>
+function getChatLang() {
+    const saved = localStorage.getItem('lang') || localStorage.getItem('language');
+    if (saved) return saved;
+    const htmlLang = document.documentElement.lang;
+    if (htmlLang && htmlLang.startsWith('ar')) return 'ar';
+    return 'en';
+}
+
+function setChatLocale() {
+    const lang = getChatLang();
+    const input = document.getElementById('chatInput');
+    const welcome = document.getElementById('chatWelcomeText');
+    if (lang === 'ar') {
+        if (input) input.placeholder = 'اسأل SafeStep عن أي حاجة...';
+        if (welcome) welcome.innerHTML = 'أهلاً بيك! 🤖 أنا مساعد SafeStep.<br>اسألني عن تتبع الباصات، التسجيل، الأسعار، أو مميزات الأمان!';
+    } else {
+        if (input) input.placeholder = 'Ask about SafeStep...';
+        if (welcome) welcome.innerHTML = 'Hello! 👋 I\'m your SafeStep Bus assistant.<br>Ask me anything about our school bus tracking services, safety features, registration, or pricing!';
+    }
+}
+setChatLocale();
+
+function toggleChat() {
+    const chat = document.getElementById("chatBox");
+    chat.style.display = chat.style.display === "flex" ? "none" : "flex";
+    if (chat.style.display === "flex") setChatLocale();
+}
+
+function sendChatMessage() {
+    const input = document.getElementById("chatInput");
+    const body = document.getElementById("chatBody");
+    const text = input.value.trim();
+    if (!text) return;
+
+    const userMsg = document.createElement("div");
+    userMsg.className = "chat-message user";
+    userMsg.innerHTML = "<strong>You:</strong> " + escapeHtml(text);
+    body.appendChild(userMsg);
+    body.scrollTop = body.scrollHeight;
+    input.value = "";
+
+    setTimeout(() => {
+        const botReply = getAIResponse(text);
+        const botMsg = document.createElement("div");
+        botMsg.className = "chat-message bot";
+        botMsg.innerHTML = "<strong>SafeStep AI:</strong> " + botReply;
+        body.appendChild(botMsg);
+        body.scrollTop = body.scrollHeight;
+    }, 600);
+}
+
+function escapeHtml(text) {
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function getAIResponse(input) {
+    const lang = getChatLang();
+    const q = input.toLowerCase();
+
+    // --- ARABIC BRANCH ---
+    if (lang === 'ar' || /[\u0600-\u06FF]/.test(input)) {
+        if (/مرحبا|اهلا|سلام|هاي|مساء|صباح/.test(q)) {
+            return "أهلاً بيك! 🤖 أنا مساعد SafeStep. اسألني عن تتبع الباصات، التسجيل، الأسعار، أو مميزات الأمان.";
+        }
+        if (/تسجيل|سجل|apply|register|اشتراك|انضمام/.test(q)) {
+            return "يمكنك التسجيل كولي أمر من خلال زر \"Free Session\" أو \"Student Follow-up\" في الصفحة الرئيسية، أو من خلال صفحة /apply/parent. هنحتاج بياناتك الشخصية وبيانات أطفالك.";
+        }
+        if (/سعر|تكلفة|cost|price|فلوس|مصاريف|اشتراك|باقة/.test(q)) {
+            return "عندنا باقات متنوعة تناسب كل أسرة. في خصومات على الاشتراك السنوي (25%) والربع سنوي (10%). ادخل صفحة Pricing Plan لمعرفة التفاصيل.";
+        }
+        if (/تتبع|track|location|gps|خريطة|مكان|وين|فين/.test(q)) {
+            return "SafeStep بيوفر تتبع مباشر للباص عبر GPS مع تحديث كل ثانية. ولي الأمر يقدر يشوف مكان الباص على الخريطة ويستلم إشعارات وصول ومغادرة.";
+        }
+        if (/أمان|safety|safe|secure|حماية|camera|كاميرا|sos|طوارئ/.test(q)) {
+            return "الأمان أولويتنا: كاميرات مراقبة داخل الباص 24/7، فحص خلفية للسائقين، زر SOS في التطبيق، وتشفير SSL/TLS لحماية البيانات.";
+        }
+        if (/إشعارات|notifications|notification|alert|تنبيه|رسالة/.test(q)) {
+            return "بنرسل إشعارات فورية عبر التطبيق وSMS لولي الأمر: لحظة وصول الباص، مغادرة المدرسة، أي تأخير غير متوقع، وحالات الطوارئ.";
+        }
+        if (/سائق|driver|سواق|سواقين/.test(q)) {
+            return "كل سائقينا بيمرّوا بفحوصات خلفية شاملة وتدريب سلامة إلزامي. السائق بيستخدم تطبيق مخصص لتحديث الحالة والمكان.";
+        }
+        if (/مدرسة|school|مدارس|المدرسة/.test(q)) {
+            return "SafeStep بيخدم المدارس بلوحة تحكم كاملة: مراقبة الأسطول، تقارير الرحلات، إدارة السائقين، وإشعارات جماعية لأولياء الأمور.";
+        }
+        if (/تطبيق|app|موبايل|phone|android|ios/.test(q)) {
+            return "التطبيق متاح لولي الأمر والسائق. بيدعم Android وiOS. فيه خرائط تفاعلية، إشعارات فورية، وسجل رحلات كامل.";
+        }
+        if (/رحلة|trip|جولة|ride|bus|باص|اتوبيس/.test(q)) {
+            return "كل رحلة بتتسجل بالكامل: وقت الانطلاق والوصول، عدد الطلاب، المسار، والسرعة. ولي الأمر يقدر يراجع سجل الرحلات في أي وقت.";
+        }
+        if (/دعم|support|مساعدة|help|اتصال|تواصل|contact/.test(q)) {
+            return "فريق الدعم متواجد على مدار الساعة. تقدر تتواصل معانا من صفحة Contact Us أو عبر الهاتف +20 3 123 4567.";
+        }
+        if (/شكر|thanks|thank you|تسلم|merci/.test(q)) {
+            return "العفو! 🎉 إذا عندك أي سؤال تاني، أنا هنا. SafeStep دايماً معاك لسلامة أطفالك.";
+        }
+        return "سؤال جميل! SafeStep بيساعد أولياء الأمور والمدارس في مراقبة الباصات المدرسية بشكل مباشر عبر GPS، إشعارات فورية، وكاميرات أمان على مدار الساعة. عايز تعرف أكتر عن التسجيل أو الأسعار؟";
+    }
+
+    // --- ENGLISH BRANCH ---
+    if (/hello|hi|hey|greetings|morning|evening/.test(q)) {
+        return "Hello! 🤖 I'm SafeStep AI. Ask me about our school bus tracking, safety features, how to register, or pricing plans.";
+    }
+    if (/register|sign up|join|apply|account|parent portal/.test(q)) {
+        return "Parents can register via the \"Free Session\" or \"Student Follow-up\" button on the home page, or go to /apply/parent. We'll need your details and your children's information.";
+    }
+    if (/price|cost|pricing|plan|subscription|fee|money|how much/.test(q)) {
+        return "We offer flexible plans for every family. Annual subscriptions get 25% off, quarterly plans get 10% off. Visit our Pricing Plan page for full details.";
+    }
+    if (/track|gps|location|map|where|live|real.time/.test(q)) {
+        return "SafeStep provides real-time GPS tracking with 1-second updates. Parents can see the bus location on an interactive map and receive arrival/departure alerts.";
+    }
+    if (/safety|secure|camera|video|SOS|emergency|protection/.test(q)) {
+        return "Safety is our #1 priority: 24/7 in-bus surveillance cameras, driver background checks, an SOS button in the app, and military-grade SSL/TLS data encryption.";
+    }
+    if (/notification|alert|message|sms|push/.test(q)) {
+        return "We send instant notifications via app and SMS: bus arrival, school departure, unexpected delays, and emergency alerts — so you're always informed.";
+    }
+    if (/driver|who drive|bus driver/.test(q)) {
+        return "All drivers undergo comprehensive background checks and mandatory safety training. Drivers use a dedicated app to update status and location in real-time.";
+    }
+    if (/school|institution|academy/.test(q)) {
+        return "SafeStep serves schools with a complete admin dashboard: fleet monitoring, trip reports, driver management, and bulk parent notifications.";
+    }
+    if (/app|mobile|android|ios|download|phone/.test(q)) {
+        return "Our app is available for parents and drivers, supporting Android and iOS. It features interactive maps, real-time alerts, and full trip history.";
+    }
+    if (/trip|ride|route|journey/.test(q)) {
+        return "Every trip is fully logged: departure/arrival times, student count, route taken, and speed. Parents can review trip history anytime from the app.";
+    }
+    if (/support|help|contact|call|reach/.test(q)) {
+        return "Our support team is available 24/7. Reach us through the Contact Us page or call +20 3 123 4567. We're always here to help!";
+    }
+    if (/thank|thanks|appreciate/.test(q)) {
+        return "You're welcome! 🎉 Feel free to ask anything else. SafeStep is always here for your children's safety.";
+    }
+
+    return "That's a great question! SafeStep Bus Tracking helps parents and schools monitor school buses in real-time with GPS tracking, instant notifications, and 24/7 safety cameras. Want to know more about registration, pricing, or safety features?";
+}
+</script>
 
     <!-- JavaScript Libraries -->
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
@@ -688,12 +865,6 @@ Learn More</p>
 
     <!-- Template Javascript -->
     <script src="{{ asset('js/main.js') }}"></script>
-    <script>
-function toggleChat() {
-    const chat = document.getElementById("chatBox");
-    chat.style.display = chat.style.display === "flex" ? "none" : "flex";
-}
-</script>
 
 <!-- Language Support -->
 <script src="{{ asset('js/language.js') }}"></script>

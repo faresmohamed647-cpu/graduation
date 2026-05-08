@@ -304,19 +304,129 @@ function initThemeToggle() {
 initThemeToggle();
 
 function openAddPage(type) {
-    const routes = {
-        'parent': '/admin/add-parent',
-        'driver': '/admin/add-driver',
-        'bus': '/admin/add-bus',
-        'student': '/admin/add-student',
-        'trip': '/admin/add-trip',
-        'school': '/admin/add-school',
-        'user': '/admin/add-user',
-        'complaint': '/admin/add-complaint',
-        'maintenance': '/admin/add-maintenance-record',
-        'financial': '/admin/add-financial-entry'
+    const modal = document.getElementById('addResourceModal');
+    const title = document.getElementById('addModalTitle');
+    const form = document.getElementById('addResourceForm');
+    const body = document.getElementById('addModalBody');
+    if (!modal || !form || !body) return;
+
+    const configs = {
+        'parent': {
+            title: 'Add Parent',
+            action: '/api/admin/parents',
+            fields: `
+                <div class="form-group"><label>Full Name</label><input type="text" name="name" class="form-control" required></div>
+                <div class="form-group"><label>Email</label><input type="email" name="email" class="form-control" required></div>
+                <div class="form-group"><label>Phone</label><input type="text" name="phone" class="form-control" required></div>
+                <div class="form-group"><label>Address</label><input type="text" name="address" class="form-control"></div>
+                <div class="form-group"><label>Password</label><input type="password" name="password" class="form-control" required></div>
+            `
+        },
+        'driver': {
+            title: 'Add Driver',
+            action: '/api/admin/drivers',
+            fields: `
+                <div class="form-group"><label>Full Name</label><input type="text" name="name" class="form-control" required></div>
+                <div class="form-group"><label>Email</label><input type="email" name="email" class="form-control" required></div>
+                <div class="form-group"><label>Phone</label><input type="text" name="phone" class="form-control" required></div>
+                <div class="form-group"><label>License Number</label><input type="text" name="license_number" class="form-control" required></div>
+                <div class="form-group"><label>Years Experience</label><input type="number" name="experience_years" class="form-control" value="0"></div>
+                <div class="form-group"><label>Password</label><input type="password" name="password" class="form-control" required></div>
+            `
+        },
+        'bus': {
+            title: 'Add Bus',
+            action: '/api/admin/buses',
+            fields: `
+                <div class="form-group"><label>Bus Number</label><input type="text" name="bus_number" class="form-control" required></div>
+                <div class="form-group"><label>Plate Number</label><input type="text" name="plate_number" class="form-control" required></div>
+                <div class="form-group"><label>Capacity</label><input type="number" name="capacity" class="form-control" value="30"></div>
+                <div class="form-group"><label>Driver</label><select name="driver_id" class="form-control"><option value="">Select Driver</option>${driversData.map(d => `<option value="${d.id}">${d.name}</option>`).join('')}</select></div>
+            `
+        },
+        'student': {
+            title: 'Add Student',
+            action: '/api/admin/students',
+            fields: `
+                <div class="form-group"><label>Full Name</label><input type="text" name="name" class="form-control" required></div>
+                <div class="form-group"><label>School Name</label><input type="text" name="school_name" class="form-control"></div>
+                <div class="form-group"><label>Grade</label><input type="text" name="grade" class="form-control"></div>
+                <div class="form-group"><label>Parent</label><select name="parent_profile_id" class="form-control"><option value="">Select Parent</option>${parentsData.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}</select></div>
+            `
+        },
+        'trip': {
+            title: 'Add Trip',
+            action: '/api/admin/trips',
+            fields: `
+                <div class="form-group"><label>Trip Name</label><input type="text" name="name" class="form-control" required></div>
+                <div class="form-group"><label>Trip Date</label><input type="date" name="trip_date" class="form-control" required></div>
+                <div class="form-group"><label>Bus</label><select name="bus_id" class="form-control"><option value="">Select Bus</option></select></div>
+                <div class="form-group"><label>Driver</label><select name="driver_id" class="form-control"><option value="">Select Driver</option>${driversData.map(d => `<option value="${d.id}">${d.name}</option>`).join('')}</select></div>
+                <div class="form-group"><label>Route</label><select name="route_id" class="form-control"><option value="">Select Route</option></select></div>
+            `
+        },
+        'user': {
+            title: 'Add User',
+            action: '/api/admin/users',
+            fields: `
+                <div class="form-group"><label>Name</label><input type="text" name="name" class="form-control" required></div>
+                <div class="form-group"><label>Email</label><input type="email" name="email" class="form-control" required></div>
+                <div class="form-group"><label>Role</label><select name="role" class="form-control"><option value="admin">Admin</option><option value="parent">Parent</option><option value="driver">Driver</option></select></div>
+                <div class="form-group"><label>Password</label><input type="password" name="password" class="form-control" required></div>
+            `
+        },
+        'complaint': {
+            title: 'Add Complaint',
+            action: '/api/reports',
+            fields: `
+                <div class="form-group"><label>Title</label><input type="text" name="title" class="form-control" required></div>
+                <div class="form-group"><label>Description</label><textarea name="body" class="form-control" rows="4" required></textarea></div>
+                <div class="form-group"><label>Status</label><select name="status" class="form-control"><option value="open">Open</option><option value="resolved">Resolved</option></select></div>
+            `
+        },
+        'school': {
+            title: 'Add School',
+            action: '/api/admin/schools',
+            fields: `
+                <div class="form-group"><label>School Name</label><input type="text" name="name" class="form-control" required></div>
+                <div class="form-group"><label>Address</label><input type="text" name="address" class="form-control"></div>
+                <div class="form-group"><label>Phone</label><input type="text" name="phone" class="form-control"></div>
+                <div class="form-group"><label>Email</label><input type="email" name="email" class="form-control"></div>
+                <div class="form-group"><label>Notes</label><textarea name="notes" class="form-control" rows="3"></textarea></div>
+            `
+        },
+        'financial': {
+            title: 'Add Financial Entry',
+            action: '/api/admin/financial-entries',
+            fields: `
+                <div class="form-group"><label>Title</label><input type="text" name="title" class="form-control" required></div>
+                <div class="form-group"><label>Type</label><select name="type" class="form-control"><option value="income">Income</option><option value="expense">Expense</option></select></div>
+                <div class="form-group"><label>Amount</label><input type="number" name="amount" class="form-control" step="0.01" required></div>
+                <div class="form-group"><label>Description</label><textarea name="description" class="form-control" rows="3"></textarea></div>
+                <div class="form-group"><label>Date</label><input type="date" name="entry_date" class="form-control"></div>
+            `
+        },
+        'maintenance': {
+            title: 'Add Maintenance Record',
+            action: '/api/admin/maintenance-records',
+            fields: `
+                <div class="form-group"><label>Title</label><input type="text" name="title" class="form-control" required></div>
+                <div class="form-group"><label>Bus</label><select name="bus_id" class="form-control"><option value="">Select Bus</option>${busesData.map(b => `<option value="${b.id}">${b.bus_number || b.plate_number || 'Bus #' + b.id}</option>`).join('')}</select></div>
+                <div class="form-group"><label>Description</label><textarea name="description" class="form-control" rows="3"></textarea></div>
+                <div class="form-group"><label>Cost</label><input type="number" name="cost" class="form-control" step="0.01"></div>
+                <div class="form-group"><label>Status</label><select name="status" class="form-control"><option value="pending">Pending</option><option value="in_progress">In Progress</option><option value="completed">Completed</option></select></div>
+                <div class="form-group"><label>Maintenance Date</label><input type="date" name="maintenance_date" class="form-control"></div>
+            `
+        }
     };
-    window.location.href = routes[type] || '/admin/add-entry';
+
+    const config = configs[type];
+    if (!config) return alert('Add form not configured for: ' + type);
+
+    title.textContent = config.title;
+    form.action = config.action;
+    body.innerHTML = config.fields;
+    modal.style.display = 'flex';
 }
 
 function normalizeSearchText(value) {
@@ -1102,6 +1212,14 @@ function renderParents() {
             <td><span class="status-badge ${parent.status}">${parent.status.charAt(0).toUpperCase() + parent.status.slice(1)}</span></td>
             <td>
                 <div class="table-actions">
+                    ${parent.status === 'pending' || parent.status === 'inactive' ? `
+                        <button class="btn btn-success" style="padding: 6px 12px; font-size: 12px;" onclick="approveParent(${parent.id})">
+                            <i class="fas fa-check"></i> Approve
+                        </button>
+                        <button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;" onclick="rejectParent(${parent.id})">
+                            <i class="fas fa-times"></i> Reject
+                        </button>
+                    ` : ''}
                     <div class="action-icon view" onclick="viewParent(${parent.id})" title="View Details">
                         <i class="fas fa-eye"></i>
                     </div>
@@ -3223,23 +3341,61 @@ function copyStudentQrPayload() {
     }
 }
 
-function approveDriver(id) {
+async function approveDriver(id) {
     const driver = driversData.find(d => d.id === id);
-    if (driver && confirm(`Approve driver ${driver.name}?`)) {
+    if (!driver || !confirm(`Approve driver ${driver.name}?`)) return;
+    try {
+        await safestepApi(`/api/admin/drivers/${id}/approve`, { method: 'POST' });
         driver.status = 'active';
+        driver.active = true;
         renderDrivers();
         renderPendingDriverApplicantsForParents();
-        alert('Driver approved successfully!');
+        showToast('Driver approved successfully!', 'success');
+    } catch (err) {
+        showToast('Failed to approve driver.', 'error');
     }
 }
 
-function rejectDriver(id) {
+async function rejectDriver(id) {
     const driver = driversData.find(d => d.id === id);
-    if (driver && confirm(`Reject driver ${driver.name}?`)) {
-        driver.status = 'inactive';
+    if (!driver || !confirm(`Reject driver ${driver.name}?`)) return;
+    try {
+        await safestepApi(`/api/admin/drivers/${id}/reject`, { method: 'POST' });
+        driver.status = 'rejected';
+        driver.active = false;
         renderDrivers();
         renderPendingDriverApplicantsForParents();
-        alert('Driver rejected.');
+        showToast('Driver rejected.', 'success');
+    } catch (err) {
+        showToast('Failed to reject driver.', 'error');
+    }
+}
+
+async function approveParent(id) {
+    const parent = parentsData.find(p => p.id === id);
+    if (!parent || !confirm(`Approve parent ${parent.name}?`)) return;
+    try {
+        await safestepApi(`/api/admin/parents/${id}/approve`, { method: 'POST' });
+        parent.status = 'active';
+        parent.active = true;
+        renderParents();
+        showToast('Parent approved successfully!', 'success');
+    } catch (err) {
+        showToast('Failed to approve parent.', 'error');
+    }
+}
+
+async function rejectParent(id) {
+    const parent = parentsData.find(p => p.id === id);
+    if (!parent || !confirm(`Reject parent ${parent.name}?`)) return;
+    try {
+        await safestepApi(`/api/admin/parents/${id}/reject`, { method: 'POST' });
+        parent.status = 'rejected';
+        parent.active = false;
+        renderParents();
+        showToast('Parent rejected.', 'success');
+    } catch (err) {
+        showToast('Failed to reject parent.', 'error');
     }
 }
 
@@ -3358,14 +3514,19 @@ let requestsData = [
 ];
 
 function normalizeRequest(request, fallbackId) {
-    const normalizedRole = request.role || request.user_role || (request.user?.role) || 'parent';
+    const rawRole = request.role || request.user_role || (request.user?.role) || 'parent';
     const normalizedStatus = request.status || 'new';
-    const userName = request.user?.name || request.from || request.full_name || 'Unknown User';
+    const userName = request.user?.name || request.from || request.full_name || (rawRole === 'guest' ? 'Website Guest' : 'Unknown User');
+
+    let normalizedRole;
+    if (rawRole === 'guest') normalizedRole = 'guest';
+    else if (rawRole === 'driver') normalizedRole = 'driver';
+    else normalizedRole = 'parent';
 
     return {
         id: request.id || fallbackId,
         from: userName,
-        role: normalizedRole === 'driver' ? 'driver' : 'parent',
+        role: normalizedRole,
         subject: request.subject || request.request_type || 'General request',
         description: request.description || '',
         priority: request.priority || 'medium',
@@ -3395,7 +3556,7 @@ function renderRequests() {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><strong>${req.from}</strong></td>
-                <td>${req.role === 'parent' ? 'Parent' : 'Driver'}</td>
+                <td>${req.role === 'guest' ? 'Guest' : req.role === 'parent' ? 'Parent' : 'Driver'}</td>
                 <td>${req.subject}</td>
                 <td>
                     <span class="status-badge ${req.priority === 'high' ? 'danger' : req.priority === 'medium' ? 'warning' : 'active'}">
@@ -4990,5 +5151,19 @@ async function hydrateAdminDashboardFromApi() {
         console.warn('SafeStep API hydration skipped:', error.message);
     }
 }
+
+// Handle add resource form success — immediately refresh the relevant section
+document.addEventListener('ajaxform:success', function(e) {
+    var form = e.detail.form;
+    if (!form || form.id !== 'addResourceForm') return;
+    document.getElementById('addResourceModal').style.display = 'none';
+    showToast('Resource created successfully!', 'success');
+
+    // Immediately re-hydrate all dashboard data so the new item appears
+    // properly normalized in its section (parents, drivers, buses, etc.)
+    if (typeof hydrateAdminDashboardFromApi === 'function') {
+        hydrateAdminDashboardFromApi();
+    }
+});
 
 document.addEventListener('DOMContentLoaded', hydrateAdminDashboardFromApi);

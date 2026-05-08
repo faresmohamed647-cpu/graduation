@@ -1011,6 +1011,7 @@
                             <option value="all">All</option>
                             <option value="parent">Parents</option>
                             <option value="driver">Drivers</option>
+                            <option value="guest">Website Guests</option>
                         </select>
                     </div>
                     <div class="filter-item">
@@ -2760,6 +2761,23 @@
                 </div>
             </div>
         </div>
+        </div>
+    </div>
+
+    <!-- Add Resource Modal -->
+    <div id="addResourceModal" class="modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;">
+        <div class="modal-content" style="background:var(--card-bg,#fff);padding:24px;border-radius:12px;max-width:520px;width:90%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <h3 id="addModalTitle" style="margin:0;font-size:18px;">Add Resource</h3>
+                <button type="button" onclick="document.getElementById('addResourceModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-secondary);">&times;</button>
+            </div>
+            <form id="addResourceForm" method="POST" action="#" class="ajax-form">
+                <div id="addModalBody"></div>
+                <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
+                    <button type="button" class="btn-secondary" onclick="document.getElementById('addResourceModal').style.display='none'">Cancel</button>
+                    <button type="submit" class="btn-primary">Save</button>
+                </div>
+            </form>
         </div>
     </div>
 

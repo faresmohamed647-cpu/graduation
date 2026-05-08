@@ -111,42 +111,80 @@
     });
     
 })(jQuery);
-const childrenInput = document.getElementById("children");
-const currentCostInput = document.getElementById("currentCost");
-const savingEl = document.getElementById("saving");
-const currentTotalEl = document.getElementById("currentTotal");
-const schoolTotalEl = document.getElementById("schoolTotal");
 
-const planRadios = document.querySelectorAll('input[name="plan"]');
-const paymentRadios = document.querySelectorAll('input[name="payment"]');
+/* ===== DARK MODE ===== */
+(function() {
+    const STORAGE_KEY = 'safestep-theme';
 
-function calculate() {
-    const children = +childrenInput.value;
-    const currentCost = +currentCostInput.value;
-
-    let planPrice = 0;
-    planRadios.forEach(r => r.checked && (planPrice = +r.value));
-
-    let discount = 1;
-    paymentRadios.forEach(r => {
-        if (r.checked) {
-            if (r.value === "quarterly") discount = 0.9;
-            if (r.value === "yearly") discount = 0.75;
+    function applyTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        const toggleBtn = document.querySelector('.dark-mode-toggle');
+        if (toggleBtn) {
+            toggleBtn.innerHTML = theme === 'dark'
+                ? '<i class="fas fa-sun"></i>'
+                : '<i class="fas fa-moon"></i>';
+            toggleBtn.title = theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode';
         }
-    });
+    }
 
-    const currentTotal = children * currentCost;
-    const schoolTotal = children * planPrice * discount;
-const saving = Math.max(0, currentTotal - schoolTotal);
-    currentTotalEl.textContent = currentTotal.toFixed(0);
-    schoolTotalEl.textContent = schoolTotal.toFixed(0);
-    savingEl.textContent = saving.toFixed(0) + " EGP";
-}
+    function initDarkMode() {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const theme = saved || (prefersDark ? 'dark' : 'light');
+        applyTheme(theme);
+    }
 
-document.querySelectorAll("input").forEach(i =>
-    i.addEventListener("input", calculate)
-);
+    window.toggleDarkMode = function() {
+        const current = document.documentElement.getAttribute('data-theme') || 'light';
+        const next = current === 'dark' ? 'light' : 'dark';
+        localStorage.setItem(STORAGE_KEY, next);
+        applyTheme(next);
+    };
 
-calculate();
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initDarkMode);
+    } else {
+        initDarkMode();
+    }
+})();
 
+/* ===== PRICE CALCULATOR (only runs on pages that have the inputs) ===== */
+(function() {
+    const childrenInput = document.getElementById("children");
+    const currentCostInput = document.getElementById("currentCost");
+    const savingEl = document.getElementById("saving");
+    const currentTotalEl = document.getElementById("currentTotal");
+    const schoolTotalEl = document.getElementById("schoolTotal");
+
+    if (!childrenInput || !currentCostInput || !savingEl) return;
+
+    const planRadios = document.querySelectorAll('input[name="plan"]');
+    const paymentRadios = document.querySelectorAll('input[name="payment"]');
+
+    function calculate() {
+        const children = +childrenInput.value || 0;
+        const currentCost = +currentCostInput.value || 0;
+
+        let planPrice = 0;
+        planRadios.forEach(r => r.checked && (planPrice = +r.value));
+
+        let discount = 1;
+        paymentRadios.forEach(r => {
+            if (r.checked) {
+                if (r.value === "quarterly") discount = 0.9;
+                if (r.value === "yearly") discount = 0.75;
+            }
+        });
+
+        const currentTotal = children * currentCost;
+        const schoolTotal = children * planPrice * discount;
+        const saving = Math.max(0, currentTotal - schoolTotal);
+        currentTotalEl.textContent = currentTotal.toFixed(0);
+        schoolTotalEl.textContent = schoolTotal.toFixed(0);
+        savingEl.textContent = saving.toFixed(0) + " EGP";
+    }
+
+    document.querySelectorAll("input").forEach(i => i.addEventListener("input", calculate));
+    calculate();
+})();
 

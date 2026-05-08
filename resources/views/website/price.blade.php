@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -68,7 +68,7 @@
                 </div>
                 <a href="contact.html" class="nav-item nav-link">Contact</a>
             </div>
-            <h4 class="m-0 pe-lg-5 d-none d-lg-block"><i class="fa fa-headphones text-primary me-3"></i>+012 345 6789</h4>
+            <h4 class="m-0 pe-lg-5 d-none d-lg-block"><i class="fa fa-headphones text-primary me-3"></i>+20 3 123 4567</h4>
         </div>
     </nav>
     <!-- Navbar End -->
@@ -94,7 +94,7 @@
     <div class="container-xxl py-5">
         <div class="container py-5">
             <div class="text-center wow fadeInUp" data-wow-delay="0.1s">
-                <h6 class="text-secondary text-uppercase">NEW · Direct for Families</h6>
+                <h6 class="text-secondary text-uppercase">NEW � Direct for Families</h6>
                 <h1 class="mb-5">Simple Pricing for Families</h1>
             </div>
             <div class="row g-4">
@@ -283,7 +283,7 @@
                         <i class="fa fa-headphones fa-2x flex-shrink-0 bg-primary p-3 text-white"></i>
                         <div class="ps-4">
                             <h6>Call for any query!</h6>
-                            <h3 class="text-primary m-0">+012 345 6789</h3>
+                            <h3 class="text-primary m-0">+20 3 123 4567</h3>
                         </div>
                     </div>
                 </div>
@@ -330,9 +330,9 @@
             <div class="row g-5">
                 <div class="col-lg-3 col-md-6">
                     <h4 class="text-light mb-4">Address</h4>
-                    <p class="mb-2"><i class="fa fa-map-marker-alt me-3"></i>123 Street, New York, USA</p>
-                    <p class="mb-2"><i class="fa fa-phone-alt me-3"></i>+012 345 67890</p>
-                    <p class="mb-2"><i class="fa fa-envelope me-3"></i>info@example.com</p>
+                    <p class="mb-2"><i class="fa fa-map-marker-alt me-3"></i>Alexandria, Egypt</p>
+                    <p class="mb-2"><i class="fa fa-phone-alt me-3"></i>+20 3 123 4567</p>
+                    <p class="mb-2"><i class="fa fa-envelope me-3"></i>info@safestep.com</p>
                     <div class="d-flex pt-2">
                         <a class="btn btn-outline-light btn-social" href=""><i class="fab fa-twitter"></i></a>
                         <a class="btn btn-outline-light btn-social" href=""><i class="fab fa-facebook-f"></i></a>
@@ -370,7 +370,7 @@
             <div class="copyright">
                 <div class="row">
                     <div class="col-md-6 text-center text-md-start mb-3 mb-md-0">
-                        &copy; <a class="border-bottom" href="#">Your Site Name</a>, All Right Reserved.
+                        &copy; <a class="border-bottom" href="#">SafeStep Bus</a>, All Right Reserved.
                     </div>
                 </div>
             </div>
