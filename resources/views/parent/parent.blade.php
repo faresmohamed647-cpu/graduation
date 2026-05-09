@@ -199,7 +199,7 @@
                     <span class="badge">3</span>
                 </button>
                 <a class="profile" href="#" onclick="event.preventDefault(); openParentProfileModal();" aria-label="Open profile">
-                    <img src="{{ asset('IMAGE/ADMIN.png') }}" alt="Parent Profile" onerror="this.src='https://ui-avatars.com/api/?name={{ urlencode($userName ?? 'Parent') }}&background=0ea5a4&color=fff'">
+                    <img src="{{ asset('img/admin.png') }}" alt="Parent Profile" onerror="this.src='https://ui-avatars.com/api/?name={{ urlencode($userName ?? 'Parent') }}&background=0ea5a4&color=fff'">
                     <span>{{ $userName ?? 'Parent' }}</span>
                 </a>
             </div>

@@ -81,10 +81,19 @@ class ApplicationController extends Controller
                 // Not authenticated, that's fine for public applications
             }
 
-            // Also try to match by email if no auth user
+            // Also try to match by email if no auth user, or create new user
             if (!$userId) {
                 $matchedUser = \App\Models\User::where('email', $data['email'])->first();
-                $userId = $matchedUser?->id;
+                if (!$matchedUser) {
+                    $matchedUser = \App\Models\User::create([
+                        'name' => $data['name'],
+                        'email' => $data['email'],
+                        'password' => \Illuminate\Support\Facades\Hash::make($data['password']),
+                        'plain_password' => $data['password'],
+                        'role' => $role,
+                    ]);
+                }
+                $userId = $matchedUser->id;
             }
 
             $application = Application::create([

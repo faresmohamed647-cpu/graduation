@@ -809,6 +809,21 @@ function getAIResponse(input) {
         if (/شكر|thanks|thank you|تسلم|merci/.test(q)) {
             return "العفو! 🎉 إذا عندك أي سؤال تاني، أنا هنا. SafeStep دايماً معاك لسلامة أطفالك.";
         }
+        if (/كيف تعمل|طريقة|شرح|استخدام/.test(q)) {
+            return "التطبيق بيشتغل بسهولة: بتسجل حساب، بنربطه بباص طفلك، وأول ما الباص يتحرك بيوصلك إشعارات وتشوف مكانه لايف على الخريطة.";
+        }
+        if (/النسيان|نسي|ترك|جوه الباص/.test(q)) {
+            return "نظامنا بيشمل تنبيه إلزامي للسائق بنهاية كل رحلة لفحص الباص بالكامل والتأكد من عدم نسيان أي طفل جوه الباص.";
+        }
+        if (/غياب|مرض|اعتذار/.test(q)) {
+            return "لو طفلك غايب، تقدر تسجل 'غياب' من التطبيق عشان السائق يتخطى نقطة التوقف ويوفر وقت باقي الأطفال.";
+        }
+        if (/السرعة|متهور|سرعة/.test(q)) {
+            return "إحنا بنراقب سرعة الباص لحظة بلحظة، وبنبعت تنبيه للإدارة فوراً لو السائق تجاوز السرعة المسموحة.";
+        }
+        if (/السن|عمر|مرحلة/.test(q)) {
+            return "نظامنا مناسب لكل المراحل العمرية، من الحضانة لحد الثانوي، عشان نوفر راحة البال لكل ولي أمر.";
+        }
         return "سؤال جميل! SafeStep بيساعد أولياء الأمور والمدارس في مراقبة الباصات المدرسية بشكل مباشر عبر GPS، إشعارات فورية، وكاميرات أمان على مدار الساعة. عايز تعرف أكتر عن التسجيل أو الأسعار؟";
     }
 
@@ -848,6 +863,21 @@ function getAIResponse(input) {
     }
     if (/thank|thanks|appreciate/.test(q)) {
         return "You're welcome! 🎉 Feel free to ask anything else. SafeStep is always here for your children's safety.";
+    }
+    if (/how it works|how to use|guide|explain/.test(q)) {
+        return "It's very simple: register an account, we link it to your child's bus, and you instantly get live tracking and notifications once the trip starts.";
+    }
+    if (/forget|forgotten|left behind/.test(q)) {
+        return "Our system includes a mandatory end-of-trip check alert for drivers, ensuring no child is ever left behind in the bus.";
+    }
+    if (/absent|sick|won't attend/.test(q)) {
+        return "If your child is absent, you can mark them as 'Absent' in the app so the driver can skip your stop and save time.";
+    }
+    if (/speed|fast|reckless/.test(q)) {
+        return "We monitor bus speed in real-time. School admins get instant alerts if a driver exceeds speed limits or drives recklessly.";
+    }
+    if (/age|grade|level/.test(q)) {
+        return "SafeStep is perfect for students of all ages, from kindergarten to high school, giving every family total peace of mind.";
     }
 
     return "That's a great question! SafeStep Bus Tracking helps parents and schools monitor school buses in real-time with GPS tracking, instant notifications, and 24/7 safety cameras. Want to know more about registration, pricing, or safety features?";

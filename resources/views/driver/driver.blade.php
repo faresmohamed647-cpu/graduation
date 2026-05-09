@@ -181,7 +181,7 @@
                     <span id="currentTime"></span>
                 </div>
                 <a class="profile" href="#" onclick="event.preventDefault(); openDriverProfileModal();" aria-label="Open driver profile">
-                    <img src="{{ asset('IMAGE/ADMIN.png') }}" alt="Driver" onerror="this.src='https://ui-avatars.com/api/?name={{ urlencode($userName ?? 'Driver') }}&background=764ba2&color=fff'">
+                    <img src="{{ asset('img/admin.png') }}" alt="Driver" onerror="this.src='https://ui-avatars.com/api/?name={{ urlencode($userName ?? 'Driver') }}&background=764ba2&color=fff'">
                     <span>{{ $userName ?? 'Driver' }}</span>
                 </a>
             </div>

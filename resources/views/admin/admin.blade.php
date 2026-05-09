@@ -161,7 +161,7 @@
                     <span class="badge">5</span>
                 </div>
                 <div class="profile" style="cursor: pointer;" onclick="navigateTo('admin-profile')">
-                    <img src="../../IMAGE/ADMIN.png" alt="Admin" style="cursor: pointer;">
+                    <img src="{{ asset('img/admin.png') }}" alt="Admin" style="cursor: pointer;">
                     <span>Admin User</span>
                 </div>
             </div>

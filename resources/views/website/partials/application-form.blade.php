@@ -169,6 +169,53 @@
         }
         .field-error.visible { display: block; }
 
+        /* Password Strength */
+        .password-strength {
+            margin-top: 8px;
+            background: rgba(15, 23, 42, .4);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            display: none;
+        }
+        .password-strength.visible { display: block; }
+        .strength-bar-container {
+            height: 6px;
+            background: var(--surface);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+        .strength-bar {
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+        .strength-text {
+            font-size: 12px;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 8px;
+        }
+        .strength-rules {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+        .strength-rules li {
+            font-size: 11px;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .strength-rules li.valid { color: var(--success); }
+        .strength-rules li.invalid { color: var(--danger); }
+        .strength-rules li i { font-size: 10px; width: 12px; text-align: center; }
+
         /* Divider */
         .divider { margin: 24px 0; border: none; border-top: 1px solid var(--border); }
 
@@ -310,6 +357,30 @@
                         <label for="field_email">Email Address <span class="req">*</span></label>
                         <input type="email" id="field_email" name="email" required placeholder="you@example.com">
                         <span class="field-error" id="err_email"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="field_password">Password <span class="req">*</span></label>
+                        <input type="password" id="field_password" name="password" required placeholder="Create a strong password">
+                        
+                        <div class="password-strength" id="passwordStrength">
+                            <div class="strength-bar-container">
+                                <div class="strength-bar" id="strengthBar"></div>
+                            </div>
+                            <span class="strength-text" id="strengthText">Weak</span>
+                            <ul class="strength-rules">
+                                <li id="rule-length" class="invalid"><i class="fas fa-times"></i> 8+ characters</li>
+                                <li id="rule-upper" class="invalid"><i class="fas fa-times"></i> Uppercase</li>
+                                <li id="rule-lower" class="invalid"><i class="fas fa-times"></i> Lowercase</li>
+                                <li id="rule-number" class="invalid"><i class="fas fa-times"></i> Number</li>
+                                <li id="rule-special" class="invalid"><i class="fas fa-times"></i> Special char</li>
+                            </ul>
+                        </div>
+                        <span class="field-error" id="err_password"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="field_password_confirmation">Confirm Password <span class="req">*</span></label>
+                        <input type="password" id="field_password_confirmation" name="password_confirmation" required placeholder="Confirm your password">
+                        <span class="field-error" id="err_password_confirmation"></span>
                     </div>
                     <div class="form-group">
                         <label for="field_phone">Phone Number <span class="req">*</span></label>
@@ -511,6 +582,67 @@
             if (errEl) { errEl.textContent = ''; errEl.classList.remove('visible'); }
         });
     });
+
+    // ── Password Strength Meter
+    const passInput = document.getElementById('field_password');
+    const passStrengthBox = document.getElementById('passwordStrength');
+    if (passInput) {
+        passInput.addEventListener('focus', () => {
+            passStrengthBox.classList.add('visible');
+        });
+
+        passInput.addEventListener('input', function(e) {
+            const val = e.target.value;
+            let score = 0;
+
+            const rules = [
+                { id: 'rule-length', regex: /.{8,}/ },
+                { id: 'rule-upper', regex: /[A-Z]/ },
+                { id: 'rule-lower', regex: /[a-z]/ },
+                { id: 'rule-number', regex: /[0-9]/ },
+                { id: 'rule-special', regex: /[^A-Za-z0-9]/ }
+            ];
+
+            rules.forEach(rule => {
+                const el = document.getElementById(rule.id);
+                const icon = el.querySelector('i');
+                if (rule.regex.test(val)) {
+                    el.classList.remove('invalid');
+                    el.classList.add('valid');
+                    icon.className = 'fas fa-check';
+                    score++;
+                } else {
+                    el.classList.remove('valid');
+                    el.classList.add('invalid');
+                    icon.className = 'fas fa-times';
+                }
+            });
+
+            const bar = document.getElementById('strengthBar');
+            const txt = document.getElementById('strengthText');
+            
+            bar.style.width = (score * 20) + '%';
+            
+            if (val.length === 0) {
+                bar.style.backgroundColor = 'transparent';
+                txt.textContent = 'Enter password';
+                txt.style.color = 'var(--muted)';
+            } else if (score <= 2) {
+                bar.style.backgroundColor = 'var(--danger)';
+                txt.textContent = 'Weak';
+                txt.style.color = 'var(--danger)';
+            } else if (score <= 4) {
+                bar.style.backgroundColor = 'var(--warning)';
+                txt.textContent = 'Good';
+                txt.style.color = 'var(--warning)';
+            } else {
+                bar.style.backgroundColor = 'var(--success)';
+                txt.textContent = 'Strong';
+                txt.style.color = 'var(--success)';
+            }
+        });
+    }
+
 })();
 </script>
 <script src="{{ asset('js/ajax-forms.js') }}"></script>
