@@ -30,6 +30,86 @@
     <!-- Template Stylesheet -->
     <link href="{{ asset('css/style.css') }}" rel="stylesheet">
     <link href="{{ asset('css/price.css') }}" rel="stylesheet">
+    <style>
+        /* ===== BASE STYLES — Pricing Calculator ===== */
+        .pricing-offers-card, .pricing-calc-card {
+            background: #fff;
+            border-radius: 16px;
+            border: 1px solid #e9ecef;
+            padding: 2rem;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+            height: 100%;
+            transition: all 0.3s ease;
+        }
+        .pricing-icon-box {
+            width: 56px; height: 56px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #1e3a8a, #1d4ed8);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .pricing-field-input {
+            border-radius: 12px; padding: 0.75rem 1rem; border: 2px solid #e9ecef;
+        }
+        .pricing-plan-option {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0.75rem 1rem; border: 2px solid #e9ecef; border-radius: 12px;
+            cursor: pointer; transition: all 0.3s;
+        }
+        .pricing-plan-option.active {
+            border-color: #1d4ed8; background: rgba(29,78,216,0.05);
+        }
+        .pricing-payment-btn {
+            flex: 1; text-align: center; padding: 0.6rem;
+            border: 2px solid #e9ecef; border-radius: 12px;
+            cursor: pointer; font-size: 0.85rem; font-weight: 600;
+            color: #6c757d; transition: all 0.3s;
+        }
+        .pricing-payment-btn.active {
+            border-color: #1d4ed8; background: #1d4ed8; color: #fff;
+        }
+
+        /* ===== DARK MODE — Pricing Calculator ===== */
+        [data-theme="dark"] .pricing-offers-card,
+        [data-theme="dark"] .pricing-calc-card {
+            background: #1e293b !important;
+            border-color: #334155 !important;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2) !important;
+            color: #e2e8f0 !important;
+        }
+        [data-theme="dark"] .pricing-offers-card h4,
+        [data-theme="dark"] .pricing-calc-card h4 {
+            color: #f1f5f9 !important;
+        }
+        [data-theme="dark"] .pricing-calc-card p {
+            color: #94a3b8 !important;
+        }
+        [data-theme="dark"] .pricing-offers-list li {
+            border-bottom-color: #334155 !important;
+        }
+        [data-theme="dark"] .pricing-field-input {
+            background: #0f172a !important;
+            border-color: #334155 !important;
+            color: #e2e8f0 !important;
+        }
+        [data-theme="dark"] .pricing-plan-option {
+            background: #0f172a !important;
+            border-color: #334155 !important;
+        }
+        [data-theme="dark"] .pricing-plan-option.active {
+            background: rgba(59, 130, 246, 0.1) !important;
+            border-color: #3b82f6 !important;
+        }
+        [data-theme="dark"] .pricing-payment-btn {
+            background: transparent !important;
+            border-color: #334155 !important;
+            color: #94a3b8 !important;
+        }
+        [data-theme="dark"] .pricing-payment-btn.active {
+            background: #3b82f6 !important;
+            border-color: #3b82f6 !important;
+            color: #fff !important;
+        }
+    </style>
 </head>
 
 <body>
@@ -61,9 +141,9 @@
                         <a href="price.html" class="dropdown-item active">Pricing Plan</a>
                         <a href="feature.html" class="dropdown-item">Features</a>
                         <a href="quote.html" class="dropdown-item">Free Quote</a>
-                        <a href="team.html" class="dropdown-item">Our Team</a>
-                        <a href="testimonial.html" class="dropdown-item">Testimonial</a>
-                        <a href="404.html" class="dropdown-item">404 Page</a>
+                        <a href="/how-it-works" class="dropdown-item">How It Works</a>
+                        <a href="/faq" class="dropdown-item">FAQ</a>
+                        <a href="/tracking" class="dropdown-item">Live Tracking</a>
                     </div>
                 </div>
                 <a href="contact.html" class="nav-item nav-link">Contact</a>
@@ -94,7 +174,7 @@
     <div class="container-xxl py-5">
         <div class="container py-5">
             <div class="text-center wow fadeInUp" data-wow-delay="0.1s">
-                <h6 class="text-secondary text-uppercase">NEW � Direct for Families</h6>
+                <h6 class="text-secondary text-uppercase">NEW � Direct for Families</h6>
                 <h1 class="mb-5">Simple Pricing for Families</h1>
             </div>
             <div class="row g-4">
@@ -161,114 +241,144 @@
         </div>
     </div>
     <!-- Pricing End -->
-        <!-- Offers -->
-    <div class="offers">
-        <h3>Family Offers</h3>
-        <ul>
-            <li>7-day free trial for every family</li>
-            <li>20% discount for 3 children or more</li>
-            <li>25% discount on yearly payment</li>
-        </ul>
-    </div>
-
-    <!-- Calculator Card -->
-    <div class="calculator-card">
-
-        <h1>Family Savings Calculator</h1>
-        <p class="desc">
-            See how much you can save monthly by switching to our school plans.
-        </p>
-
-        <div class="calculator">
-
-            <!-- Result -->
-            <div class="result-box">
-                <h2>Estimated Monthly Savings</h2>
-
-                <div class="big-number" id="saving">0 EGP</div>
-
-                <div class="lines">
-                    <div>
-                        <span>Current Monthly Cost</span>
-                        <strong id="currentTotal">0</strong> EGP
-                    </div>
-                    <div>
-                        <span>School Monthly Cost</span>
-                        <strong id="schoolTotal">0</strong> EGP
+        <!-- Family Offers & Calculator Start -->
+    <div class="container-xxl py-5">
+        <div class="container">
+            <div class="row g-5">
+                <!-- Family Offers Card -->
+                <div class="col-lg-4 wow fadeInUp" data-wow-delay="0.1s">
+                    <div class="pricing-offers-card">
+                        <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;">
+                            <div class="pricing-icon-box">
+                                <i class="fa fa-gift" style="font-size:1.5rem;color:#fff;"></i>
+                            </div>
+                            <h4 style="margin:0;">Family Offers</h4>
+                        </div>
+                        <ul class="pricing-offers-list" style="list-style:none;padding:0;margin:0;">
+                            <li style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 0;border-bottom:1px solid #f1f3f5;"><i class="fa fa-check-circle" style="color:#059669;"></i> 7-day free trial for every family</li>
+                            <li style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 0;border-bottom:1px solid #f1f3f5;"><i class="fa fa-check-circle" style="color:#059669;"></i> 20% discount for 3 children or more</li>
+                            <li style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 0;border-bottom:1px solid #f1f3f5;"><i class="fa fa-check-circle" style="color:#059669;"></i> 25% discount on yearly payment</li>
+                            <li style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 0;border-bottom:1px solid #f1f3f5;"><i class="fa fa-check-circle" style="color:#059669;"></i> 10% discount on quarterly payment</li>
+                            <li style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 0;"><i class="fa fa-check-circle" style="color:#059669;"></i> Priority support for VIP families</li>
+                        </ul>
                     </div>
                 </div>
-
-                <ul class="features">
-                    <li>Dedicated family support</li>
-                    <li>Real-time tracking</li>
-                    <li>Cancel anytime within 48 hours</li>
-                </ul>
+                <!-- Savings Calculator -->
+                <div class="col-lg-8 wow fadeInUp" data-wow-delay="0.3s">
+                    <div class="pricing-calc-card">
+                        <div class="pricing-calc-header" style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;">
+                            <div class="pricing-icon-box">
+                                <i class="fa fa-calculator" style="font-size:1.5rem;color:#fff;"></i>
+                            </div>
+                            <div>
+                                <h4 style="margin:0 0 0.25rem;">Family Savings Calculator</h4>
+                                <p style="margin:0;color:#6c757d;font-size:0.9rem;">See how much you can save monthly by switching to our school plans.</p>
+                            </div>
+                        </div>
+                        <div class="row g-4">
+                            <div class="col-md-5">
+                                <div id="calcResultBox" style="background:linear-gradient(135deg,#0f172a,#1e3a8a,#1d4ed8);border-radius:16px;padding:2rem;color:#fff;text-align:center;height:100%;">
+                                    <div style="font-size:0.85rem;opacity:0.8;margin-bottom:0.5rem;">Estimated Monthly Savings</div>
+                                    <div id="saving" style="font-size:2.5rem;font-weight:800;margin-bottom:1rem;">0 EGP</div>
+                                    <div style="background:rgba(255,255,255,0.1);border-radius:12px;padding:1rem;margin-bottom:1rem;">
+                                        <div style="display:flex;justify-content:space-between;margin-bottom:0.5rem;font-size:0.85rem;"><span>Current Cost</span><strong id="currentTotal">0 EGP</strong></div>
+                                        <div style="display:flex;justify-content:space-between;font-size:0.85rem;"><span>SafeStep Cost</span><strong id="schoolTotal">0 EGP</strong></div>
+                                    </div>
+                                    <ul style="list-style:none;padding:0;margin:0;text-align:left;font-size:0.8rem;">
+                                        <li style="margin-bottom:0.4rem;"><i class="fa fa-check" style="color:#4ade80;margin-right:0.5rem;"></i>Dedicated family support</li>
+                                        <li style="margin-bottom:0.4rem;"><i class="fa fa-check" style="color:#4ade80;margin-right:0.5rem;"></i>Real-time tracking</li>
+                                        <li><i class="fa fa-check" style="color:#4ade80;margin-right:0.5rem;"></i>Cancel anytime</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-md-7">
+                                <div style="display:flex;flex-direction:column;gap:1rem;">
+                                    <div>
+                                        <label style="font-weight:600;font-size:0.9rem;margin-bottom:0.5rem;display:block;">Number of Children</label>
+                                        <input type="number" class="form-control pricing-field-input" id="children" min="1" max="6" value="1">
+                                    </div>
+                                    <div>
+                                        <label style="font-weight:600;font-size:0.9rem;margin-bottom:0.5rem;display:block;">Current Cost per Child (Monthly)</label>
+                                        <input type="number" class="form-control pricing-field-input" id="currentCost" value="900">
+                                    </div>
+                                    <div>
+                                        <label style="font-weight:600;font-size:0.9rem;margin-bottom:0.5rem;display:block;">Select Plan</label>
+                                        <div style="display:flex;flex-direction:column;gap:0.5rem;" id="planOptions">
+                                            <label class="pricing-plan-option active">
+                                                <div style="display:flex;align-items:center;gap:0.5rem;"><input type="radio" name="plan" value="450" checked style="accent-color:#1d4ed8;"> <span>Basic Plan</span></div>
+                                                <strong style="color:#1d4ed8;">450 EGP</strong>
+                                            </label>
+                                            <label class="pricing-plan-option">
+                                                <div style="display:flex;align-items:center;gap:0.5rem;"><input type="radio" name="plan" value="650" style="accent-color:#1d4ed8;"> <span>Premium Plan</span></div>
+                                                <strong style="color:#1d4ed8;">650 EGP</strong>
+                                            </label>
+                                            <label class="pricing-plan-option">
+                                                <div style="display:flex;align-items:center;gap:0.5rem;"><input type="radio" name="plan" value="950" style="accent-color:#1d4ed8;"> <span>VIP Plan</span></div>
+                                                <strong style="color:#1d4ed8;">950 EGP</strong>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label style="font-weight:600;font-size:0.9rem;margin-bottom:0.5rem;display:block;">Payment Frequency</label>
+                                        <div style="display:flex;gap:0.5rem;" id="paymentToggle">
+                                            <label class="pricing-payment-btn active">
+                                                <input type="radio" name="payment" value="monthly" checked style="display:none;"> Monthly
+                                            </label>
+                                            <label class="pricing-payment-btn">
+                                                <input type="radio" name="payment" value="quarterly" style="display:none;"> Quarterly
+                                            </label>
+                                            <label class="pricing-payment-btn">
+                                                <input type="radio" name="payment" value="yearly" style="display:none;"> Yearly
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <a href="/pay" class="btn btn-primary w-100 py-3" style="border-radius:12px;font-size:1.1rem;"><i class="fa fa-shopping-cart me-2"></i>Order Now</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-
-            <!-- Controls -->
-            <div class="controls">
-
-                <div class="field">
-                    <label>Number of Children</label>
-                    <input type="number" id="children" min="1" max="6" value="1">
-                </div>
-
-                <div class="field">
-                    <label>Current Cost per Child (Monthly)</label>
-                    <input type="number" id="currentCost" value="900">
-                </div>
-
-                <div class="field">
-                    <label>Select Plan</label>
-
-                    <label class="option">
-                        <input type="radio" name="plan" value="450" checked>
-                        <span>Basic Plan</span>
-                        <strong>450 EGP</strong>
-                    </label>
-
-                    <label class="option">
-                        <input type="radio" name="plan" value="650">
-                        <span>Premium Plan</span>
-                        <strong>650 EGP</strong>
-                    </label>
-
-                    <label class="option">
-                        <input type="radio" name="plan" value="950">
-                        <span>VIP Plan</span>
-                        <strong>950 EGP</strong>
-                    </label>
-                </div>
-
-                <div class="field">
-                    <label>Payment Method</label>
-
-                    <div class="payment">
-                        <label>
-                            <input type="radio" name="payment" value="monthly" checked>
-                            Monthly
-                        </label>
-                        <label>
-                            <input type="radio" name="payment" value="quarterly">
-                            Quarterly
-                        </label>
-                        <label>
-                            <input type="radio" name="payment" value="yearly">
-                            Yearly
-                            
-                        </label>
-                        <a href="pay.html"class="btn-link order-btn"data-aos="fade-up"data-aos-duration="1200"data-aos-delay="600">Order now</a>
-
-                    </div>
-                </div>
-
-            </div>
-
         </div>
-
     </div>
-
-</div>
+    <!-- Family Offers & Calculator End -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        function calcSavings() {
+            var children = parseInt(document.getElementById('children').value) || 1;
+            var currentCost = parseInt(document.getElementById('currentCost').value) || 0;
+            var plan = parseInt(document.querySelector('input[name="plan"]:checked').value);
+            var payment = document.querySelector('input[name="payment"]:checked').value;
+            var discount = payment === 'yearly' ? 0.25 : (payment === 'quarterly' ? 0.10 : 0);
+            if (children >= 3) discount += 0.20;
+            var currentTotal = children * currentCost;
+            var schoolCost = Math.round(children * plan * (1 - discount));
+            var savings = Math.max(0, currentTotal - schoolCost);
+            document.getElementById('saving').textContent = savings + ' EGP';
+            document.getElementById('currentTotal').textContent = currentTotal + ' EGP';
+            document.getElementById('schoolTotal').textContent = schoolCost + ' EGP';
+        }
+        document.querySelectorAll('#children, #currentCost').forEach(function(el) { el.addEventListener('input', calcSavings); });
+        
+        document.querySelectorAll('input[name="plan"]').forEach(function(el) {
+            el.addEventListener('change', function() {
+                document.querySelectorAll('#planOptions label').forEach(function(l) { l.classList.remove('active'); });
+                this.closest('label').classList.add('active');
+                calcSavings();
+            });
+        });
+        
+        document.querySelectorAll('input[name="payment"]').forEach(function(el) {
+            el.addEventListener('change', function() {
+                document.querySelectorAll('#paymentToggle label').forEach(function(l) { l.classList.remove('active'); });
+                this.closest('label').classList.add('active');
+                calcSavings();
+            });
+        });
+        
+        calcSavings();
+    });
+    </script>
 
 
     <!-- Quote Start -->

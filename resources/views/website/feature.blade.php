@@ -62,9 +62,9 @@
                         <a href="price.html" class="dropdown-item">Pricing Plan</a>
                         <a href="feature.html" class="dropdown-item active">Features</a>
                         <a href="quote.html" class="dropdown-item">Free Quote</a>
-                        <a href="team.html" class="dropdown-item">Our Team</a>
-                        <a href="testimonial.html" class="dropdown-item">Testimonial</a>
-                        <a href="404.html" class="dropdown-item">404 Page</a>
+                        <a href="/how-it-works" class="dropdown-item">How It Works</a>
+                        <a href="/faq" class="dropdown-item">FAQ</a>
+                        <a href="/tracking" class="dropdown-item">Live Tracking</a>
                     </div>
                 </div>
                 <a href="contact.html" class="nav-item nav-link">Contact</a>

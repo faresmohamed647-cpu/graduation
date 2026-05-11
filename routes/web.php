@@ -22,8 +22,6 @@ Route::view('/apply', 'website.apply');
 
 // Legacy static entrypoints (avoid 404s from migrated HTML)
 Route::redirect('/index.html', '/', 301);
-Route::view('/404', 'website.404');
-Route::redirect('/404.html', '/404', 301);
 
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->middleware(['throttle:10,1']);
@@ -55,14 +53,15 @@ Route::view('/parents',      'website.parent-portal'); // New Premium Portal
 $websitePages = [
     'about',
     'contact',
+    'faq',
     'feature',
+    'how-it-works',
     'pay',
     'parent-portal',
     'price',
     'quote',
     'service',
-    'team',
-    'testimonial',
+    'tracking',
 ];
 
 Route::get('/verify', function () {
