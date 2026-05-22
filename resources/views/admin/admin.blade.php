@@ -158,7 +158,7 @@
                 </div>
                 <div class="notification-icon" onclick="showNotifications()">
                     <i class="fas fa-bell"></i>
-                    <span class="badge">5</span>
+                    <span class="badge">0</span>
                 </div>
                 <div class="profile" style="cursor: pointer;" onclick="navigateTo('admin-profile')">
                     <img src="{{ asset('img/admin.png') }}" alt="Admin" style="cursor: pointer;">
@@ -204,7 +204,7 @@
                         <i class="fas fa-bus"></i>
                     </div>
                     <div class="stat-info">
-                        <h3 id="activeBusesStat">{{ $stats['buses_count'] ?? 0 }}</h3>
+                        <h3 id="activeBusesStat">{{ $stats['buses_active'] ?? $stats['buses_count'] ?? 0 }}</h3>
                         <p>Active Buses</p>
                         <span class="stat-trend">
                             <i class="fas fa-minus"></i> No change
@@ -309,7 +309,7 @@
                         <h3>Recent Activity</h3>
                         <a href="{{ url('/admin/applications') }}" class="view-all">View All</a>
                     </div>
-                    <div class="activity-list">
+                    <div class="activity-list" id="adminRecentActivityList">
                         @forelse($recentApplications as $app)
                         <div class="activity-item">
                             <div class="activity-icon {{ $app->role === 'parent' ? 'blue' : ($app->role === 'driver' ? 'green' : 'purple') }}">
@@ -417,6 +417,7 @@
                     <div class="filter-item" style="max-width: 280px;">
                         <label for="applicationStatusFilter" class="form-label">Status</label>
                         <select id="applicationStatusFilter" class="form-control">
+                            <option value="active" selected>Active (Pending & Reviewed)</option>
                             <option value="all">All statuses</option>
                             <option value="pending">Pending</option>
                             <option value="reviewed">Reviewed</option>
@@ -2843,5 +2844,71 @@
         }
     });
     </script>
+
+    <!-- Premium Application Details Modal -->
+    <div id="applicationDetailsModal" class="safestep-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.6); backdrop-filter:blur(10px); z-index:9999; align-items:center; justify-content:center; opacity:0; transition:opacity 0.3s ease;">
+        <div class="safestep-modal-content" style="background:var(--card-bg, #ffffff); border:1px solid var(--card-border, rgba(255,255,255,0.06)); border-radius:24px; box-shadow:var(--card-shadow, 0 25px 50px -12px rgba(0,0,0,0.5)); width:90%; max-width:650px; max-height:85vh; overflow-y:auto; position:relative; transform:scale(0.95); transition:transform 0.3s ease; display:flex; flex-direction:column;">
+            
+            <!-- Modal Header -->
+            <div style="background:linear-gradient(135deg, rgba(14,165,164,0.08) 0%, rgba(37,99,235,0.08) 100%); border-bottom:1px solid var(--card-border, rgba(255,255,255,0.06)); padding:20px 24px; display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="font-family:var(--font-title, 'Outfit'); font-size:20px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:10px; margin:0;">
+                    <i class="fas fa-file-invoice" style="color:var(--primary, #0ea5a4);"></i>
+                    <span>تفاصيل طلب التقديم / Application Details</span>
+                </h3>
+                <button type="button" onclick="closeApplicationDetailsModal()" style="background:transparent; border:none; color:var(--text-secondary); cursor:pointer; font-size:20px; transition:color 0.2s;" onmouseover="this.style.color='var(--danger, #ef4444)'" onmouseout="this.style.color='var(--text-secondary)'">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div style="padding:24px; display:flex; flex-direction:column; gap:20px;">
+                <!-- Basic Applicant Info Grid -->
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px; background:rgba(0,0,0,0.02); border-radius:16px; padding:16px; border:1px solid var(--card-border, rgba(255,255,255,0.06));">
+                    <div>
+                        <label style="display:block; font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px;">Applicant Name / الاسم</label>
+                        <span id="modalAppName" style="font-size:15px; font-weight:700; color:var(--text-primary);"></span>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px;">Email / البريد الإلكتروني</label>
+                        <span id="modalAppEmail" style="font-size:14px; font-weight:500; color:var(--text-secondary); word-break:break-all;"></span>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px;">Phone / الهاتف</label>
+                        <span id="modalAppPhone" style="font-size:14px; font-weight:500; color:var(--text-secondary);"></span>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px;">Applied Role / الدور</label>
+                        <span id="modalAppRole" class="status-badge" style="font-size:12px; font-weight:700; text-transform:uppercase;"></span>
+                    </div>
+                </div>
+
+                <!-- Clean Notes Section -->
+                <div>
+                    <h4 style="font-family:var(--font-title, 'Outfit'); font-size:14px; font-weight:700; color:var(--primary); text-transform:uppercase; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                        <i class="fas fa-comment-alt"></i>
+                        <span>Clean Notes / الملاحظات النظيفة</span>
+                    </h4>
+                    <div id="modalAppNotes" style="background:rgba(0,0,0,0.01); border:1.5px solid var(--input-border, rgba(226,232,240,0.8)); border-radius:12px; padding:12px; font-size:14px; color:var(--text-secondary); line-height:1.6; min-height:60px; white-space:pre-wrap;"></div>
+                </div>
+
+                <!-- Parsed Metadata Grid -->
+                <div>
+                    <h4 style="font-family:var(--font-title, 'Outfit'); font-size:14px; font-weight:700; color:var(--primary); text-transform:uppercase; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                        <i class="fas fa-project-diagram"></i>
+                        <span>Detailed Metadata / تفاصيل إضافية</span>
+                    </h4>
+                    <div id="modalAppMetadataGrid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:12px;">
+                        <!-- Generated Dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div style="border-top:1px solid var(--card-border, rgba(255,255,255,0.06)); padding:16px 24px; display:flex; justify-content:flex-end;">
+                <button type="button" onclick="closeApplicationDetailsModal()" class="btn btn-secondary" style="padding:8px 20px; font-size:14px; border-radius:12px; cursor:pointer;">Close / إغلاق</button>
+            </div>
+
+        </div>
+    </div>
 </body>
 </html>

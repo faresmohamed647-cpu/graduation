@@ -99,16 +99,102 @@ async function buildRequestFromConfig(config, entry) {
     };
   }
 
+  if (title.includes('add school')) {
+    const extraNotes = `District: ${entry.district || ''}, Type: ${entry.type || ''}, Status: ${entry.status || ''}, Students: ${entry.students || ''}`.trim();
+    return {
+      endpoint: '/api/admin/schools',
+      body: {
+        name: entry.schoolName || entry.name,
+        address: entry.address,
+        phone: entry.contact || entry.contactPhone || entry.phone,
+        email: entry.email,
+        notes: extraNotes + (entry.notes ? `. ${entry.notes}` : '')
+      }
+    };
+  }
+
+  if (title.includes('financial')) {
+    const resolvedType = (entry.type === 'income' || entry.type === 'profit') ? 'income' : 'expense';
+    const resolvedTitle = entry.title || (entry.description && entry.description.length <= 100 ? entry.description : (entry.type ? (entry.type.charAt(0).toUpperCase() + entry.type.slice(1) + ' Entry') : 'Financial Entry'));
+    return {
+      endpoint: '/api/admin/financial-entries',
+      body: {
+        title: resolvedTitle,
+        type: resolvedType,
+        amount: normalizeFloat(entry.amount),
+        description: entry.description,
+        entry_date: entry.date || entry.entry_date
+      }
+    };
+  }
+
+  if (title.includes('maintenance')) {
+    let busId = null;
+    if (entry.busNumber) {
+      try {
+        const busesRes = await safestepApi('/api/admin/buses?per_page=all');
+        const matchedBus = (busesRes?.data || []).find((b) => {
+          const bNum = norm(b.bus_number);
+          const eBus = norm(entry.busNumber);
+          if (bNum === eBus) return true;
+          const bDigits = b.bus_number.replace(/[^0-9]/g, '');
+          const eDigits = entry.busNumber.replace(/[^0-9]/g, '');
+          if (bDigits && eDigits && bDigits === eDigits) return true;
+          if (bNum.includes(eBus) || eBus.includes(bNum)) return true;
+          return false;
+        });
+        if (matchedBus) {
+          busId = matchedBus.id;
+        }
+      } catch (e) {
+        console.warn('Could not fetch buses for maintenance record:', e);
+      }
+    }
+
+    const resolvedTitle = entry.title || (entry.type ? (entry.type.charAt(0).toUpperCase() + entry.type.slice(1) + ' Record') : 'Maintenance Record');
+    const fullDesc = `Technician: ${entry.technician || 'N/A'}. ${entry.description || ''}`.trim();
+
+    return {
+      endpoint: '/api/admin/maintenance-records',
+      body: {
+        bus_id: busId,
+        title: resolvedTitle,
+        description: fullDesc,
+        cost: normalizeFloat(entry.cost),
+        status: entry.status || 'pending',
+        maintenance_date: entry.date || entry.maintenance_date
+      }
+    };
+  }
+
+  if (title.includes('complaint')) {
+    const resolvedTitle = entry.subject || entry.title || (entry.type ? (entry.type.charAt(0).toUpperCase() + entry.type.slice(1) + ' Complaint') : 'New Complaint');
+    const resolvedBody = `Submitted By: ${entry.submittedBy || 'N/A'}\nPriority: ${entry.priority || 'N/A'}\nDetails: ${entry.details || entry.description || entry.body || ''}`;
+    const resolvedStatus = (entry.status === 'in-progress') ? 'open' : (entry.status || 'open');
+
+    return {
+      endpoint: '/api/admin/reports',
+      body: {
+        type: 'complaint',
+        title: resolvedTitle,
+        body: resolvedBody,
+        status: resolvedStatus
+      }
+    };
+  }
+
   if (title.includes('add driver')) {
+    const messageVal = `Assigned Bus: ${entry.assignedBus || 'None'}. Notes: ${entry.notes || ''}`.trim();
     return {
       endpoint: '/api/admin/drivers',
       body: {
         name: entry.fullName,
-        email: `${slugify(entry.fullName)}.${Date.now()}@safestep.local`,
+        email: entry.email || `${slugify(entry.fullName)}.${Date.now()}@safestep.local`,
         phone: entry.phone,
         license_number: entry.license,
         years_experience: normalizeNumber(entry.experience),
-        active: entry.status === 'active'
+        active: entry.status === 'active',
+        message: messageVal
       }
     };
   }
@@ -119,7 +205,7 @@ async function buildRequestFromConfig(config, entry) {
       body: {
         bus_number: entry.busNumber,
         plate_number: entry.plateNumber,
-        capacity: normalizeNumber(entry.capacity),
+        capacity: Math.max(1, normalizeNumber(entry.capacity)),
         active: entry.status === 'active'
       }
     };
@@ -141,7 +227,8 @@ async function buildRequestFromConfig(config, entry) {
   if (title.includes('add student')) {
     const parentRes = await safestepApi('/api/admin/parents?per_page=all');
     const match = (parentRes?.data || []).find((parent) =>
-      (parent.name || '').toLowerCase().trim() === String(entry.parent || '').toLowerCase().trim()
+      norm(parent.name) === norm(entry.parent) || 
+      norm(parent.user?.name) === norm(entry.parent)
     );
     if (!match) throw new Error('Parent not found. Please add parent first.');
 
@@ -163,10 +250,35 @@ async function buildRequestFromConfig(config, entry) {
       safestepApi('/api/admin/buses?per_page=all'),
       safestepApi('/api/admin/routes')
     ]);
-    const driver = (drivers?.data || []).find((d) => (d.name || '').toLowerCase() === String(entry.driver || '').toLowerCase());
-    const bus = (buses?.data || []).find((b) => String(b.bus_number || '').toLowerCase() === String(entry.bus || '').toLowerCase());
-    const route = (routes?.data || []).find((r) => String(r.name || '').toLowerCase() === String(entry.routeName || '').toLowerCase());
-    if (!driver || !bus || !route) throw new Error('Trip needs valid driver, bus, and route names.');
+    
+    const driver = (drivers?.data || []).find((d) => {
+      const dName = norm(d.name);
+      const eDriver = norm(entry.driver);
+      return dName === eDriver || dName.includes(eDriver) || eDriver.includes(dName);
+    });
+
+    const bus = (buses?.data || []).find((b) => {
+      const bNum = norm(b.bus_number);
+      const eBus = norm(entry.bus);
+      if (bNum === eBus) return true;
+      const bDigits = b.bus_number.replace(/[^0-9]/g, '');
+      const eDigits = entry.bus.replace(/[^0-9]/g, '');
+      if (bDigits && eDigits && bDigits === eDigits) return true;
+      return bNum.includes(eBus) || eBus.includes(bNum);
+    });
+
+    const route = (routes?.data || []).find((r) => {
+      const rName = norm(r.name);
+      const eRoute = norm(entry.routeName);
+      return rName === eRoute || rName.includes(eRoute) || eRoute.includes(rName);
+    });
+
+    if (!driver || !bus || !route) {
+      throw new Error('Trip needs valid driver, bus, and route names.');
+    }
+
+    const hour = parseInt(String(entry.startTime || '').split(':')[0], 10) || 8;
+    const inferredShift = (hour < 12) ? 'morning' : 'afternoon';
 
     return {
       endpoint: '/api/admin/trips',
@@ -175,6 +287,7 @@ async function buildRequestFromConfig(config, entry) {
         bus_id: bus.id,
         bus_route_id: route.id,
         trip_date: entry.date,
+        shift: inferredShift,
         status: normalizeTripStatus(entry.status)
       }
     };
@@ -191,9 +304,16 @@ async function buildRequestFromConfig(config, entry) {
   };
 }
 
+const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
 function normalizeNumber(value) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : 0;
+  const match = String(value || '').match(/\d+/);
+  return match ? parseInt(match[0], 10) : 0;
+}
+
+function normalizeFloat(value) {
+  const n = parseFloat(value);
+  return Number.isFinite(n) ? n : 0.0;
 }
 
 function slugify(value) {
@@ -205,6 +325,7 @@ function normalizeTripStatus(value) {
   if (value === 'scheduled') return 'assigned';
   return value || 'assigned';
 }
+
 
 async function safestepApi(url, options = {}) {
   const token = localStorage.getItem('token') || localStorage.getItem('safestep_token');

@@ -1,12 +1,12 @@
 :root {
-  --bg: #f4f7fb;
+  --bg: #f6f8fb;
   --card: #ffffff;
   --text: #0f172a;
   --muted: #64748b;
-  --border: #dbe4ee;
-  --primary: #2563eb;
-  --primary-dark: #1d4ed8;
-  --accent: #0ea5a4;
+  --border: rgba(148, 163, 184, 0.32);
+  --primary: #1d4ed8;
+  --primary-dark: #1e3a8a;
+  --accent: #0f766e;
 }
 
 * {
@@ -17,7 +17,7 @@
 
 body {
   font-family: "Inter", system-ui, sans-serif;
-  background: radial-gradient(circle at 12% 10%, rgba(37, 99, 235, 0.1), transparent 42%), var(--bg);
+  background: var(--bg);
   color: var(--text);
   min-height: 100vh;
   padding: 24px 14px;
@@ -44,7 +44,7 @@ body {
   text-decoration: none;
   border: 1px solid var(--border);
   background: #fff;
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 10px 12px;
   font-weight: 600;
 }
@@ -52,14 +52,14 @@ body {
 .card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
+  border-radius: 10px;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
   overflow: hidden;
 }
 
 .card-header {
   padding: 22px 24px;
-  background: linear-gradient(135deg, var(--accent), var(--primary));
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary));
   color: #fff;
 }
 
@@ -105,7 +105,7 @@ textarea,
 select {
   width: 100%;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 11px 12px;
   font-size: 14px;
   font-family: inherit;
@@ -133,7 +133,7 @@ select:focus {
 
 .btn {
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 11px 14px;
   font-size: 14px;
   font-weight: 700;

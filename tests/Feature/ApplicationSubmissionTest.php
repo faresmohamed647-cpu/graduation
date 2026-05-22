@@ -24,6 +24,8 @@ class ApplicationSubmissionTest extends TestCase
         return [
             'name'        => 'Test Driver',
             'email'       => 'driver@example.test',
+            'password'    => 'password123',
+            'password_confirmation' => 'password123',
             'phone'       => '01012345678',
             'address'     => 'Cairo, Egypt',
             'role'        => 'driver',
@@ -43,6 +45,8 @@ class ApplicationSubmissionTest extends TestCase
         return [
             'name'                     => 'Test Parent',
             'email'                    => 'parent@example.test',
+            'password'                 => 'password123',
+            'password_confirmation'    => 'password123',
             'phone'                    => '01098765432',
             'address'                  => 'Giza, Egypt',
             'role'                     => 'parent',
@@ -182,6 +186,107 @@ class ApplicationSubmissionTest extends TestCase
         $this->assertDatabaseHas('applications', [
             'email' => 'parent@example.test',
             'role'  => 'parent',
+        ]);
+    }
+
+    public function test_application_approval_creates_user_and_profile(): void
+    {
+        $admin = \App\Models\User::factory()->create(['role' => 'admin']);
+        \Laravel\Sanctum\Sanctum::actingAs($admin);
+
+        // 1. Create a guest driver application (user_id is null)
+        $driverApp = \App\Models\Application::create([
+            'user_id' => null,
+            'full_name' => 'John Driver',
+            'email' => 'johndriver@example.com',
+            'phone' => '1234567890',
+            'address' => 'Test Address',
+            'role' => 'driver',
+            'experience' => '3 years experience',
+            'notes' => 'meta:{"car_plate":"XYZ 123","car_model":"2022"}',
+            'status' => 'pending',
+        ]);
+
+        // Act: update status to accepted
+        $response = $this->patchJson(
+            "/api/admin/applications/{$driverApp->id}/status",
+            ['status' => 'accepted']
+        );
+
+        // Assert
+        $response->assertStatus(200);
+
+        // Verify User was created
+        $this->assertDatabaseHas('users', [
+            'email' => 'johndriver@example.com',
+            'role' => 'driver',
+        ]);
+
+        $user = \App\Models\User::where('email', 'johndriver@example.com')->first();
+        $this->assertNotNull($user);
+
+        // Verify Application is linked to the User
+        $this->assertEquals($user->id, $driverApp->fresh()->user_id);
+
+        // Verify Driver profile was created
+        $this->assertDatabaseHas('drivers', [
+            'user_id' => $user->id,
+            'car_plate' => 'XYZ 123',
+            'car_model' => '2022',
+            'status' => 'approved',
+            'active' => true,
+        ]);
+    }
+
+    public function test_web_application_approval_creates_user_and_profile(): void
+    {
+        $admin = \App\Models\User::factory()->create(['role' => 'admin']);
+        $this->actingAs($admin);
+
+        // 1. Create a guest parent application (user_id is null)
+        $parentApp = \App\Models\Application::create([
+            'user_id' => null,
+            'full_name' => 'Jane Parent',
+            'email' => 'janeparent@example.com',
+            'phone' => '0987654321',
+            'address' => 'Web Test Address',
+            'role' => 'parent',
+            'experience' => 'Parent experience',
+            'notes' => 'meta:{"student_state":"Arab Republic of Egypt","student_relationship":"Mother","student_count":"3","student_degree":"Primary","student_education_system":"National","school_name":"Green School","school_address":"Cairo","school_starting":"8:00 AM"}',
+            'status' => 'pending',
+        ]);
+
+        // Act: update status to accepted via web route
+        $response = $this->patch(
+            "/admin/applications/{$parentApp->id}/status",
+            ['status' => 'accepted'],
+            ['Accept' => 'application/json']
+        );
+
+        // Assert
+        $response->assertStatus(200);
+
+        // Verify User was created
+        $this->assertDatabaseHas('users', [
+            'email' => 'janeparent@example.com',
+            'role' => 'parent',
+        ]);
+
+        $user = \App\Models\User::where('email', 'janeparent@example.com')->first();
+        $this->assertNotNull($user);
+
+        // Verify Application is linked to the User
+        $this->assertEquals($user->id, $parentApp->fresh()->user_id);
+
+        // Verify ParentProfile was created
+        $this->assertDatabaseHas('parents', [
+            'user_id' => $user->id,
+            'relationship' => 'Mother',
+            'student_count' => 3,
+            'degree' => 'Primary',
+            'education_system' => 'National',
+            'school_name' => 'Green School',
+            'active' => true,
         ]);
     }
 }

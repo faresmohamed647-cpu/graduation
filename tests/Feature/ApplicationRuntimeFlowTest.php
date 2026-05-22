@@ -79,6 +79,42 @@ class ApplicationRuntimeFlowTest extends TestCase
         ]);
     }
 
+    public function test_profile_is_automatically_created_on_approval(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $user = User::factory()->create(['role' => 'parent']);
+        
+        $application = Application::create([
+            'user_id' => $user->id,
+            'full_name' => 'Parent Name',
+            'email' => 'parent@example.test',
+            'phone' => '0123456789',
+            'address' => 'Test Address',
+            'role' => 'parent',
+            'experience' => 'pickup_change',
+            'notes' => 'Some notes meta:{"state":"CA","relationship":"father","student_count":2}',
+            'status' => 'pending',
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $response = $this->patchJson("/api/admin/applications/{$application->id}/status", [
+            'status' => 'accepted',
+        ]);
+
+        $response->assertOk();
+
+        $this->assertDatabaseHas('parents', [
+            'user_id' => $user->id,
+            'active' => true,
+            'phone' => '0123456789',
+            'address' => 'Test Address',
+            'state' => 'CA',
+            'relationship' => 'father',
+            'student_count' => 2,
+        ]);
+    }
+
     public function test_admin_applications_route_uses_original_admin_dashboard_section(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

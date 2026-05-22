@@ -71,6 +71,75 @@
         }
     }
 
+    function firstValidationMessage(data, fallback) {
+        var errors = data && data.errors ? data.errors : null;
+        if (errors && typeof errors === 'object') {
+            var keys = Object.keys(errors);
+            if (keys.length) {
+                var firstErr = errors[keys[0]];
+                if (Array.isArray(firstErr) && firstErr.length) return firstErr[0];
+                if (typeof firstErr === 'string' && firstErr) return firstErr;
+            }
+        }
+        if (data && data.message && data.message !== 'Validation failed.') return data.message;
+        return fallback || 'Please check the highlighted fields.';
+    }
+
+    function copyFormValue(formData, from, to) {
+        if (!formData.has(to) && formData.has(from)) {
+            formData.append(to, formData.get(from));
+        }
+    }
+
+    function normalizeAdminFormData(formData, action) {
+        copyFormValue(formData, 'fullName', 'name');
+        copyFormValue(formData, 'fullName', 'full_name');
+        copyFormValue(formData, 'school', 'school_name');
+        copyFormValue(formData, 'license', 'license_number');
+        copyFormValue(formData, 'experience', 'years_experience');
+        copyFormValue(formData, 'busNumber', 'bus_number');
+        copyFormValue(formData, 'plateNumber', 'plate_number');
+        copyFormValue(formData, 'date', 'entry_date');
+        copyFormValue(formData, 'date', 'maintenance_date');
+        copyFormValue(formData, 'date', 'trip_date');
+
+        if (formData.has('role')) {
+            formData.set('role', String(formData.get('role')).toLowerCase());
+        }
+
+        if (formData.has('status')) {
+            var status = String(formData.get('status'));
+            if (/\/api\/admin\/reports/.test(action) && status === 'in-progress') {
+                formData.set('status', 'open');
+            }
+            if (/\/api\/admin\/trips/.test(action)) {
+                if (status === 'scheduled') formData.set('status', 'assigned');
+                if (status === 'in-progress') formData.set('status', 'active');
+            }
+            if (/\/api\/admin\/maintenance-records/.test(action) && status === 'in-progress') {
+                formData.set('status', 'in_progress');
+            }
+        }
+
+        if (!formData.has('active') && formData.has('status')) {
+            var activeStatus = String(formData.get('status'));
+            if (activeStatus === 'active') formData.append('active', '1');
+            if (activeStatus === 'inactive' || activeStatus === 'pending') formData.append('active', '0');
+        }
+
+        if (/\/api\/admin\/reports/.test(action)) {
+            copyFormValue(formData, 'subject', 'title');
+            copyFormValue(formData, 'description', 'body');
+            copyFormValue(formData, 'details', 'body');
+            if (!formData.has('type')) formData.append('type', 'complaint');
+        }
+
+        if (/\/api\/admin\/financial-entries/.test(action) && formData.has('type')) {
+            var type = String(formData.get('type'));
+            if (type !== 'income' && type !== 'expense') formData.set('type', 'expense');
+        }
+    }
+
     // Add spinner animation style once
     if (!document.getElementById('ajax-form-styles')) {
         var style = document.createElement('style');
@@ -113,15 +182,7 @@
         var apiToken = window.__API_TOKEN || localStorage.getItem('token') || localStorage.getItem('safestep_token') || '';
         var submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
 
-        if (!formData.has('full_name') && formData.has('name')) {
-            formData.append('full_name', formData.get('name'));
-        }
-        if (!formData.has('name') && formData.has('full_name')) {
-            formData.append('name', formData.get('full_name'));
-        }
-        if (formData.has('role')) {
-            formData.set('role', String(formData.get('role')).toLowerCase());
-        }
+        normalizeAdminFormData(formData, action);
 
         setButtonLoading(submitBtn, true);
 
@@ -139,16 +200,22 @@
             credentials: 'same-origin'
         })
         .then(function(res) {
+            if (res.redirected && res.url) {
+                console.log('[ajax-form] Redirected automatically to:', res.url);
+                window.location.href = res.url;
+                return null;
+            }
             return res.json().catch(function() { return {}; }).then(function(data) {
                 return { res: res, data: data };
             });
         })
         .then(function(result) {
+            if (!result) return;
             var res = result.res;
             var data = result.data;
             setButtonLoading(submitBtn, false);
 
-            var isSuccess = res.ok && (data.status === 'success' || data.success === true);
+            var isSuccess = (res.status >= 200 && res.status < 300) || res.ok || (data && (data.status === 'success' || data.success === true));
             console.log('[ajax-form] Response:', res.status, data);
 
             if (isSuccess) {
@@ -161,11 +228,11 @@
                 form.dispatchEvent(successEvent);
 
                 if (!successEvent.defaultPrevented) {
-                    showFormFeedback(form, 'success', data.message || 'Saved successfully.');
+                    showFormFeedback(form, 'success', (data && data.message) || 'Saved successfully.');
                     if (!form.dataset.keepValues) {
                         form.reset();
                     }
-                    if (form.dataset.redirectOnSuccess !== 'false' && data.redirect) {
+                    if (form.dataset.redirectOnSuccess !== 'false' && data && data.redirect) {
                         window.location.href = data.redirect;
                     }
                 }
@@ -179,15 +246,7 @@
                 form.dispatchEvent(errorEvent);
 
                 if (!errorEvent.defaultPrevented) {
-                    var msg = data.message;
-                    if (!msg && data.errors) {
-                        var keys = Object.keys(data.errors);
-                        if (keys.length) {
-                            var firstErr = data.errors[keys[0]];
-                            msg = Array.isArray(firstErr) ? firstErr[0] : firstErr;
-                        }
-                    }
-                    showFormFeedback(form, 'error', msg || 'An error occurred. Please try again.');
+                    showFormFeedback(form, 'error', firstValidationMessage(data));
                 }
             }
         })

@@ -6,6 +6,7 @@ use App\Enums\ApplicationRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ApplicationRequest;
 use App\Models\Application;
+use App\Services\AdminSubmissionNotifier;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -107,6 +108,13 @@ class ApplicationController extends Controller
                 'notes' => $notes !== '' ? $notes : null,
                 'status' => 'pending',
             ]);
+
+            AdminSubmissionNotifier::notify(
+                'application',
+                'New application',
+                ucfirst($role) . ": {$data['name']}",
+                ['id' => $application->id, 'role' => $role, 'action' => 'applications']
+            );
 
             return response()->json([
                 'status' => 'success',

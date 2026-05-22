@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\ServiceRequest;
+use App\Services\AdminSubmissionNotifier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -50,6 +51,13 @@ class ServiceRequestController extends Controller
             'metadata' => $data['metadata'] ?? null,
             'status' => 'pending',
         ]);
+
+        AdminSubmissionNotifier::notify(
+            'service_request',
+            'New service request',
+            "{$role}: {$data['subject']}",
+            ['id' => $serviceRequest->id, 'role' => $role, 'action' => 'requests']
+        );
 
         return response()->json([
             'status' => 'success',
@@ -167,18 +175,39 @@ class ServiceRequestController extends Controller
             'description' => ['required', 'string'],
             'priority' => ['nullable', 'string', 'in:low,medium,high'],
             'notes' => ['nullable', 'string'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:50'],
+            'description_extra' => ['nullable', 'string'],
         ]);
+
+        $description = $data['description'];
+        if (! empty($data['phone'])) {
+            $description = 'Phone: ' . $data['phone'] . "\n" . $description;
+        }
+        if (! empty($data['email'])) {
+            $description = 'Email: ' . $data['email'] . "\n" . $description;
+        }
+        if (! empty($data['description_extra'])) {
+            $description .= "\n\nNote: " . $data['description_extra'];
+        }
 
         $serviceRequest = ServiceRequest::create([
             'user_id' => null,
             'role' => 'guest',
             'request_type' => $data['request_type'],
             'subject' => $data['subject'],
-            'description' => $data['description'],
+            'description' => $description,
             'priority' => $data['priority'] ?? 'medium',
-            'notes' => $data['notes'] ?? null,
+            'notes' => $data['notes'] ?? $data['email'] ?? null,
             'status' => 'pending',
         ]);
+
+        AdminSubmissionNotifier::notify(
+            'service_request',
+            'New quote request',
+            "Guest: {$data['subject']}",
+            ['id' => $serviceRequest->id, 'role' => 'guest', 'action' => 'requests']
+        );
 
         return response()->json([
             'status' => 'success',

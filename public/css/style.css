@@ -1101,6 +1101,16 @@ video {
     border-color: #334155;
     box-shadow: 0 4px 16px rgba(0,0,0,0.2);
 }
+[data-theme="dark"] .hiw-timeline-section {
+    background: #0f172a !important;
+}
+[data-theme="dark"] .step-card h4,
+[data-theme="dark"] .flow-card h4,
+[data-theme="dark"] .timeline-card h1,
+[data-theme="dark"] .container-xxl h1,
+[data-theme="dark"] .container-xxl h4 {
+    color: #e2e8f0;
+}
 [data-theme="dark"] .step-card:hover {
     box-shadow: 0 8px 30px rgba(0,0,0,0.3);
 }
@@ -1155,6 +1165,36 @@ video {
 }
 [data-theme="dark"] .hiw-cta {
     background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+}
+
+/* ===== Unified professional surfaces ===== */
+.step-card,
+.timeline-card,
+.flow-card,
+.service-item,
+.team-item,
+.testimonial-carousel .testimonial-item,
+.contact-page .contact-form {
+    border-radius: 12px !important;
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
+}
+
+.step-card,
+.flow-card,
+.service-item,
+.team-item,
+.testimonial-carousel .testimonial-item {
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.step-card:hover,
+.flow-card:hover,
+.service-item:hover,
+.team-item:hover,
+.testimonial-carousel .testimonial-item:hover {
+    border-color: rgba(29, 78, 216, 0.28);
+    box-shadow: 0 18px 42px rgba(29, 78, 216, 0.14);
 }
 
 /* ===== DARK MODE — Live Tracking Page ===== */

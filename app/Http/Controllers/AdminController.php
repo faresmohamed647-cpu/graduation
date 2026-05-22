@@ -21,6 +21,7 @@ class AdminController extends Controller
             'drivers_count' => \App\Models\Driver::query()->count(),
             'students_count' => \App\Models\Student::query()->count(),
             'buses_count' => class_exists('App\Models\Bus') ? \App\Models\Bus::query()->count() : 0,
+            'buses_active' => class_exists('App\Models\Bus') ? \App\Models\Bus::query()->where('active', true)->count() : 0,
             'trips_today' => Trip::query()->whereDate('trip_date', $today)->count(),
             'trips_active' => Trip::query()->where('status', 'active')->count(),
             'reports_open' => Report::query()->where('status', 'open')->count(),

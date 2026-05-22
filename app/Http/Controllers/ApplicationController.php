@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\AdminSubmissionNotifier;
 use Illuminate\Http\Request;
 
 class ApplicationController extends Controller
@@ -37,6 +38,13 @@ class ApplicationController extends Controller
             'notes'      => $data['notes'],
             'status'     => 'pending',
         ]);
+
+        AdminSubmissionNotifier::notify(
+            'application',
+            'New application',
+            ucfirst($data['role']) . ": {$data['full_name']}",
+            ['id' => $application->id, 'role' => $data['role'], 'action' => 'applications']
+        );
 
         if ($request->expectsJson() || $request->header('Accept') === 'application/json') {
             return response()->json([

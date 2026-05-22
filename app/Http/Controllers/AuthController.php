@@ -27,6 +27,17 @@ class AuthController extends Controller
         }
 
         $user = $request->user();
+        $selectedRole = strtolower((string) $request->input('role', ''));
+
+        if ($selectedRole !== '' && $selectedRole !== strtolower((string) $user->role)) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            throw ValidationException::withMessages([
+                'email' => ['This account is registered as ' . $user->role . '. Please choose the correct login tab.'],
+            ]);
+        }
 
         // Check if driver account is pending approval
         if ($user->role === 'driver') {
@@ -112,4 +123,3 @@ class AuthController extends Controller
         return redirect()->to('/');
     }
 }
-

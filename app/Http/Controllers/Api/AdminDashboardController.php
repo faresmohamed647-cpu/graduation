@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Application;
 use App\Models\Bus;
 use App\Models\BusRoute;
 use App\Models\Driver;
 use App\Models\ParentProfile;
+use App\Models\Report;
 use App\Models\ServiceRequest;
 use App\Models\Student;
 use App\Models\Trip;
@@ -20,22 +22,72 @@ class AdminDashboardController extends Controller
     {
         $today = CarbonImmutable::today();
 
+        $applicationsPending = Application::where('status', 'pending')->count();
+        $serviceRequestsPending = ServiceRequest::where('status', 'pending')->count();
+
         return response()->json([
             'success' => true,
             'data'    => [
-                'total_parents'     => ParentProfile::count(),
-                'total_drivers'     => Driver::count(),
-                'total_students'    => Student::count(),
-                'total_buses'       => Bus::count(),
-                'active_buses'      => Bus::where('active', true)->count(),
-                'active_trips'      => Trip::where('status', 'active')->count(),
-                'today_trips'       => Trip::whereDate('trip_date', $today)->count(),
-                'total_routes'      => BusRoute::count(),
-                'total_users'       => User::count(),
-                'pending_requests'  => ServiceRequest::where('status', 'pending')->count(),
-                'complaints_today'  => 0,
+                'total_parents'            => ParentProfile::count(),
+                'total_drivers'            => Driver::count(),
+                'total_students'           => Student::count(),
+                'total_buses'              => Bus::count(),
+                'active_buses'             => Bus::where('active', true)->count(),
+                'active_trips'             => Trip::where('status', 'active')->count(),
+                'today_trips'              => Trip::whereDate('trip_date', $today)->count(),
+                'total_routes'             => BusRoute::count(),
+                'total_users'              => User::count(),
+                'applications_pending'   => $applicationsPending,
+                'service_requests_pending' => $serviceRequestsPending,
+                'pending_requests'         => $applicationsPending + $serviceRequestsPending,
+                'complaints_today'         => Report::query()
+                    ->where('status', 'open')
+                    ->whereDate('created_at', $today)
+                    ->count(),
+                'recent_activity'          => $this->buildRecentActivity(),
             ],
         ]);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function buildRecentActivity(): array
+    {
+        $applications = Application::query()
+            ->latest()
+            ->limit(8)
+            ->get()
+            ->map(fn (Application $app) => [
+                'kind'       => 'application',
+                'id'         => $app->id,
+                'title'      => 'New ' . ucfirst((string) $app->role) . ' application',
+                'subtitle'   => $app->full_name,
+                'status'     => $app->status,
+                'role'       => $app->role,
+                'created_at' => $app->created_at?->toIso8601String(),
+            ]);
+
+        $requests = ServiceRequest::query()
+            ->latest()
+            ->limit(8)
+            ->get()
+            ->map(fn (ServiceRequest $req) => [
+                'kind'       => 'service_request',
+                'id'         => $req->id,
+                'title'      => 'Service request: ' . $req->subject,
+                'subtitle'   => ucfirst((string) $req->role),
+                'status'     => $req->status,
+                'role'       => $req->role,
+                'created_at' => $req->created_at?->toIso8601String(),
+            ]);
+
+        return $applications
+            ->concat($requests)
+            ->sortByDesc('created_at')
+            ->take(8)
+            ->values()
+            ->all();
     }
 
     public function attendanceSummary(Request $request)

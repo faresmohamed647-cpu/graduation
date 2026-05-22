@@ -154,19 +154,13 @@ class AdminParentController extends Controller
 
     public function approve(ParentProfile $parent)
     {
-        $parent->update(['active' => true, 'status' => 'approved']);
-        if ($parent->user) {
-            $parent->user->update(['active' => true]);
-        }
+        $parent->update(['active' => true]);
         return response()->json(['success' => true, 'message' => 'Parent approved']);
     }
 
     public function reject(ParentProfile $parent)
     {
-        $parent->update(['active' => false, 'status' => 'rejected']);
-        if ($parent->user) {
-            $parent->user->update(['active' => false]);
-        }
+        $parent->update(['active' => false]);
         return response()->json(['success' => true, 'message' => 'Parent rejected']);
     }
 }

@@ -2,6 +2,7 @@
 
 // Data arrays (Refactored)
 let applicationsData = [];
+const busRoutesData = [];
 
 const parentsData = [
      { id: 1, name: 'Sarah Ahmed', children: 'Ahmed, Laila', phone: '+20 111 123 4567', email: 'sarah.ahmed@email.com', applicationDate: '2023-01-15', joinDate: '2023-02-01', status: 'active' },
@@ -319,7 +320,7 @@ function openAddPage(type) {
                 <div class="form-group"><label>Email</label><input type="email" name="email" class="form-control" required></div>
                 <div class="form-group"><label>Phone</label><input type="text" name="phone" class="form-control" required></div>
                 <div class="form-group"><label>Address</label><input type="text" name="address" class="form-control"></div>
-                <div class="form-group"><label>Password</label><input type="password" name="password" class="form-control" required></div>
+                <div class="form-group"><label>Password</label><input type="password" name="password" class="form-control" minlength="6" required></div>
             `
         },
         'driver': {
@@ -330,8 +331,8 @@ function openAddPage(type) {
                 <div class="form-group"><label>Email</label><input type="email" name="email" class="form-control" required></div>
                 <div class="form-group"><label>Phone</label><input type="text" name="phone" class="form-control" required></div>
                 <div class="form-group"><label>License Number</label><input type="text" name="license_number" class="form-control" required></div>
-                <div class="form-group"><label>Years Experience</label><input type="number" name="experience_years" class="form-control" value="0"></div>
-                <div class="form-group"><label>Password</label><input type="password" name="password" class="form-control" required></div>
+                <div class="form-group"><label>Years Experience</label><input type="number" name="years_experience" class="form-control" value="0"></div>
+                <div class="form-group"><label>Password</label><input type="password" name="password" class="form-control" minlength="6" required></div>
             `
         },
         'bus': {
@@ -348,21 +349,21 @@ function openAddPage(type) {
             title: 'Add Student',
             action: '/api/admin/students',
             fields: `
-                <div class="form-group"><label>Full Name</label><input type="text" name="name" class="form-control" required></div>
+                <div class="form-group"><label>Full Name</label><input type="text" name="full_name" class="form-control" required></div>
                 <div class="form-group"><label>School Name</label><input type="text" name="school_name" class="form-control"></div>
                 <div class="form-group"><label>Grade</label><input type="text" name="grade" class="form-control"></div>
-                <div class="form-group"><label>Parent</label><select name="parent_profile_id" class="form-control"><option value="">Select Parent</option>${parentsData.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}</select></div>
+                <div class="form-group"><label>Parent</label><select name="parent_id" class="form-control" required><option value="">Select Parent</option>${parentsData.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}</select></div>
             `
         },
         'trip': {
             title: 'Add Trip',
             action: '/api/admin/trips',
             fields: `
-                <div class="form-group"><label>Trip Name</label><input type="text" name="name" class="form-control" required></div>
                 <div class="form-group"><label>Trip Date</label><input type="date" name="trip_date" class="form-control" required></div>
-                <div class="form-group"><label>Bus</label><select name="bus_id" class="form-control"><option value="">Select Bus</option></select></div>
-                <div class="form-group"><label>Driver</label><select name="driver_id" class="form-control"><option value="">Select Driver</option>${driversData.map(d => `<option value="${d.id}">${d.name}</option>`).join('')}</select></div>
-                <div class="form-group"><label>Route</label><select name="route_id" class="form-control"><option value="">Select Route</option></select></div>
+                <div class="form-group"><label>Shift</label><select name="shift" class="form-control"><option value="morning">Morning</option><option value="afternoon">Afternoon</option></select></div>
+                <div class="form-group"><label>Bus</label><select name="bus_id" class="form-control" required><option value="">Select Bus</option>${busesData.map(b => `<option value="${b.id}">${b.busNumber || b.bus_number || 'Bus ' + b.id}</option>`).join('')}</select></div>
+                <div class="form-group"><label>Driver</label><select name="driver_id" class="form-control" required><option value="">Select Driver</option>${driversData.map(d => `<option value="${d.id}">${d.name}</option>`).join('')}</select></div>
+                <div class="form-group"><label>Route</label><select name="bus_route_id" class="form-control" required><option value="">Select Route</option>${busRoutesData.map(route => `<option value="${route.id}">${route.name || 'Route ' + route.id}</option>`).join('')}</select></div>
             `
         },
         'user': {
@@ -372,13 +373,14 @@ function openAddPage(type) {
                 <div class="form-group"><label>Name</label><input type="text" name="name" class="form-control" required></div>
                 <div class="form-group"><label>Email</label><input type="email" name="email" class="form-control" required></div>
                 <div class="form-group"><label>Role</label><select name="role" class="form-control"><option value="admin">Admin</option><option value="parent">Parent</option><option value="driver">Driver</option></select></div>
-                <div class="form-group"><label>Password</label><input type="password" name="password" class="form-control" required></div>
+                <div class="form-group"><label>Password</label><input type="password" name="password" class="form-control" minlength="6" required></div>
             `
         },
         'complaint': {
             title: 'Add Complaint',
-            action: '/api/reports',
+            action: '/api/admin/reports',
             fields: `
+                <input type="hidden" name="type" value="complaint">
                 <div class="form-group"><label>Title</label><input type="text" name="title" class="form-control" required></div>
                 <div class="form-group"><label>Description</label><textarea name="body" class="form-control" rows="4" required></textarea></div>
                 <div class="form-group"><label>Status</label><select name="status" class="form-control"><option value="open">Open</option><option value="resolved">Resolved</option></select></div>
@@ -425,6 +427,7 @@ function openAddPage(type) {
 
     title.textContent = config.title;
     form.action = config.action;
+    form.dataset.resourceType = type;
     body.innerHTML = config.fields;
     modal.style.display = 'flex';
 }
@@ -735,6 +738,85 @@ function updateStatValue(id, value) {
     if (el) el.textContent = value;
 }
 
+const DASHBOARD_STAT_MAP = [
+    ['totalParentsStat', 'total_parents'],
+    ['totalDriversStat', 'total_drivers'],
+    ['totalStudentsStat', 'total_students'],
+    ['totalBusesStat', 'total_buses'],
+    ['activeBusesStat', 'active_buses'],
+    ['activeTripsStat', 'active_trips'],
+    ['todayTripsStat', 'today_trips'],
+    ['pendingRequestsStat', 'pending_requests'],
+    ['complaintsTodayStat', 'complaints_today']
+];
+
+const lastDashboardStats = {};
+let dashboardStatsInitialized = false;
+
+function applyDashboardStat(id, next, options = {}) {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    const nextNum = Number(next) || 0;
+    const prev = lastDashboardStats[id];
+
+    if (!dashboardStatsInitialized || options.force) {
+        el.textContent = String(nextNum);
+        lastDashboardStats[id] = nextNum;
+        return;
+    }
+
+    if (nextNum > prev) {
+        el.textContent = String(nextNum);
+        lastDashboardStats[id] = nextNum;
+        const card = el.closest('.stat-card');
+        if (card) {
+            card.classList.add('stat-increment');
+            setTimeout(() => card.classList.remove('stat-increment'), 1200);
+        }
+        if (typeof options.onIncrease === 'function') {
+            options.onIncrease(id, nextNum, prev);
+        }
+    }
+}
+
+function applyDashboardStats(data, options = {}) {
+    if (!data) return;
+    DASHBOARD_STAT_MAP.forEach(([elementId, key]) => {
+        applyDashboardStat(elementId, data[key] ?? 0, options);
+    });
+    dashboardStatsInitialized = true;
+}
+
+function renderAdminRecentActivity(items) {
+    const list = document.getElementById('adminRecentActivityList');
+    if (!list || !Array.isArray(items)) return;
+
+    if (!items.length) {
+        list.innerHTML = '<div class="activity-item"><div class="activity-content"><p style="color:#94a3b8;">No recent activity.</p></div></div>';
+        return;
+    }
+
+    list.innerHTML = items.map(item => {
+        const role = String(item.role || 'other').toLowerCase();
+        const iconClass = role === 'parent' ? 'blue' : (role === 'driver' ? 'green' : 'purple');
+        const icon = role === 'parent' ? 'user-plus' : (role === 'driver' ? 'id-card' : 'inbox');
+        const when = item.created_at ? new Date(item.created_at).toLocaleString() : '';
+        const action = item.kind === 'service_request' ? 'requests' : 'applications';
+        return `
+            <div class="activity-item" data-activity-action="${action}">
+                <div class="activity-icon ${iconClass}">
+                    <i class="fas fa-${icon}"></i>
+                </div>
+                <div class="activity-content">
+                    <p><strong>${escapeSafeStepHtml(item.title || 'New submission')}</strong> — <span class="status-badge">${escapeSafeStepHtml(item.status || 'pending')}</span></p>
+                    <span>${escapeSafeStepHtml(item.subtitle || '')}${when ? ' • ' + when : ''}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
 function updateDashboardStats() {
     updateStatValue('totalParentsStat', parentsData.length);
     updateStatValue('totalDriversStat', driversData.length);
@@ -827,8 +909,6 @@ function simulateRealtimeUpdates() {
             notes: 'Auto-generated alert from tracking system.'
         });
     }
-
-    updateDashboardStats();
 
     const activePageId = document.querySelector('.page.active')?.id;
     if (activePageId === 'live-tracking') renderLiveTracking();
@@ -1061,6 +1141,7 @@ navLinks.forEach(link => {
             renderBuses();
         } else if (pageId === 'requests') {
             renderRequests();
+            loadRequestsFromApi();
         } else if (pageId === 'account-recovery') {
             renderAccountRecovery();
         } else if (pageId === 'financials') {
@@ -1294,10 +1375,14 @@ function renderApplications() {
     if (!tbody) return;
 
     const roleFilter = document.getElementById('applicationRoleFilter')?.value || 'all';
-    const statusFilter = document.getElementById('applicationStatusFilter')?.value || 'all';
+    const statusFilter = document.getElementById('applicationStatusFilter')?.value || 'active';
     const filtered = applicationsData
         .filter(app => roleFilter === 'all' || String(app.role || '').toLowerCase() === roleFilter)
-        .filter(app => statusFilter === 'all' || app.status === statusFilter);
+        .filter(app => {
+            if (statusFilter === 'all') return true;
+            if (statusFilter === 'active') return app.status === 'pending' || app.status === 'reviewed' || !app.status;
+            return app.status === statusFilter;
+        });
 
     tbody.innerHTML = '';
 
@@ -1316,6 +1401,9 @@ function renderApplications() {
             <td>${safestepDate(app.created_at)}</td>
             <td>
                 <div class="table-actions">
+                    <button class="btn btn-info" style="padding:6px 12px;font-size:12px;background:#6366f1;color:#fff;border:none;" onclick="viewApplicationDetails(${app.id})">
+                        <i class="fas fa-eye"></i> Details
+                    </button>
                     <button class="btn btn-success" style="padding:6px 12px;font-size:12px;" onclick="updateApplicationStatus(${app.id}, 'accepted')">
                         <i class="fas fa-check"></i> Approve
                     </button>
@@ -1331,12 +1419,82 @@ function renderApplications() {
     reapplyGlobalSearch();
 }
 
+function viewApplicationDetails(id) {
+    const app = applicationsData.find(a => Number(a.id) === Number(id));
+    if (!app) return;
+
+    document.getElementById('modalAppName').textContent = app.full_name || app.name || 'N/A';
+    document.getElementById('modalAppEmail').textContent = app.email || 'N/A';
+    document.getElementById('modalAppPhone').textContent = app.phone || 'N/A';
+    
+    const roleSpan = document.getElementById('modalAppRole');
+    roleSpan.textContent = String(app.role || 'N/A');
+    roleSpan.className = `status-badge ${app.role ? String(app.role).toLowerCase() : 'pending'}`;
+
+    // Extract clean notes and metadata
+    let cleanNotes = app.notes || '';
+    let metadata = {};
+
+    if (cleanNotes.includes('meta:')) {
+        const parts = cleanNotes.split('meta:');
+        cleanNotes = parts[0].trim();
+        try {
+            metadata = JSON.parse(parts[1]) || {};
+        } catch (e) {
+            console.error('Failed to parse app metadata JSON:', e);
+        }
+    }
+
+    document.getElementById('modalAppNotes').textContent = cleanNotes || 'No notes available.';
+
+    // Generate metadata grid
+    const grid = document.getElementById('modalAppMetadataGrid');
+    grid.innerHTML = '';
+
+    const keys = Object.keys(metadata);
+    if (keys.length === 0) {
+        grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:var(--text-muted); font-size:13px; padding:12px;">No extra metadata recorded.</div>';
+    } else {
+        keys.forEach(key => {
+            const val = metadata[key];
+            const div = document.createElement('div');
+            div.style.cssText = 'background:rgba(0,0,0,0.02); border:1px solid var(--input-border, rgba(226,232,240,0.8)); border-radius:10px; padding:10px 12px; display:flex; flex-direction:column; gap:4px;';
+            
+            const formattedLabel = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+            
+            div.innerHTML = `
+                <span style="font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase;">${escapeSafeStepHtml(formattedLabel)}</span>
+                <span style="font-size:13px; font-weight:700; color:var(--text-secondary); word-break:break-word;">${escapeSafeStepHtml(typeof val === 'object' ? JSON.stringify(val) : val)}</span>
+            `;
+            grid.appendChild(div);
+        });
+    }
+
+    const modal = document.getElementById('applicationDetailsModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        modal.offsetHeight; // force reflow
+        modal.style.opacity = '1';
+        modal.querySelector('.safestep-modal-content').style.transform = 'scale(1)';
+    }
+}
+
+function closeApplicationDetailsModal() {
+    const modal = document.getElementById('applicationDetailsModal');
+    if (modal) {
+        modal.style.opacity = '0';
+        modal.querySelector('.safestep-modal-content').style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 300);
+    }
+}
+
 async function loadApplicationsFromApi() {
     try {
         const response = await safestepApi('/api/admin/applications');
         safestepReplaceArray(applicationsData, response.data || []);
         renderApplications();
-        updateStatValue('pendingRequestsStat', applicationsData.filter(app => app.status === 'pending').length);
         console.log('ADMIN APPLICATIONS API LOADED', applicationsData.length);
     } catch (error) {
         console.warn('Failed to load admin applications:', error.message);
@@ -1370,7 +1528,22 @@ async function updateApplicationStatus(id, status) {
         }
 
         renderApplications();
-        showToast('Application updated successfully', 'success');
+        const role = String(updated?.role || '').toLowerCase();
+        const targetPage = role === 'driver' ? 'drivers' : (role === 'parent' ? 'parents' : 'applications');
+        if (status === 'accepted') {
+            showToast(`تمت الموافقة — راجع قسم ${role === 'driver' ? 'السائقين' : (role === 'parent' ? 'الأهالي' : 'التقديمات')}`, 'success');
+            if (typeof hydrateAdminDashboardFromApi === 'function') {
+                await hydrateAdminDashboardFromApi();
+            }
+            if (typeof navigateTo === 'function' && (role === 'driver' || role === 'parent')) {
+                navigateTo(targetPage);
+            }
+        } else {
+            showToast('Application updated successfully', 'success');
+            if (typeof hydrateAdminDashboardFromApi === 'function') {
+                await hydrateAdminDashboardFromApi();
+            }
+        }
         console.log('ADMIN APPLICATION STATUS UPDATED', id, status);
     } catch (error) {
         showToast('Unable to update application', 'error');
@@ -1401,13 +1574,21 @@ function editParent(id) {
     }
 }
 
-function deleteParent(id) {
+async function deleteParent(id) {
     const parent = parentsData.find(p => p.id === id);
-    if (parent && confirm(`Are you sure you want to delete ${parent.name}?`)) {
-        const index = parentsData.findIndex(p => p.id === id);
-        parentsData.splice(index, 1);
-        renderParents();
-        alert('Parent deleted successfully!');
+    if (!parent || !confirm(`Are you sure you want to delete ${parent.name}?`)) return;
+    try {
+        await safestepApi(`/api/admin/parents/${id}`, { method: 'DELETE' });
+        if (typeof hydrateAdminDashboardFromApi === 'function') {
+            await hydrateAdminDashboardFromApi();
+        } else {
+            const index = parentsData.findIndex(p => p.id === id);
+            if (index >= 0) parentsData.splice(index, 1);
+            renderParents();
+        }
+        showToast('Parent deleted successfully!', 'success');
+    } catch (err) {
+        showToast('Failed to delete parent.', 'error');
     }
 }
 
@@ -3346,11 +3527,16 @@ async function approveDriver(id) {
     if (!driver || !confirm(`Approve driver ${driver.name}?`)) return;
     try {
         await safestepApi(`/api/admin/drivers/${id}/approve`, { method: 'POST' });
-        driver.status = 'active';
-        driver.active = true;
-        renderDrivers();
-        renderPendingDriverApplicantsForParents();
-        showToast('Driver approved successfully!', 'success');
+        if (typeof hydrateAdminDashboardFromApi === 'function') {
+            await hydrateAdminDashboardFromApi();
+        } else {
+            driver.status = 'active';
+            driver.active = true;
+            renderDrivers();
+            renderPendingDriverApplicantsForParents();
+        }
+        if (typeof navigateTo === 'function') navigateTo('drivers');
+        showToast('Driver approved — ظهر في قائمة السائقين', 'success');
     } catch (err) {
         showToast('Failed to approve driver.', 'error');
     }
@@ -3376,10 +3562,15 @@ async function approveParent(id) {
     if (!parent || !confirm(`Approve parent ${parent.name}?`)) return;
     try {
         await safestepApi(`/api/admin/parents/${id}/approve`, { method: 'POST' });
-        parent.status = 'active';
-        parent.active = true;
-        renderParents();
-        showToast('Parent approved successfully!', 'success');
+        if (typeof hydrateAdminDashboardFromApi === 'function') {
+            await hydrateAdminDashboardFromApi();
+        } else {
+            parent.status = 'active';
+            parent.active = true;
+            renderParents();
+        }
+        if (typeof navigateTo === 'function') navigateTo('parents');
+        showToast('Parent approved — ظهر في قائمة الأهالي', 'success');
     } catch (err) {
         showToast('Failed to approve parent.', 'error');
     }
@@ -3413,14 +3604,22 @@ function editDriver(id) {
     }
 }
 
-function deleteDriver(id) {
+async function deleteDriver(id) {
     const driver = driversData.find(d => d.id === id);
-    if (driver && confirm(`Delete driver ${driver.name}?`)) {
-        const index = driversData.findIndex(d => d.id === id);
-        driversData.splice(index, 1);
-        renderDrivers();
-        renderPendingDriverApplicantsForParents();
-        alert('Driver deleted successfully!');
+    if (!driver || !confirm(`Delete driver ${driver.name}?`)) return;
+    try {
+        await safestepApi(`/api/admin/drivers/${id}`, { method: 'DELETE' });
+        if (typeof hydrateAdminDashboardFromApi === 'function') {
+            await hydrateAdminDashboardFromApi();
+        } else {
+            const index = driversData.findIndex(d => d.id === id);
+            if (index >= 0) driversData.splice(index, 1);
+            renderDrivers();
+            renderPendingDriverApplicantsForParents();
+        }
+        showToast('Driver deleted successfully!', 'success');
+    } catch (err) {
+        showToast('Failed to delete driver.', 'error');
     }
 }
 
@@ -3609,7 +3808,7 @@ async function markRequestInProgress(id) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: 'in-progress' })
         });
-        if (!updateRequestStatusById(id, 'in_progress')) return;
+        if (!updateRequestStatusById(id, 'in-progress')) return;
         renderRequests();
         showToast('Request marked as in progress.', 'success');
     } catch (err) {
@@ -3631,6 +3830,9 @@ async function markRequestResolved(id) {
             if (!updateRequestStatusById(id, 'resolved')) return;
             renderRequests();
             showToast('Request marked as resolved.', 'success');
+            if (typeof hydrateAdminDashboardFromApi === 'function') {
+                await hydrateAdminDashboardFromApi();
+            }
         } catch (err) {
             console.warn('Failed to resolve request:', err.message);
             alert('Failed to update request. Please try again.');
@@ -4050,11 +4252,10 @@ function updateMonthlySummary() {
 async function loadRequestsFromApi() {
     try {
         const response = await safestepApi('/api/admin/service-requests');
-        const items = response.data?.data || response.data || [];
-        if (items.length) {
-            requestsData = items;
-            renderRequests();
-        }
+        const payload = response.data?.data ?? response.data ?? [];
+        const items = Array.isArray(payload) ? payload : (payload.data || []);
+        requestsData = items;
+        renderRequests();
     } catch (err) {
         console.warn('Failed to load service requests:', err.message);
         renderRequests();
@@ -4062,16 +4263,7 @@ async function loadRequestsFromApi() {
 }
 
 function loadRequestsFromStorage() {
-    try {
-        const raw = localStorage.getItem('safestep-requests');
-        if (!raw) return;
-        const stored = JSON.parse(raw);
-        if (Array.isArray(stored) && stored.length) {
-            requestsData.push(...stored);
-        }
-    } catch {
-        // Ignore storage errors
-    }
+    // Disabled: API is the single source of truth for admin requests.
 }
 
 function focusBroadcastForm() {
@@ -4098,7 +4290,7 @@ function storeBroadcast(payload) {
     }
 }
 
-function sendBroadcastNotification() {
+async function sendBroadcastNotification() {
     const form = document.getElementById('broadcastForm');
     if (form && !validateForm(form)) {
         showToast('Please complete required fields.', 'warning');
@@ -4120,51 +4312,39 @@ function sendBroadcastNotification() {
     if (toDrivers.checked) targets.push('driver');
 
     if (!title || !message) {
-        alert('Please enter a title and message.');
+        showToast('Please enter a title and message.', 'warning');
         return;
     }
 
     if (!targets.length) {
-        alert('Select at least one recipient group.');
+        showToast('Select at least one recipient group.', 'warning');
         return;
     }
 
-    const createdAt = new Date().toISOString();
-    const recipientsLabel = targets.length === 2 ? 'All Users' : targets[0] === 'parent' ? 'Parents' : 'Drivers';
+    try {
+        for (const role of targets) {
+            await safestepApi('/api/admin/notifications/send-bulk', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role, title, body: message })
+            });
+        }
 
-    const notification = {
-        id: Date.now(),
-        title,
-        type,
-        recipients: recipientsLabel,
-        sentDate: createdAt.replace('T', ' ').slice(0, 16),
-        status: 'sent',
-        message
-    };
+        titleInput.value = '';
+        messageInput.value = '';
+        typeSelect.value = 'general';
+        const templateSelect = document.getElementById('notificationTemplateSelect');
+        if (templateSelect) templateSelect.value = '';
+        toParents.checked = true;
+        toDrivers.checked = true;
 
-    notificationsData.unshift(notification);
-    renderNotifications();
-
-    targets.forEach(target => {
-        storeBroadcast({
-            id: notification.id,
-            title,
-            message,
-            type,
-            target,
-            createdAt
-        });
-    });
-
-    titleInput.value = '';
-    messageInput.value = '';
-    typeSelect.value = 'general';
-    const templateSelect = document.getElementById('notificationTemplateSelect');
-    if (templateSelect) templateSelect.value = '';
-    toParents.checked = true;
-    toDrivers.checked = true;
-
-    alert('Notification sent successfully.');
+        showToast('Notification sent to database.', 'success');
+        if (typeof hydrateAdminDashboardFromApi === 'function') {
+            await hydrateAdminDashboardFromApi();
+        }
+    } catch (err) {
+        showToast(err.message || 'Failed to send notification.', 'error');
+    }
 }
 
 // ===== PROFESSIONAL REPORT FUNCTIONS =====
@@ -4484,15 +4664,25 @@ Date: ${complaint.date}`);
     }
 }
 
-function updateComplaintStatus(id) {
+async function updateComplaintStatus(id) {
     const complaint = complaintsData.find(c => c.id === id);
-    if (complaint) {
-        const newStatus = prompt('Enter new status (open/in-progress/resolved/closed):', complaint.status);
-        if (newStatus && ['open', 'in-progress', 'resolved', 'closed'].includes(newStatus)) {
-            complaint.status = newStatus;
-            renderComplaints();
-            alert('Complaint status updated successfully.');
+    if (!complaint) return;
+    const newStatus = prompt('Enter new status (open/in-progress/resolved/closed):', complaint.status);
+    if (!newStatus || !['open', 'in-progress', 'resolved', 'closed'].includes(newStatus)) return;
+    try {
+        await safestepApi(`/api/admin/reports/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus })
+        });
+        complaint.status = newStatus;
+        renderComplaints();
+        showToast('Complaint status updated.', 'success');
+        if (typeof hydrateAdminDashboardFromApi === 'function') {
+            await hydrateAdminDashboardFromApi();
         }
+    } catch (err) {
+        showToast('Failed to update complaint.', 'error');
     }
 }
 
@@ -4985,6 +5175,16 @@ function safestepReplaceArray(target, items) {
     target.splice(0, target.length, ...items);
 }
 
+function safestepValidationMessage(data, fallback) {
+    const errors = data && data.errors ? data.errors : null;
+    if (errors && typeof errors === 'object') {
+        const first = Object.values(errors)[0];
+        if (Array.isArray(first) && first.length) return first[0];
+        if (typeof first === 'string' && first) return first;
+    }
+    return (data && data.message && data.message !== 'Validation failed.') ? data.message : fallback;
+}
+
 async function safestepApi(url, options = {}) {
     const token = localStorage.getItem('token') || localStorage.getItem('safestep_token');
     const response = await fetch(url, {
@@ -5009,12 +5209,38 @@ async function safestepApi(url, options = {}) {
         throw new Error('Access Denied');
     }
 
-    if (!response.ok) throw new Error(`API ${response.status}: ${url}`);
-    return response.json();
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        throw new Error(safestepValidationMessage(data, `Request failed (${response.status})`));
+    }
+    return data;
 }
 
 function safestepDate(value) {
     return value ? String(value).slice(0, 10) : new Date().toISOString().slice(0, 10);
+}
+
+function normalizeDashboardStatus(value, active) {
+    const status = String(value || '').toLowerCase();
+    if (status === 'approved') return 'active';
+    if (status === 'rejected') return 'inactive';
+    if (status) return status;
+    return active ? 'active' : 'inactive';
+}
+
+function pageForResourceType(type) {
+    return {
+        parent: 'parents',
+        driver: 'drivers',
+        student: 'students',
+        bus: 'buses',
+        trip: 'trips',
+        user: 'users',
+        complaint: 'complaints',
+        school: 'schools',
+        financial: 'financials',
+        maintenance: 'maintenance'
+    }[type] || null;
 }
 
 async function hydrateAdminDashboardFromApi() {
@@ -5028,7 +5254,13 @@ async function hydrateAdminDashboardFromApi() {
             safestepApi('/api/admin/trips'),
             safestepApi('/api/admin/buses?per_page=all'),
             safestepApi('/api/admin/notifications'),
-            safestepApi('/api/admin/service-requests')
+            safestepApi('/api/admin/service-requests'),
+            safestepApi('/api/admin/reports'),
+            safestepApi('/api/admin/schools'),
+            safestepApi('/api/admin/financial-entries'),
+            safestepApi('/api/admin/maintenance-records'),
+            safestepApi('/api/admin/routes'),
+            safestepApi('/api/admin/users')
         ]);
         const safeResult = (index, fallback = { data: [] }) =>
             settled[index].status === 'fulfilled' ? settled[index].value : fallback;
@@ -5042,29 +5274,32 @@ async function hydrateAdminDashboardFromApi() {
         const buses = safeResult(6);
         const notifications = safeResult(7);
         const serviceRequests = safeResult(8);
+        const reports = safeResult(9);
+        const schools = safeResult(10);
+        const financials = safeResult(11);
+        const maintenance = safeResult(12);
+        const routes = safeResult(13);
+        const users = safeResult(14);
 
         // Load service requests into requestsData for the Requests Center
-        const serviceReqItems = serviceRequests.data?.data || serviceRequests.data || [];
-        if (serviceReqItems.length) {
-            requestsData = serviceReqItems;
-            renderRequests();
-        }
+        const servicePayload = serviceRequests.data?.data ?? serviceRequests.data ?? [];
+        const serviceReqItems = Array.isArray(servicePayload) ? servicePayload : (servicePayload.data || []);
+        requestsData = serviceReqItems;
+        renderRequests();
 
         if (stats.data) {
-            updateStatValue('totalParentsStat', stats.data.total_parents ?? 0);
-            updateStatValue('totalDriversStat', stats.data.total_drivers ?? 0);
-            updateStatValue('totalStudentsStat', stats.data.total_students ?? 0);
-            updateStatValue('totalBusesStat', stats.data.total_buses ?? 0);
-            updateStatValue('activeBusesStat', stats.data.active_buses ?? 0);
-            updateStatValue('activeTripsStat', stats.data.active_trips ?? 0);
-            updateStatValue('todayTripsStat', stats.data.today_trips ?? 0);
             const pendingApps = (applications.data || []).filter(a => a.status === 'pending').length;
             const pendingServiceReqs = (serviceReqItems || []).filter(r => r.status === 'pending').length;
-            updateStatValue('pendingRequestsStat', stats.data.pending_requests ?? (pendingApps + pendingServiceReqs));
-            updateStatValue('complaintsTodayStat', stats.data.complaints_today ?? 0);
+            const statsPayload = {
+                ...stats.data,
+                pending_requests: stats.data.pending_requests ?? (pendingApps + pendingServiceReqs)
+            };
+            applyDashboardStats(statsPayload, { force: true });
+            renderAdminRecentActivity(stats.data.recent_activity);
         }
 
         safestepReplaceArray(applicationsData, applications.data || []);
+        safestepReplaceArray(busRoutesData, routes.data || []);
 
         safestepReplaceArray(parentsData, (parents.data || []).map(parent => ({
             id: parent.id,
@@ -5074,7 +5309,7 @@ async function hydrateAdminDashboardFromApi() {
             email: parent.email || parent.user?.email || '',
             applicationDate: safestepDate(parent.created_at),
             joinDate: safestepDate(parent.created_at),
-            status: parent.status || (parent.active ? 'active' : 'inactive')
+            status: normalizeDashboardStatus(parent.status, parent.active)
         })));
 
         safestepReplaceArray(driversData, (drivers.data || []).map(driver => ({
@@ -5086,7 +5321,17 @@ async function hydrateAdminDashboardFromApi() {
             joinDate: safestepDate(driver.created_at),
             experience: `${driver.years_experience || driver.experience_years || 0} years`,
             bus: 'Assigned by trips',
-            status: driver.status || (driver.active ? 'active' : 'inactive')
+            status: normalizeDashboardStatus(driver.status, driver.active)
+        })));
+
+        safestepReplaceArray(usersData, (users.data || []).map(user => ({
+            id: user.id,
+            name: user.name || 'User',
+            email: user.email || '',
+            role: user.role || (Array.isArray(user.roles) ? user.roles[0] : 'parent'),
+            department: user.role === 'admin' ? 'Administration' : (user.role === 'driver' ? 'Transportation' : 'Parent Portal'),
+            lastLogin: user.updated_at ? new Date(user.updated_at).toLocaleString() : 'Never',
+            status: user.status || 'active'
         })));
 
         safestepReplaceArray(studentsData, (students.data || []).map(student => ({
@@ -5126,11 +5371,54 @@ async function hydrateAdminDashboardFromApi() {
 
         safestepReplaceArray(notificationsData, (notifications.data || []).map((notification, index) => ({
             id: notification.id || index + 1,
-            title: notification.data?.title || 'Notification',
-            type: 'general',
-            recipients: 'Current user',
+            title: notification.data?.title || notification.data?.body || 'Notification',
+            type: notification.data?.submission_type || notification.data?.type || 'general',
+            recipients: 'Admin',
             sentDate: notification.created_at || new Date().toISOString(),
-            status: notification.read_at ? 'read' : 'sent'
+            status: notification.read_at ? 'read' : 'sent',
+            message: notification.data?.body || ''
+        })));
+
+        safestepReplaceArray(complaintsData, (reports.data || []).map(report => ({
+            id: report.id,
+            complaintId: `CMP${String(report.id).padStart(3, '0')}`,
+            submittedBy: report.user?.name || 'System',
+            type: report.type || 'complaint',
+            subject: report.title || 'Complaint',
+            priority: 'medium',
+            status: report.status || 'open',
+            date: safestepDate(report.created_at)
+        })));
+
+        safestepReplaceArray(schoolsData, (schools.data || []).map(school => ({
+            id: school.id,
+            name: school.name,
+            type: 'school',
+            district: school.address || '—',
+            address: school.address || '',
+            contact: school.phone || school.email || '',
+            students: 0,
+            status: 'active'
+        })));
+
+        safestepReplaceArray(financialsData, (financials.data || []).map(entry => ({
+            id: entry.id,
+            date: safestepDate(entry.entry_date || entry.created_at),
+            type: entry.type,
+            description: entry.description || entry.title,
+            amount: entry.type === 'expense' ? -Math.abs(Number(entry.amount) || 0) : Math.abs(Number(entry.amount) || 0),
+            enteredBy: 'Admin'
+        })));
+
+        safestepReplaceArray(maintenanceData, (maintenance.data || []).map(record => ({
+            id: record.id,
+            busNumber: record.bus?.bus_number ? `Bus ${record.bus.bus_number}` : '—',
+            plateNumber: record.bus?.plate_number || '',
+            type: record.status || 'maintenance',
+            description: record.description || record.title,
+            date: safestepDate(record.maintenance_date || record.created_at),
+            cost: Number(record.cost) || 0,
+            technician: 'Fleet'
         })));
 
         renderParents();
@@ -5140,6 +5428,11 @@ async function hydrateAdminDashboardFromApi() {
         renderTrips();
         renderBuses();
         renderNotifications();
+        renderComplaints();
+        renderFinancials();
+        renderMaintenance();
+        renderSchools();
+        renderUsers();
         updateNotificationBadge();
         console.log('ADMIN DASHBOARD API HYDRATED', {
             applications: applicationsData.length,
@@ -5152,18 +5445,112 @@ async function hydrateAdminDashboardFromApi() {
     }
 }
 
-// Handle add resource form success — immediately refresh the relevant section
-document.addEventListener('ajaxform:success', function(e) {
+// Handle add resource form success - immediately refresh the relevant section
+document.addEventListener('ajaxform:success', async function(e) {
     var form = e.detail.form;
     if (!form || form.id !== 'addResourceForm') return;
-    document.getElementById('addResourceModal').style.display = 'none';
+    e.preventDefault();
+    const resourceType = form.dataset.resourceType || '';
+    const targetPage = pageForResourceType(resourceType);
+    const modal = document.getElementById('addResourceModal');
+    if (modal) modal.style.display = 'none';
     showToast('Resource created successfully!', 'success');
 
-    // Immediately re-hydrate all dashboard data so the new item appears
-    // properly normalized in its section (parents, drivers, buses, etc.)
     if (typeof hydrateAdminDashboardFromApi === 'function') {
-        hydrateAdminDashboardFromApi();
+        await hydrateAdminDashboardFromApi();
+    }
+    if (targetPage && typeof navigateTo === 'function') {
+        navigateTo(targetPage);
     }
 });
 
-document.addEventListener('DOMContentLoaded', hydrateAdminDashboardFromApi);
+async function pollAdminDashboardStats() {
+    try {
+        const stats = await safestepApi('/api/admin/dashboard/stats');
+        if (!stats?.data) return;
+
+        const prevPending = lastDashboardStats.pendingRequestsStat ?? 0;
+
+        applyDashboardStats(stats.data, {
+            onIncrease(id) {
+                if (id === 'pendingRequestsStat') {
+                    playNotificationSound();
+                    showToast('طلب أو تقديم جديد وصل!', 'info');
+                    loadRequestsFromApi();
+                    loadApplicationsFromApi();
+                    renderAdminRecentActivity(stats.data.recent_activity);
+                } else if (id === 'complaintsTodayStat') {
+                    showToast('بلاغ أو شكوى جديدة', 'warning');
+                }
+            }
+        });
+
+        const notifications = await safestepApi('/api/admin/notifications');
+        const items = notifications.data || [];
+        const unread = items.filter(n => !n.read_at).length;
+        const badge = document.querySelector('.notification-icon .badge');
+        if (badge) {
+            badge.textContent = unread > 99 ? '99+' : String(unread);
+        }
+    } catch (error) {
+        console.warn('Dashboard poll skipped:', error.message);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    hydrateAdminDashboardFromApi();
+    setInterval(pollAdminDashboardStats, 10000);
+});
+
+document.addEventListener('spa:pageChanged', (e) => {
+    if (e.detail?.pageId === 'requests') {
+        loadRequestsFromApi();
+    }
+});
+
+updateApplicationStatus = async function(id, status) {
+    const buttons = document.querySelectorAll(`button[onclick*="updateApplicationStatus(${id},"]`);
+    buttons.forEach(button => {
+        button.disabled = true;
+        button.dataset.originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    });
+
+    try {
+        const response = await safestepApi(`/api/admin/applications/${id}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status })
+        });
+
+        const updated = response.data;
+        const index = applicationsData.findIndex(app => Number(app.id) === Number(id));
+        if (index >= 0) applicationsData[index] = updated;
+
+        const role = String(updated?.role || '').toLowerCase();
+        const targetPage = role === 'driver' ? 'drivers' : (role === 'parent' ? 'parents' : 'applications');
+
+        if (typeof hydrateAdminDashboardFromApi === 'function') {
+            await hydrateAdminDashboardFromApi();
+        } else {
+            renderApplications();
+        }
+
+        if (status === 'accepted') {
+            showToast(`Application approved and moved to ${role === 'driver' ? 'Drivers' : (role === 'parent' ? 'Parents' : 'Applications')}.`, 'success');
+            if (typeof navigateTo === 'function' && (role === 'driver' || role === 'parent')) {
+                navigateTo(targetPage);
+            }
+        } else {
+            showToast('Application updated successfully', 'success');
+        }
+    } catch (error) {
+        showToast(error.message || 'Unable to update application', 'error');
+        console.error('Application status update failed:', error);
+    } finally {
+        buttons.forEach(button => {
+            button.disabled = false;
+            button.innerHTML = button.dataset.originalText || 'Save';
+        });
+    }
+};

@@ -10,6 +10,24 @@ use Illuminate\Http\Request;
 
 class AdminMiscController extends Controller
 {
+    public function indexSchools()
+    {
+        return response()->json(['success' => true, 'data' => School::latest()->get()]);
+    }
+
+    public function indexFinancialEntries()
+    {
+        return response()->json(['success' => true, 'data' => FinancialEntry::latest()->get()]);
+    }
+
+    public function indexMaintenanceRecords()
+    {
+        return response()->json([
+            'success' => true,
+            'data'    => MaintenanceRecord::with('bus:id,bus_number')->latest()->get(),
+        ]);
+    }
+
     public function storeSchool(Request $request)
     {
         $data = $request->validate([

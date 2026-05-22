@@ -50,18 +50,30 @@
 
             try {
                 const response = await fetch(url, config);
+
+                if (response.status === 401) {
+                    localStorage.removeItem('safestep_token');
+                    localStorage.removeItem('token');
+                    const role = new URLSearchParams(window.location.search).get('role') || '';
+                    window.location.href = role ? `/login?role=${role}` : '/login';
+                    throw new Error('Session expired. Please login again.');
+                }
+
+                if (response.status === 403) {
+                    throw new Error('Access Denied');
+                }
+
                 const data = await response.json().catch(() => ({}));
 
                 if (!response.ok) {
-                    // Isolation: Fail silently or log, but return error state
                     console.error(`[API] ${config.method} ${endpoint} failed:`, response.status, data);
-                    return { success: false, status: response.status, message: data.message || 'Server error', errors: data.errors };
+                    throw new Error(data.message || `API ${response.status}: ${url}`);
                 }
 
-                return { success: true, data: data };
+                return data;
             } catch (error) {
                 console.error(`[API] Network error on ${endpoint}:`, error);
-                return { success: false, message: 'Network error. Please check your connection.', error: error };
+                throw error;
             }
         },
 

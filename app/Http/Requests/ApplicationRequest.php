@@ -20,10 +20,18 @@ class ApplicationRequest extends FormRequest
     {
         $role = strtolower((string) $this->input('role'));
 
+        $emailExists = false;
+        if ($this->has('email')) {
+            $emailExists = \App\Models\User::where('email', $this->input('email'))->exists();
+        }
+        $isUserAuth = $this->user() !== null;
+
         $rules = [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'email' => ['required', 'email', 'max:255'],
+            'password' => (!$isUserAuth && !$emailExists)
+                ? ['required', 'string', 'min:8', 'confirmed']
+                : ['nullable', 'string', 'min:8', 'confirmed'],
             'phone' => ['required', 'string', 'max:30'],
             'address' => ['required', 'string', 'max:255'],
             'role' => ['required', Rule::in(ApplicationRole::values())],

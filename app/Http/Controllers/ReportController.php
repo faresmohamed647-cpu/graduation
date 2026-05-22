@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Report;
+use App\Services\AdminSubmissionNotifier;
 use Illuminate\Http\Request;
 
 class ReportController extends Controller
@@ -29,7 +30,7 @@ class ReportController extends Controller
             'trip_id' => ['nullable', 'integer'],
         ]);
 
-        Report::create([
+        $report = Report::create([
             'user_id' => $request->user()->id,
             'trip_id' => $data['trip_id'] ?? null,
             'type' => $data['type'],
@@ -37,6 +38,13 @@ class ReportController extends Controller
             'body' => $data['body'] ?? null,
             'status' => 'open',
         ]);
+
+        AdminSubmissionNotifier::notify(
+            'report',
+            'New complaint / report',
+            $data['title'] ?? $data['type'],
+            ['id' => $report->id, 'action' => 'reports']
+        );
 
         return back();
     }

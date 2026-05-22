@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Driver;
 use App\Models\ParentProfile;
 use App\Models\User;
+use App\Services\AdminSubmissionNotifier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -71,6 +72,13 @@ class RegistrationController extends Controller
                 'status'     => 'pending',
             ]);
         });
+
+        AdminSubmissionNotifier::notify(
+            'application',
+            'New parent registration',
+            "Parent: {$data['student_email']}",
+            ['role' => 'parent', 'action' => 'applications']
+        );
 
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
@@ -146,6 +154,13 @@ class RegistrationController extends Controller
                 'status'     => 'pending',
             ]);
         });
+
+        AdminSubmissionNotifier::notify(
+            'application',
+            'New driver registration',
+            "Driver: {$data['owner_full_name']}",
+            ['role' => 'driver', 'action' => 'applications']
+        );
 
         $formattedDate = $interviewDate->format('Y-m-d h:i A');
 

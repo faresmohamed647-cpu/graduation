@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Report;
+use App\Services\AdminSubmissionNotifier;
 use Illuminate\Http\Request;
 
 class RequestApiController extends Controller
@@ -28,6 +29,13 @@ class RequestApiController extends Controller
             ], JSON_UNESCAPED_UNICODE),
             'status' => 'open',
         ]);
+
+        AdminSubmissionNotifier::notify(
+            'report',
+            'New report / request',
+            $data['subject'],
+            ['id' => $report->id, 'action' => 'reports']
+        );
 
         return response()->json([
             'status' => 'success',

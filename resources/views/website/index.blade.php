@@ -426,27 +426,27 @@ Learn More</p>
                 </div>
                 <div class="col-lg-7">
                     <div class="bg-light text-center p-5 wow fadeIn" data-wow-delay="0.5s">
-                        <form class="ajax-form">
+                        <form id="homeQuoteForm" class="ajax-form" action="/api/public/quote" method="POST">
                             <div class="row g-3">
                                 <div class="col-12 col-sm-6">
-                                    <input type="text" class="form-control border-0" placeholder="Your Name" style="height: 55px;">
+                                    <input type="text" name="subject" class="form-control border-0" placeholder="Your Name" style="height: 55px;" required>
                                 </div>
                                 <div class="col-12 col-sm-6">
-                                    <input type="email" class="form-control border-0" placeholder="Your Email" style="height: 55px;">
+                                    <input type="email" name="email" class="form-control border-0" placeholder="Your Email" style="height: 55px;">
                                 </div>
                                 <div class="col-12 col-sm-6">
-                                    <input type="text" class="form-control border-0" placeholder="Your Mobile" style="height: 55px;">
+                                    <input type="text" name="phone" class="form-control border-0" placeholder="Your Mobile" style="height: 55px;" required>
                                 </div>
                                 <div class="col-12 col-sm-6">
-                                    <select class="form-select border-0" style="height: 55px;">
-                                        <option selected>Select Service Type</option>
-                                        <option value="1">Live Bus Tracking</option>
-                                        <option value="2">Trip History</option>
-                                        <option value="3">Trip Replay</option>
+                                    <select name="request_type" class="form-select border-0" style="height: 55px;" required>
+                                        <option value="">Select Service Type</option>
+                                        <option value="Live Bus Tracking">Live Bus Tracking</option>
+                                        <option value="Trip History">Trip History</option>
+                                        <option value="Trip Replay">Trip Replay</option>
                                     </select>
                                 </div>
                                 <div class="col-12">
-                                    <textarea class="form-control border-0" placeholder="Special Note"></textarea>
+                                    <textarea name="description" class="form-control border-0" placeholder="Your message" required></textarea>
                                 </div>
                                 <div class="col-12">
                                     <button class="btn btn-primary w-100 py-3" type="submit">Submit</button>

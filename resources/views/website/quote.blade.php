@@ -110,15 +110,16 @@
                 <div class="col-lg-7">
                     <div class="bg-light text-center p-5 wow fadeIn" data-wow-delay="0.5s">
                         <form id="quoteForm" class="ajax-form" action="/api/public/quote" method="POST" data-keep-values>
+                            <input type="hidden" name="description" value="Quote request from website">
                             <div class="row g-3">
                                 <div class="col-12 col-sm-6">
                                     <input type="text" name="subject" class="form-control border-0" placeholder="Your Name" style="height: 55px;" required>
                                 </div>
                                 <div class="col-12 col-sm-6">
-                                    <input type="email" name="notes" class="form-control border-0" placeholder="Your Email" style="height: 55px;">
+                                    <input type="email" name="email" class="form-control border-0" placeholder="Your Email" style="height: 55px;">
                                 </div>
                                 <div class="col-12 col-sm-6">
-                                    <input type="text" name="description" class="form-control border-0" placeholder="Your Mobile" style="height: 55px;" required>
+                                    <input type="text" name="phone" class="form-control border-0" placeholder="Your Mobile" style="height: 55px;" required>
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <select name="request_type" class="form-select border-0" style="height: 55px;" required>

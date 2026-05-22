@@ -244,6 +244,9 @@
                 <a href="/contact" class="nav-item nav-link">Contact</a>
             </div>
             <h4 class="m-0 pe-lg-5 d-none d-lg-block"><i class="fa fa-headphones text-primary me-3"></i>+20 3 123 4567</h4>
+            <button type="button" class="dark-mode-toggle me-4" onclick="toggleDarkMode()" title="Toggle Dark Mode">
+                <i class="fas fa-moon"></i>
+            </button>
         </div>
     </nav>
     <!-- Navbar End -->
@@ -344,7 +347,7 @@
 
 
     <!-- Implementation Timeline Start -->
-    <div class="container-xxl py-5" style="background: #f8f9fa;">
+    <div class="container-xxl py-5 hiw-timeline-section" style="background: #f8f9fa;">
         <div class="container py-5">
             <div class="text-center wow fadeInUp" data-wow-delay="0.1s">
                 <h6 class="text-secondary text-uppercase">Timeline</h6>

@@ -6,10 +6,10 @@
 }
 
 :root {
-    --primary-color: #2563EB;
-    --primary-dark: #1E40AF;
-    --primary-light: #3B82F6;
-    --secondary-color: #1E40AF;
+    --primary-color: #1d4ed8;
+    --primary-dark: #1e3a8a;
+    --primary-light: #3b82f6;
+    --secondary-color: #0f766e;
     --success-color: #10B981;
     --success-dark: #059669;
     --warning-color: #F59E0B;
@@ -32,17 +32,48 @@
     --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     --radius-sm: 6px;
     --radius-md: 10px;
-    --radius-lg: 12px;
-    --radius-xl: 16px;
+    --radius-lg: 10px;
+    --radius-xl: 12px;
 }
 
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-    background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
+    background: #f6f8fb;
     color: var(--text-dark);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+.btn,
+.btn-primary,
+.btn-secondary,
+.action-icon,
+.form-control,
+.card,
+.stat-card,
+.data-table,
+.modal-content {
+    border-radius: 8px !important;
+}
+
+.card,
+.stat-card,
+.table-container,
+.modal-content {
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.07);
+}
+
+.card:hover,
+.stat-card:hover {
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.10);
+}
+
+.btn-primary,
+.nav-link.active {
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary-color)) !important;
 }
 
 /* Sidebar */
@@ -621,6 +652,23 @@ body {
 
 .stat-card:hover::after {
     opacity: 1;
+}
+
+.stat-card.stat-increment {
+    animation: statIncrementPulse 1.2s ease;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.35);
+}
+
+.stat-card.stat-increment .stat-info h3 {
+    color: var(--primary-color);
+    transform: scale(1.08);
+    transition: transform 0.3s ease, color 0.3s ease;
+}
+
+@keyframes statIncrementPulse {
+    0% { transform: scale(1); }
+    35% { transform: scale(1.02); }
+    100% { transform: scale(1); }
 }
 
 .stat-icon {
