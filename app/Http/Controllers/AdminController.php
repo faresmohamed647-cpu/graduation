@@ -31,7 +31,45 @@ class AdminController extends Controller
 
         $recentApplications = \App\Models\Application::query()->latest()->limit(5)->get();
 
-        return view('admin.admin', compact('stats', 'recentApplications', 'initialAdminPage'));
+        $initialParents = \App\Models\ParentProfile::query()
+            ->with(['user', 'students'])
+            ->latest()
+            ->get()
+            ->map(fn (\App\Models\ParentProfile $parent) => [
+                'id' => $parent->id,
+                'name' => $parent->user?->name ?? 'Parent',
+                'children' => $parent->students
+                    ->map(fn ($student) => $student->full_name ?? $student->name)
+                    ->filter()
+                    ->join(', ') ?: 'None',
+                'phone' => $parent->phone ?? '',
+                'email' => $parent->user?->email ?? '',
+                'applicationDate' => optional($parent->created_at)->toDateString(),
+                'joinDate' => optional($parent->created_at)->toDateString(),
+                'status' => $parent->active ? 'active' : 'inactive',
+            ]);
+
+        $initialDrivers = \App\Models\Driver::query()
+            ->with('user')
+            ->latest()
+            ->get()
+            ->map(fn (\App\Models\Driver $driver) => [
+                'id' => $driver->id,
+                'name' => $driver->user?->name ?? $driver->full_name ?? 'Driver',
+                'license' => $driver->license_number ?? '',
+                'phone' => $driver->phone ?? '',
+                'applicationDate' => optional($driver->created_at)->toDateString(),
+                'joinDate' => optional($driver->created_at)->toDateString(),
+                'experience' => ((int) ($driver->years_experience ?? 0)) . ' years',
+                'bus' => 'Assigned by trips',
+                'status' => match ($driver->status) {
+                    'approved' => 'active',
+                    'rejected' => 'inactive',
+                    default => $driver->status ?: ($driver->active ? 'active' : 'inactive'),
+                },
+            ]);
+
+        return view('admin.admin', compact('stats', 'recentApplications', 'initialAdminPage', 'initialParents', 'initialDrivers'));
     }
 
     public function section(string $section)

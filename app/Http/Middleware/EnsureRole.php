@@ -20,7 +20,7 @@ class EnsureRole
                 return response()->json(['message' => 'Unauthenticated'], 401);
             }
 
-            return redirect()->guest('/login');
+            return redirect()->guest('/login?role='.$role);
         }
 
         if (($user->role ?? null) !== $role) {
@@ -28,7 +28,12 @@ class EnsureRole
                 return response()->json(['message' => 'Forbidden - requires '.$role.' role'], 403);
             }
 
-            abort(403);
+            auth()->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->guest('/login?role='.$role)
+                ->withErrors(['email' => 'This page requires an '.$role.' account.']);
         }
 
         return $next($request);

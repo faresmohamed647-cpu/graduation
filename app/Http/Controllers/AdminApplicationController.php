@@ -117,13 +117,7 @@ class AdminApplicationController extends Controller
             $active = $validated['status'] === 'accepted';
             $meta = $application->metadata; // parsed JSON from notes column
 
-            $user = null;
-            if ($application->user_id) {
-                $user = User::find($application->user_id);
-            }
-            if (!$user) {
-                $user = User::where('email', $application->email)->first();
-            }
+            $user = $this->resolveApplicationUser($application, $role);
 
             if ($active && !$user) {
                 $user = User::create([
@@ -136,6 +130,12 @@ class AdminApplicationController extends Controller
             }
 
             if ($user) {
+                if ($user->role === 'admin' && $role !== 'admin') {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'application' => ['This application is linked to an admin account and cannot change it to '.$role.'.'],
+                    ]);
+                }
+
                 if ($active) {
                     $user->update(['role' => $role]);
                 }
@@ -203,5 +203,24 @@ class AdminApplicationController extends Controller
             'status'  => 'success',
             'message' => 'Application deleted successfully.',
         ]);
+    }
+
+    private function resolveApplicationUser(Application $application, string $role): ?User
+    {
+        $email = strtolower((string) $application->email);
+
+        if ($application->user_id) {
+            $linkedUser = User::find($application->user_id);
+            if ($linkedUser) {
+                $linkedEmail = strtolower((string) $linkedUser->email);
+                $linkedRole = strtolower((string) $linkedUser->role);
+
+                if ($linkedEmail === $email || ($linkedRole === $role && $linkedRole !== 'admin')) {
+                    return $linkedUser;
+                }
+            }
+        }
+
+        return User::where('email', $application->email)->first();
     }
 }

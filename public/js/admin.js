@@ -4,31 +4,48 @@
 let applicationsData = [];
 const busRoutesData = [];
 
-const parentsData = [
-     { id: 1, name: 'Sarah Ahmed', children: 'Ahmed, Laila', phone: '+20 111 123 4567', email: 'sarah.ahmed@email.com', applicationDate: '2023-01-15', joinDate: '2023-02-01', status: 'active' },
-    { id: 2, name: 'Mohamed Hassan', children: 'Youssef', phone: '+20 111 234 5678', email: 'mohamed.hassan@email.com', applicationDate: '2023-03-10', joinDate: '2023-03-25', status: 'active' },
-    { id: 3, name: 'Mariam Ali', children: 'Nouran', phone: '+20 111 345 6789', email: 'mariam.ali@email.com', applicationDate: '2023-05-05', joinDate: '2023-05-20', status: 'active' },
-    { id: 4, name: 'Omar Khaled', children: 'Mariam', phone: '+20 111 456 7890', email: 'omar.khaled@email.com', applicationDate: '2023-07-12', joinDate: '2023-08-01', status: 'active' },
-    { id: 5, name: 'Hana Mostafa', children: 'Mohamed', phone: '+20 111 567 8901', email: 'hana.mostafa@email.com', applicationDate: '2023-09-18', joinDate: '2023-10-05', status: 'inactive' },
-    { id: 6, name: 'Yassin Samir', children: 'Sara', phone: '+20 111 678 9012', email: 'yassin.samir@email.com', applicationDate: '2023-11-22', joinDate: '2023-12-10', status: 'active' },
-    { id: 7, name: 'Aya Mahmoud', children: 'Omar, Aya', phone: '+20 111 789 0123', email: 'aya.mahmoud@email.com', applicationDate: '2024-01-08', joinDate: '2024-01-25', status: 'active' },
-    { id: 8, name: 'Karim Ali', children: 'Karim', phone: '+20 111 890 1234', email: 'karim.ali@email.com', applicationDate: '2024-03-14', joinDate: '2024-04-01', status: 'active' },
-    { id: 9, name: 'Nada Said', children: 'Hana', phone: '+20 111 901 2345', email: 'nada.said@email.com', applicationDate: '2024-05-20', joinDate: '2024-06-05', status: 'pending' },
-    { id: 10, name: 'Ramy Mostafa', children: 'Yassin', phone: '+20 111 012 3456', email: 'ramy.mostafa@email.com', applicationDate: '2024-07-30', joinDate: '2024-08-15', status: 'active' }
-];
+const parentsData = [];
 
-const driversData = [
-    { id: 1, name: 'Ahmed Khaled', license: 'DL-123456', phone: '+20 111 111 2222', applicationDate: '2022-06-15', joinDate: '2022-07-01', experience: '5 years', bus: 'Bus #42', status: 'active' },
-    { id: 2, name: 'Mohamed Ali', license: 'DL-234567', phone: '+20 111 222 3333', applicationDate: '2022-08-20', joinDate: '2022-09-05', experience: '7 years', bus: 'Bus #15', status: 'active' },
-    { id: 3, name: 'Youssef Hassan', license: 'DL-345678', phone: '+20 111 333 4444', applicationDate: '2022-10-10', joinDate: '2022-10-25', experience: '3 years', bus: 'Bus #28', status: 'active' },
-    { id: 4, name: 'Omar Samir', license: 'DL-456789', phone: '+20 111 444 5555', applicationDate: '2023-01-15', joinDate: '2023-02-01', experience: '4 years', bus: 'Bus #33', status: 'pending' },
-    { id: 5, name: 'Ramy Mostafa', license: 'DL-567890', phone: '+20 111 555 6666', applicationDate: '2023-03-22', joinDate: '2023-04-10', experience: '6 years', bus: 'Bus #07', status: 'active' },
-    { id: 6, name: 'Karim Mahmoud', license: 'DL-678901', phone: '+20 111 666 7777', applicationDate: '2023-05-18', joinDate: '2023-06-05', experience: '8 years', bus: 'Bus #19', status: 'active' },
-    { id: 7, name: 'Hassan Ahmed', license: 'DL-789012', phone: '+20 111 777 8888', applicationDate: '2023-07-30', joinDate: '2023-08-15', experience: '2 years', bus: 'Bus #51', status: 'inactive' },
-    { id: 8, name: 'Tamer Said', license: 'DL-890123', phone: '+20 111 888 9999', applicationDate: '2023-09-12', joinDate: '2023-09-28', experience: '1 year', bus: 'Unassigned', status: 'pending' },
-    { id: 9, name: 'Mahmoud Fathy', license: 'DL-901234', phone: '+20 111 999 0000', applicationDate: '2023-11-08', joinDate: '2023-11-25', experience: '9 years', bus: 'Bus #12', status: 'active' },
-    { id: 10, name: 'Amr Abdelrahman', license: 'DL-012345', phone: '+20 111 000 1111', applicationDate: '2024-01-20', joinDate: '2024-02-05', experience: '4 years', bus: 'Bus #44', status: 'active' }
-];
+const driversData = [];
+
+function mapParentForDashboard(parent) {
+    return {
+        id: parent.id,
+        name: parent.name || parent.user?.name || 'Parent',
+        children: parent.children || (parent.students || []).map(student => student.name || student.full_name).filter(Boolean).join(', ') || 'None',
+        phone: parent.phone || '',
+        email: parent.email || parent.user?.email || '',
+        applicationDate: safestepDate(parent.applicationDate || parent.created_at),
+        joinDate: safestepDate(parent.joinDate || parent.created_at),
+        status: normalizeDashboardStatus(parent.status, parent.active)
+    };
+}
+
+function mapDriverForDashboard(driver) {
+    return {
+        id: driver.id,
+        name: driver.name || driver.user?.name || driver.full_name || 'Driver',
+        license: driver.license || driver.license_number || '',
+        phone: driver.phone || '',
+        applicationDate: safestepDate(driver.applicationDate || driver.created_at),
+        joinDate: safestepDate(driver.joinDate || driver.created_at),
+        experience: driver.experience || `${driver.years_experience || driver.experience_years || 0} years`,
+        bus: driver.bus || 'Assigned by trips',
+        status: normalizeDashboardStatus(driver.status, driver.active)
+    };
+}
+
+function applyInitialAdminData() {
+    const initial = window.__INITIAL_ADMIN_DATA || {};
+    if (Array.isArray(initial.parents) && initial.parents.length) {
+        safestepReplaceArray(parentsData, initial.parents.map(mapParentForDashboard));
+    }
+    if (Array.isArray(initial.drivers) && initial.drivers.length) {
+        safestepReplaceArray(driversData, initial.drivers.map(mapDriverForDashboard));
+    }
+}
+
+applyInitialAdminData();
 
 const financialsData = [
     { id: 1, date: '2024-01-15', type: 'income', description: 'Monthly bus fares', amount: 25000, enteredBy: 'Admin User' },
@@ -1499,6 +1516,30 @@ async function loadApplicationsFromApi() {
     } catch (error) {
         console.warn('Failed to load admin applications:', error.message);
         renderApplications();
+    }
+}
+
+async function loadParentsFromApi() {
+    try {
+        const response = await safestepApi('/api/admin/parents?per_page=all');
+        safestepReplaceArray(parentsData, (response.data || []).map(mapParentForDashboard));
+        renderParents();
+        console.log('ADMIN PARENTS API LOADED', parentsData.length);
+    } catch (error) {
+        console.warn('Failed to load admin parents:', error.message);
+        renderParents();
+    }
+}
+
+async function loadDriversFromApi() {
+    try {
+        const response = await safestepApi('/api/admin/drivers?per_page=all');
+        safestepReplaceArray(driversData, (response.data || []).map(mapDriverForDashboard));
+        renderDrivers();
+        console.log('ADMIN DRIVERS API LOADED', driversData.length);
+    } catch (error) {
+        console.warn('Failed to load admin drivers:', error.message);
+        renderDrivers();
     }
 }
 
@@ -5187,15 +5228,16 @@ function safestepValidationMessage(data, fallback) {
 
 async function safestepApi(url, options = {}) {
     const token = localStorage.getItem('token') || localStorage.getItem('safestep_token');
+    const { headers: customHeaders, ...restOptions } = options;
     const response = await fetch(url, {
         credentials: 'same-origin',
+        ...restOptions,
         headers: {
             'Accept': 'application/json',
             'X-Requested-With': 'XMLHttpRequest',
             'Authorization': token ? `Bearer ${token}` : '',
-            ...(options.headers || {})
-        },
-        ...options
+            ...(customHeaders || {})
+        }
     });
 
     if (response.status === 401) {
@@ -5301,28 +5343,9 @@ async function hydrateAdminDashboardFromApi() {
         safestepReplaceArray(applicationsData, applications.data || []);
         safestepReplaceArray(busRoutesData, routes.data || []);
 
-        safestepReplaceArray(parentsData, (parents.data || []).map(parent => ({
-            id: parent.id,
-            name: parent.name || parent.user?.name || 'Parent',
-            children: (parent.students || []).map(student => student.name || student.full_name).filter(Boolean).join(', ') || 'None',
-            phone: parent.phone || '',
-            email: parent.email || parent.user?.email || '',
-            applicationDate: safestepDate(parent.created_at),
-            joinDate: safestepDate(parent.created_at),
-            status: normalizeDashboardStatus(parent.status, parent.active)
-        })));
+        safestepReplaceArray(parentsData, (parents.data || []).map(mapParentForDashboard));
 
-        safestepReplaceArray(driversData, (drivers.data || []).map(driver => ({
-            id: driver.id,
-            name: driver.name || driver.user?.name || 'Driver',
-            license: driver.license_number || '',
-            phone: driver.phone || '',
-            applicationDate: safestepDate(driver.created_at),
-            joinDate: safestepDate(driver.created_at),
-            experience: `${driver.years_experience || driver.experience_years || 0} years`,
-            bus: 'Assigned by trips',
-            status: normalizeDashboardStatus(driver.status, driver.active)
-        })));
+        safestepReplaceArray(driversData, (drivers.data || []).map(mapDriverForDashboard));
 
         safestepReplaceArray(usersData, (users.data || []).map(user => ({
             id: user.id,

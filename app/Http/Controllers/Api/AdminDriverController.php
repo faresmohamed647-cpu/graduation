@@ -12,7 +12,7 @@ class AdminDriverController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Driver::with('user');
+        $query = Driver::with('user')->latest('id');
 
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {

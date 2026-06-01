@@ -12,7 +12,7 @@ class AdminParentController extends Controller
 {
     public function index(Request $request)
     {
-        $query = ParentProfile::with(['user', 'students']);
+        $query = ParentProfile::with(['user', 'students'])->latest('id');
 
         if ($search = $request->get('search')) {
             $query->whereHas('user', fn ($q) => $q->where('name', 'like', "%{$search}%"));

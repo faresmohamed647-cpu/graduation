@@ -6,8 +6,10 @@ use App\Enums\ApplicationRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ApplicationRequest;
 use App\Models\Application;
+use App\Models\User;
 use App\Services\AdminSubmissionNotifier;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -74,31 +76,10 @@ class ApplicationController extends Controller
                 $notes = trim($notes . ($notes !== '' ? PHP_EOL : '') . 'meta:' . json_encode($roleMetadata, JSON_UNESCAPED_UNICODE));
             }
 
-            // Try to link application to authenticated user if available
-            $userId = null;
-            try {
-                $userId = $request->user()?->id;
-            } catch (\Throwable $e) {
-                // Not authenticated, that's fine for public applications
-            }
-
-            // Also try to match by email if no auth user, or create new user
-            if (!$userId) {
-                $matchedUser = \App\Models\User::where('email', $data['email'])->first();
-                if (!$matchedUser) {
-                    $matchedUser = \App\Models\User::create([
-                        'name' => $data['name'],
-                        'email' => $data['email'],
-                        'password' => \Illuminate\Support\Facades\Hash::make($data['password']),
-                        'plain_password' => $data['password'],
-                        'role' => $role,
-                    ]);
-                }
-                $userId = $matchedUser->id;
-            }
+            $matchedUser = $this->resolveApplicationUser($request, $data, $role);
 
             $application = Application::create([
-                'user_id' => $userId,
+                'user_id' => $matchedUser->id,
                 'full_name' => $data['name'],
                 'email' => $data['email'],
                 'phone' => $data['phone'],
@@ -134,5 +115,37 @@ class ApplicationController extends Controller
                 'errors' => ['server' => ['Please try again later.']],
             ], 500);
         }
+    }
+
+    private function resolveApplicationUser(ApplicationRequest $request, array $data, string $role): User
+    {
+        $email = strtolower((string) $data['email']);
+        $authUser = $request->user();
+
+        if (
+            $authUser
+            && strtolower((string) $authUser->email) === $email
+            && strtolower((string) $authUser->role) === $role
+        ) {
+            return $authUser;
+        }
+
+        $matchedUser = User::where('email', $data['email'])->first();
+
+        if ($matchedUser) {
+            if (strtolower((string) $matchedUser->role) !== $role && $matchedUser->role !== 'admin') {
+                $matchedUser->update(['role' => $role]);
+            }
+
+            return $matchedUser;
+        }
+
+        return User::create([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => Hash::make($data['password']),
+            'plain_password' => $data['password'],
+            'role' => $role,
+        ]);
     }
 }

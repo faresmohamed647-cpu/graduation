@@ -6,8 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Application;
 use App\Models\Driver;
 use App\Models\ParentProfile;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class AdminApplicationController extends Controller
 {
@@ -32,25 +35,25 @@ class AdminApplicationController extends Controller
             $active = $data['status'] === 'accepted';
             $meta = $application->metadata; // parsed JSON from notes column
 
-            $user = null;
-            if ($application->user_id) {
-                $user = \App\Models\User::find($application->user_id);
-            }
-            if (!$user) {
-                $user = \App\Models\User::where('email', $application->email)->first();
-            }
+            $user = $this->resolveApplicationUser($application, $role);
 
             if ($active && !$user) {
-                $user = \App\Models\User::create([
+                $user = User::create([
                     'name' => $application->full_name,
                     'email' => $application->email,
-                    'password' => \Illuminate\Support\Facades\Hash::make('password123'),
+                    'password' => Hash::make('password123'),
                     'plain_password' => 'password123',
                     'role' => $role,
                 ]);
             }
 
             if ($user) {
+                if ($user->role === 'admin' && $role !== 'admin') {
+                    throw ValidationException::withMessages([
+                        'application' => ['This application is linked to an admin account and cannot change it to '.$role.'.'],
+                    ]);
+                }
+
                 if ($active) {
                     $user->update(['role' => $role]);
                 }
@@ -104,5 +107,24 @@ class AdminApplicationController extends Controller
             'status' => 'success',
             'data' => $application->fresh(),
         ]);
+    }
+
+    private function resolveApplicationUser(Application $application, string $role): ?User
+    {
+        $email = strtolower((string) $application->email);
+
+        if ($application->user_id) {
+            $linkedUser = User::find($application->user_id);
+            if ($linkedUser) {
+                $linkedEmail = strtolower((string) $linkedUser->email);
+                $linkedRole = strtolower((string) $linkedUser->role);
+
+                if ($linkedEmail === $email || ($linkedRole === $role && $linkedRole !== 'admin')) {
+                    return $linkedUser;
+                }
+            }
+        }
+
+        return User::where('email', $application->email)->first();
     }
 }

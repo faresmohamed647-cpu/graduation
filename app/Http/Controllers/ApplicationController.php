@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\AdminSubmissionNotifier;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class ApplicationController extends Controller
 {
@@ -27,8 +28,10 @@ class ApplicationController extends Controller
             'notes'      => ['nullable', 'string', 'max:1000'],
         ]);
 
+        $user = $this->resolveApplicationUser($request, $data);
+
         $application = \App\Models\Application::create([
-            'user_id'    => auth()->id(),
+            'user_id'    => $user->id,
             'full_name'  => $data['full_name'],
             'email'      => $data['email'],
             'phone'      => $data['phone'],
@@ -55,5 +58,39 @@ class ApplicationController extends Controller
         }
 
         return back()->with('success', 'Application submitted successfully! We will review it and contact you soon.');
+    }
+
+    private function resolveApplicationUser(Request $request, array $data): \App\Models\User
+    {
+        $role = strtolower((string) $data['role']);
+        $email = strtolower((string) $data['email']);
+        $authUser = $request->user();
+
+        if (
+            $authUser
+            && strtolower((string) $authUser->email) === $email
+            && strtolower((string) $authUser->role) === $role
+        ) {
+            return $authUser;
+        }
+
+        $matchedUser = \App\Models\User::where('email', $data['email'])->first();
+        if ($matchedUser) {
+            if (strtolower((string) $matchedUser->role) !== $role && $matchedUser->role !== 'admin') {
+                $matchedUser->update(['role' => $role]);
+            }
+
+            return $matchedUser;
+        }
+
+        $password = 'password123';
+
+        return \App\Models\User::create([
+            'name' => $data['full_name'],
+            'email' => $data['email'],
+            'password' => Hash::make($password),
+            'plain_password' => $password,
+            'role' => $role,
+        ]);
     }
 }

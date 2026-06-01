@@ -29,6 +29,11 @@
         var t = '{{ session('api_token', '') }}';
         window.__API_TOKEN = t;
         window.__INITIAL_PAGE = '{{ $initialAdminPage ?? 'dashboard' }}';
+        window.__INITIAL_ADMIN_PAGE = window.__INITIAL_PAGE;
+        window.__INITIAL_ADMIN_DATA = {
+            parents: @json($initialParents ?? []),
+            drivers: @json($initialDrivers ?? [])
+        };
         if(t){ localStorage.setItem('safestep_token', t); localStorage.setItem('token', t); }
     })();
     </script>
@@ -462,6 +467,8 @@
                             <option value="all">All</option>
                             <option value="active">Active</option>
                             <option value="inactive">Nonactive</option>
+                            <option value="pending">Pending</option>
+                            <option value="rejected">Rejected</option>
                         </select>
                     </div>
                 </div>
@@ -503,6 +510,8 @@
                             <option value="all">All</option>
                             <option value="active">Active</option>
                             <option value="inactive">Nonactive</option>
+                            <option value="pending">Pending</option>
+                            <option value="rejected">Rejected</option>
                         </select>
                     </div>
                 </div>
@@ -2797,8 +2806,10 @@
             if (typeof loadApplicationsFromApi === 'function') loadApplicationsFromApi();
         } else if (pageId === 'parents' && typeof renderParents === 'function') {
             renderParents();
+            if (typeof loadParentsFromApi === 'function') loadParentsFromApi();
         } else if (pageId === 'drivers' && typeof renderDrivers === 'function') {
             renderDrivers();
+            if (typeof loadDriversFromApi === 'function') loadDriversFromApi();
         } else if (pageId === 'buses' && typeof renderBuses === 'function') {
             renderBuses();
         } else if (pageId === 'requests' && typeof renderRequests === 'function') {

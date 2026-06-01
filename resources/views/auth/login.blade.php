@@ -792,7 +792,7 @@
             <!-- ERROR / SUCCESS MESSAGE -->
             <div class="msg-box error" id="errorMsg">
                 <i class="fas fa-exclamation-circle"></i>
-                <span class="msg-text"></span>
+                <span class="msg-text">{{ $errors->first('email') }}</span>
             </div>
 
             <div class="msg-box success" id="successMsg">
@@ -873,6 +873,7 @@
         // ════════════ STATE ════════════
         let currentRole = 'parent';
         let currentLang = localStorage.getItem('safestep_login_lang') || 'en';
+        const initialServerError = @json($errors->first('email'));
 
         // ════════════ ROLE CONFIG ════════════
         const roleConfig = {
@@ -1187,6 +1188,10 @@
         const roleHint = urlParams.get('role');
         if (roleHint && roleConfig[roleHint]) {
             selectRole(roleHint);
+        }
+
+        if (initialServerError) {
+            showError(initialServerError);
         }
 
         // Apply saved language

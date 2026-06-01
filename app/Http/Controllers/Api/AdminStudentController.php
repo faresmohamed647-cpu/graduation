@@ -10,7 +10,7 @@ class AdminStudentController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Student::with(['parent.user']);
+        $query = Student::with(['parent.user'])->latest('id');
 
         if ($search = $request->get('search')) {
             $query->where('full_name', 'like', "%{$search}%");
