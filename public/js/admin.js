@@ -487,7 +487,8 @@ function applyGlobalSearch(queryText = '') {
     if (hasTableRows) {
         tableRows.forEach(row => {
             const rowText = normalizeSearchText(row.textContent);
-            row.style.display = !query || rowText.includes(query) ? '' : 'none';
+            const matches = !query || rowText.includes(query);
+            row.dataset.searchHidden = matches ? 'false' : 'true';
         });
         highlightSearchMatches(activePage, queryText);
         return;
@@ -951,7 +952,7 @@ let tableEnhancementsInitialized = false;
 
 function getTableState(table) {
     if (!tableStates.has(table)) {
-        tableStates.set(table, { page: 1, pageSize: 5, sortIndex: -1, sortDir: 'asc' });
+        tableStates.set(table, { page: 1, pageSize: 20, sortIndex: -1, sortDir: 'asc' });
     }
     return tableStates.get(table);
 }
@@ -972,9 +973,10 @@ function ensurePaginationControls(table) {
                 Next <i class="fas fa-chevron-right"></i>
             </button>
             <select class="form-control page-size">
-                <option value="5">5 / page</option>
                 <option value="10">10 / page</option>
                 <option value="20">20 / page</option>
+                <option value="50">50 / page</option>
+                <option value="100">100 / page</option>
             </select>
         `;
         wrapper.insertAdjacentElement('afterend', controls);
@@ -1014,9 +1016,13 @@ function applyTableEnhancements(table) {
         rows.forEach(row => tbody.appendChild(row));
     }
 
-    const visibleRows = rows.filter(row => row.style.display !== 'none');
+    const visibleRows = rows.filter(row => row.dataset.searchHidden !== 'true');
     const totalPages = Math.max(1, Math.ceil(visibleRows.length / state.pageSize));
     if (state.page > totalPages) state.page = totalPages;
+
+    rows.forEach(row => {
+        row.style.display = 'none';
+    });
 
     visibleRows.forEach((row, idx) => {
         const start = (state.page - 1) * state.pageSize;
