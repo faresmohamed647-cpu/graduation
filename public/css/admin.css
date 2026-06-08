@@ -3851,6 +3851,14 @@ body.dark-mode {
     --text-primary: #f1f5f9;
     --text-secondary: #94a3b8;
     --border-color: #334155;
+    
+    /* Variables for School Admin and general dashboard dark mode */
+    --light-bg: #1e293b;
+    --text-dark: #f1f5f9;
+    --text-light: #94a3b8;
+    --text-muted: #cbd5e1;
+    --border-light: #334155;
+    
     background: var(--bg-color);
     color: var(--text-primary);
     transition: background-color 0.28s ease, color 0.28s ease;
@@ -4157,5 +4165,209 @@ html[dir="rtl"] .card-actions {
 html[dir="rtl"] .data-table th, 
 html[dir="rtl"] .data-table td {
     text-align: right;
+}
+
+/* ===================================================
+   DARK MODE – Admin & School-Admin dashboards
+   Deep premium dark palette (very dark navy/slate)
+   =================================================== */
+
+/* Apply via <html> class too (set early in <head> script to prevent FOUC) */
+html.dark-mode body,
+body.dark-mode {
+    --light-bg:     #04070e;
+    --card-bg:      #0b1120;
+    --text-dark:    #f1f5f9;
+    --text-light:   #94a3b8;
+    --text-muted:   #64748b;
+    --border-color: #1a2540;
+    --border-light: #101c30;
+    background: linear-gradient(160deg, #04070e 0%, #080f1e 60%, #060c1a 100%) !important;
+    color: var(--text-dark);
+}
+
+html.dark-mode .theme-toggle,
+body.dark-mode .theme-toggle {
+    background: #111827;
+    border-color: #1a2540;
+    color: #f1f5f9;
+}
+
+html.dark-mode .card,
+html.dark-mode .topbar,
+html.dark-mode .search-box,
+html.dark-mode .profile,
+html.dark-mode .table-wrapper,
+html.dark-mode .table-container,
+html.dark-mode .data-table,
+html.dark-mode .modal-content,
+html.dark-mode .stat-card,
+body.dark-mode .card,
+body.dark-mode .topbar,
+body.dark-mode .search-box,
+body.dark-mode .profile,
+body.dark-mode .table-wrapper,
+body.dark-mode .table-container,
+body.dark-mode .data-table,
+body.dark-mode .modal-content,
+body.dark-mode .stat-card {
+    background: #0b1120 !important;
+    border-color: #1a2540 !important;
+    color: var(--text-dark);
+}
+
+html.dark-mode .sidebar,
+body.dark-mode .sidebar {
+    background: linear-gradient(180deg, #04070e 0%, #080e1c 100%);
+    border-right-color: #1a2540;
+}
+
+html.dark-mode .nav-link,
+body.dark-mode .nav-link {
+    color: #94a3b8;
+}
+
+html.dark-mode .nav-link.active,
+html.dark-mode .nav-link:hover,
+body.dark-mode .nav-link.active,
+body.dark-mode .nav-link:hover {
+    color: #ffffff;
+    background: rgba(59, 130, 246, 0.12);
+}
+
+html.dark-mode .data-table thead,
+body.dark-mode .data-table thead {
+    background: #0f1929 !important;
+}
+
+html.dark-mode .data-table th,
+body.dark-mode .data-table th {
+    color: #f8fafc;
+    border-bottom-color: #1a2540 !important;
+}
+
+html.dark-mode .data-table td,
+body.dark-mode .data-table td {
+    color: #cbd5e1;
+    border-bottom-color: #111d30 !important;
+}
+
+html.dark-mode .data-table tbody tr,
+body.dark-mode .data-table tbody tr {
+    background: #0b1120 !important;
+}
+
+html.dark-mode .data-table tbody tr:hover,
+body.dark-mode .data-table tbody tr:hover {
+    background: #131e33 !important;
+}
+
+html.dark-mode input,
+html.dark-mode select,
+html.dark-mode textarea,
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea {
+    background: #0f1929 !important;
+    color: #f1f5f9 !important;
+    border-color: #1a2540 !important;
+}
+
+html.dark-mode input::placeholder,
+html.dark-mode textarea::placeholder,
+body.dark-mode input::placeholder,
+body.dark-mode textarea::placeholder {
+    color: #475569;
+}
+
+html.dark-mode .section-header h2,
+html.dark-mode .page-title,
+html.dark-mode h1, html.dark-mode h2, html.dark-mode h3,
+body.dark-mode .section-header h2,
+body.dark-mode .page-title,
+body.dark-mode h1, body.dark-mode h2, body.dark-mode h3 {
+    color: #f8fafc;
+}
+
+html.dark-mode .text-muted,
+body.dark-mode .text-muted {
+    color: #64748b !important;
+}
+
+html.dark-mode .requests-list,
+html.dark-mode .requests-list-container,
+body.dark-mode .requests-list,
+body.dark-mode .requests-list-container {
+    background: #0b1120;
+    border-color: #1a2540;
+}
+
+html.dark-mode .request-item,
+body.dark-mode .request-item {
+    background: #0f1929;
+    border-color: #1a2540;
+}
+
+html.dark-mode .request-item:hover,
+body.dark-mode .request-item:hover {
+    background: #131e33;
+}
+
+html.dark-mode .topbar,
+body.dark-mode .topbar {
+    border-bottom: 1px solid #1a2540 !important;
+    box-shadow: 0 1px 0 #1a2540 !important;
+}
+
+html.dark-mode .form-label,
+html.dark-mode label,
+body.dark-mode .form-label,
+body.dark-mode label {
+    color: #cbd5e1;
+}
+
+html.dark-mode .card .card-header,
+body.dark-mode .card .card-header {
+    border-bottom-color: #1a2540;
+    background: #0f1929;
+}
+
+html.dark-mode .badge-success,
+body.dark-mode .badge-success {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+}
+
+html.dark-mode .badge-warning,
+body.dark-mode .badge-warning {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+}
+
+html.dark-mode .badge-danger,
+body.dark-mode .badge-danger {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+}
+
+html.dark-mode .badge-info,
+body.dark-mode .badge-info {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+}
+
+html.dark-mode .stat-card .stat-icon,
+body.dark-mode .stat-card .stat-icon {
+    opacity: 0.85;
+}
+
+html.dark-mode .stat-info h3,
+body.dark-mode .stat-info h3 {
+    color: #f8fafc;
+}
+
+html.dark-mode .stat-info p,
+body.dark-mode .stat-info p {
+    color: #64748b;
 }
 

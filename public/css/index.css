@@ -3373,19 +3373,19 @@ textarea:focus {
 }
 /* Dark Mode */
 body.dark-mode {
-    --light-bg: #0a1020;
-    --card-bg: #121a2b;
-    --text-dark: #f1f5f9;
-    --text-light: #cbd5e1;
-    --text-muted: #a5b4c7;
-    --border-color: #334155;
-    --border-light: #1e293b;
-    background: linear-gradient(135deg, #0a1020 0%, #121a2b 100%);
+    --light-bg:     #04070e;
+    --card-bg:      #0b1120;
+    --text-dark:    #f1f5f9;
+    --text-light:   #94a3b8;
+    --text-muted:   #64748b;
+    --border-color: #1a2540;
+    --border-light: #101c30;
+    background: linear-gradient(160deg, #04070e 0%, #080f1e 60%, #060c1a 100%);
 }
 
 body.dark-mode .theme-toggle {
-    background: #1f2937;
-    border-color: #334155;
+    background: #111827;
+    border-color: #1a2540;
     color: #f1f5f9;
 }
 
@@ -3396,30 +3396,31 @@ body.dark-mode .profile,
 body.dark-mode .table-wrapper,
 body.dark-mode .data-table,
 body.dark-mode .map-overlay {
-    background: #121a2b;
-    border-color: #334155;
+    background: #0b1120;
+    border-color: #1a2540;
     color: var(--text-dark);
 }
 
 body.dark-mode .data-table thead {
-    background: #182338;
+    background: #0f1929;
 }
 
 body.dark-mode .data-table th {
     color: #f8fafc;
+    border-bottom-color: #1a2540;
 }
 
 body.dark-mode .data-table td {
-    color: #e2e8f0;
-    border-bottom-color: #243244;
+    color: #cbd5e1;
+    border-bottom-color: #111d30;
 }
 
 body.dark-mode .data-table tbody tr {
-    background: #121a2b;
+    background: #0b1120;
 }
 
 body.dark-mode .data-table tbody tr:hover {
-    background: #1b263b;
+    background: #131e33;
 }
 
 /* ===== Global Responsive Hardening ===== */

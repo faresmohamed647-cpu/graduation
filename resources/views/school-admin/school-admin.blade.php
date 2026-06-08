@@ -27,8 +27,14 @@
         if(t){ localStorage.setItem('safestep_token', t); localStorage.setItem('token', t); }
     })();
     </script>
+    <!-- Prevent dark-mode flash before body exists -->
+    <script>
+    (function(){
+        var t = localStorage.getItem('safestep-theme');
+        if(t === 'dark') document.documentElement.classList.add('dark-mode');
+    })();
+    </script>
     <script src="{{ asset('js/api-service.js') }}"></script>
-    <script src="{{ asset('js/dashboard-theme.js') }}"></script>
     <script src="{{ asset('js/spa-navigation.js') }}"></script>
     <style>
         .topbar-school-meta { display: flex; flex-direction: column; gap: 2px; }
@@ -472,6 +478,7 @@
         </div>
     </div>
 
+    <script src="{{ asset('js/dashboard-theme.js') }}"></script>
     <script src="{{ asset('js/i18n-school-admin.js') }}"></script>
     <script src="{{ asset('js/school-admin.js') }}"></script>
 </body>

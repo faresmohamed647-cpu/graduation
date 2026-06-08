@@ -730,12 +730,21 @@
         if (busId) postBody.bus_id = busId;
         if (routeId) postBody.bus_route_id = routeId;
 
+        const requestBody = {
+            request_type: 'add_student',
+            subject: `Add Student: ${payload.name}`,
+            description: `Request to add student: ${payload.name}, Grade: ${payload.grade}`,
+            priority: 'medium',
+            metadata: postBody
+        };
+
         try {
-            await api('/students', {
+            await safestepApi('/api/service-requests', {
                 method: 'POST',
-                body: postBody,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
             });
-            toast('Student added successfully', 'success');
+            toast('Addition request sent to Admin for approval', 'success');
         } catch (_) {
             cache.students.push(payload);
             toast('Student added (demo mode)', 'info');
@@ -882,16 +891,28 @@
             insurance_alert: false,
             status: 'active'
         };
+
+        const postBody = {
+            bus_number: payload.bus_number,
+            plate_number: payload.plate_number,
+            capacity: payload.capacity,
+        };
+
+        const requestBody = {
+            request_type: 'add_bus',
+            subject: `Add Bus: ${payload.bus_number}`,
+            description: `Request to add bus: ${payload.bus_number}, Plate: ${payload.plate_number}, Capacity: ${payload.capacity}`,
+            priority: 'medium',
+            metadata: postBody
+        };
+
         try {
-            await api('/buses', {
+            await safestepApi('/api/service-requests', {
                 method: 'POST',
-                body: {
-                    bus_number: payload.bus_number,
-                    plate_number: payload.plate_number,
-                    capacity: payload.capacity,
-                },
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
             });
-            toast('Bus added successfully', 'success');
+            toast('Addition request sent to Admin for approval', 'success');
         } catch (_) {
             cache.buses.push(payload);
             toast('Bus added (demo mode)', 'info');
@@ -1059,17 +1080,29 @@
             students_count: 0,
             stops: [{ name: 'School Gate', lat: 31.2001, lng: 29.9187, order: 1 }],
         };
+
+        const postBody = {
+            name: payload.name,
+            type: payload.type,
+            estimated_minutes: payload.estimated_minutes,
+            stops: payload.stops,
+        };
+
+        const requestBody = {
+            request_type: 'add_route',
+            subject: `Add Route: ${payload.name}`,
+            description: `Request to add route: ${payload.name} (${payload.type}), Estimated time: ${payload.estimated_minutes} min`,
+            priority: 'medium',
+            metadata: postBody
+        };
+
         try {
-            await api('/routes', {
+            await safestepApi('/api/service-requests', {
                 method: 'POST',
-                body: {
-                    name: payload.name,
-                    type: payload.type,
-                    estimated_minutes: payload.estimated_minutes,
-                    stops: payload.stops,
-                },
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
             });
-            toast('Route added successfully', 'success');
+            toast('Addition request sent to Admin for approval', 'success');
         } catch (_) {
             cache.routes.push(payload);
             toast('Route added (demo mode)', 'info');
@@ -1182,18 +1215,31 @@
     }
 
     async function saveTrip() {
+        const postBody = {
+            trip_date: el('mTripDate').value,
+            shift: el('mTripShift').value,
+            driver_id: parseInt(el('mTripDriver').value, 10),
+            bus_id: parseInt(el('mTripBus').value, 10),
+            bus_route_id: parseInt(el('mTripRoute').value, 10),
+        };
+
+        const routeObj = cache.routes.find(r => r.id === postBody.bus_route_id) || { name: 'Route' };
+
+        const requestBody = {
+            request_type: 'add_trip',
+            subject: `Schedule Trip: ${routeObj.name}`,
+            description: `Request to schedule trip on ${postBody.trip_date} (${postBody.shift})`,
+            priority: 'medium',
+            metadata: postBody
+        };
+
         try {
-            await api('/trips', {
+            await safestepApi('/api/service-requests', {
                 method: 'POST',
-                body: {
-                    trip_date: el('mTripDate').value,
-                    shift: el('mTripShift').value,
-                    driver_id: parseInt(el('mTripDriver').value, 10),
-                    bus_id: parseInt(el('mTripBus').value, 10),
-                    bus_route_id: parseInt(el('mTripRoute').value, 10),
-                },
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
             });
-            toast('Trip scheduled successfully', 'success');
+            toast('Schedule trip request sent to Admin for approval', 'success');
         } catch (_) {
             toast('Trip scheduled (demo mode)', 'info');
         }

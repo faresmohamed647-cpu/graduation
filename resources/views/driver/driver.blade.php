@@ -105,10 +105,14 @@
 <body>
     <!-- Sidebar -->
     <div class="sidebar">
-        <div class="logo">
-            <i class="fas fa-shield-alt"></i>
-            <h2>SAFESTEP BUS</h2>
-            <span class="portal-tag" style="display:block; font-size:11px; font-weight:600; color:rgba(255,255,255,.55); margin-top:2px; letter-spacing:.06em; text-transform:uppercase;">Driver Portal</span>
+        <div class="logo" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 16px; min-height: 90px; justify-content: center;">
+            <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
+                <i class="fas fa-shield-alt" style="font-size: 28px; background: linear-gradient(135deg, var(--primary-light), var(--primary-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; filter: drop-shadow(0 2px 4px rgba(59, 130, 246, 0.3));"></i>
+                <h2 style="font-size: 20px; font-weight: 700; letter-spacing: -0.5px; background: linear-gradient(135deg, #FFFFFF, #E2E8F0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin: 0;">SAFESTEP BUS</h2>
+            </div>
+            <div style="margin-top: 6px; width: 100%;">
+                <span class="portal-tag" style="display:block; font-size:11px; font-weight:600; color:rgba(255,255,255,.55); text-transform:uppercase; letter-spacing:.06em;">Driver Portal</span>
+            </div>
         </div>
         <nav class="nav-menu">
             <a href="#" class="nav-link active" data-page="dashboard">

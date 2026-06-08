@@ -155,13 +155,81 @@ class ServiceRequestController extends Controller
             $updateData['handled_at'] = now();
         }
 
+        $oldStatus = $serviceRequest->status;
         $serviceRequest->update($updateData);
+
+        if ($serviceRequest->role === 'school_admin' && $data['status'] === 'resolved' && $oldStatus !== 'resolved') {
+            $this->approveSchoolRequest($serviceRequest);
+        }
 
         return response()->json([
             'status' => 'success',
             'message' => 'Request updated successfully.',
             'data' => $serviceRequest->fresh(['user', 'handler']),
         ]);
+    }
+
+    /**
+     * Helper to approve school request and create database entries.
+     */
+    private function approveSchoolRequest(ServiceRequest $serviceRequest)
+    {
+        $type = $serviceRequest->request_type;
+        $meta = $serviceRequest->metadata;
+        $schoolId = $serviceRequest->user->school_id ?? null;
+
+        if (is_string($meta)) {
+            $meta = json_decode($meta, true) ?: [];
+        }
+
+        switch ($type) {
+            case 'add_student':
+                \App\Models\Student::create([
+                    'school_id' => $schoolId,
+                    'parent_id' => $meta['parent_id'] ?? null,
+                    'full_name' => $meta['full_name'] ?? $meta['name'] ?? null,
+                    'grade' => $meta['grade'] ?? null,
+                    'bus_id' => $meta['bus_id'] ?? null,
+                    'bus_route_id' => $meta['bus_route_id'] ?? null,
+                    'qr_code' => 'QR-' . rand(100, 999),
+                    'rfid_tag' => 'RFID-' . rand(100, 999),
+                    'active' => true,
+                ]);
+                break;
+            case 'add_bus':
+                \App\Models\Bus::create([
+                    'school_id' => $schoolId,
+                    'bus_number' => $meta['bus_number'] ?? null,
+                    'plate_number' => $meta['plate_number'] ?? null,
+                    'capacity' => $meta['capacity'] ?? null,
+                    'insurance_expiry' => now()->addYear(),
+                    'status' => 'active',
+                    'active' => true,
+                ]);
+                break;
+            case 'add_route':
+                \App\Models\BusRoute::create([
+                    'school_id' => $schoolId,
+                    'name' => $meta['name'] ?? null,
+                    'type' => $meta['type'] ?? 'morning',
+                    'estimated_minutes' => $meta['estimated_minutes'] ?? 30,
+                    'stops' => $meta['stops'] ?? [],
+                    'distance_km' => 5.0,
+                    'active' => true,
+                ]);
+                break;
+            case 'add_trip':
+                \App\Models\Trip::create([
+                    'school_id' => $schoolId,
+                    'trip_date' => $meta['trip_date'] ?? null,
+                    'shift' => $meta['shift'] ?? 'morning',
+                    'driver_id' => $meta['driver_id'] ?? null,
+                    'bus_id' => $meta['bus_id'] ?? null,
+                    'bus_route_id' => $meta['bus_route_id'] ?? null,
+                    'status' => 'active',
+                ]);
+                break;
+        }
     }
 
     /**

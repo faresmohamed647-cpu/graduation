@@ -1155,6 +1155,9 @@ navLinks.forEach(link => {
         } else if (pageId === 'requests') {
             renderRequests();
             loadRequestsFromApi();
+        } else if (pageId === 'school-requests') {
+            renderSchoolRequests();
+            loadSchoolRequestsFromApi();
         } else if (pageId === 'account-recovery') {
             renderAccountRecovery();
         } else if (pageId === 'financials') {
@@ -3863,6 +3866,7 @@ function normalizeRequest(request, fallbackId) {
     let normalizedRole;
     if (rawRole === 'guest') normalizedRole = 'guest';
     else if (rawRole === 'driver') normalizedRole = 'driver';
+    else if (rawRole === 'school_admin' || rawRole === 'school-admin') normalizedRole = 'school_admin';
     else normalizedRole = 'parent';
 
     return {
@@ -5621,6 +5625,9 @@ document.addEventListener('spa:pageChanged', (e) => {
     if (e.detail?.pageId === 'requests') {
         loadRequestsFromApi();
     }
+    if (e.detail?.pageId === 'school-requests') {
+        loadSchoolRequestsFromApi();
+    }
     if (e.detail?.pageId !== 'live-tracking' && typeof stopLiveTrackingPoll === 'function') {
         stopLiveTrackingPoll();
     }
@@ -5672,3 +5679,117 @@ updateApplicationStatus = async function(id, status) {
         });
     }
 };
+
+// --- School Requests Section ---
+let schoolRequestsData = [];
+
+async function loadSchoolRequestsFromApi() {
+    try {
+        const response = await safestepApi('/api/admin/service-requests?role=school_admin');
+        const payload = response.data?.data ?? response.data ?? [];
+        const items = Array.isArray(payload) ? payload : (payload.data || []);
+        schoolRequestsData = items;
+        renderSchoolRequests();
+    } catch (err) {
+        console.warn('Failed to load school requests:', err.message);
+        renderSchoolRequests();
+    }
+}
+
+function renderSchoolRequests() {
+    const tbody = document.querySelector('#schoolRequestsTable tbody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    if (schoolRequestsData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 20px;">No pending school requests.</td></tr>';
+        return;
+    }
+
+    schoolRequestsData.forEach(req => {
+        const tr = document.createElement('tr');
+        const metadata = req.metadata || {};
+        let details = '';
+        if (req.request_type === 'add_student') {
+            details = `<b>Student:</b> ${metadata.full_name || metadata.name || ''} (Grade: ${metadata.grade || ''})`;
+        } else if (req.request_type === 'add_bus') {
+            details = `<b>Bus:</b> ${metadata.bus_number || ''} (Plate: ${metadata.plate_number || ''}, Capacity: ${metadata.capacity || ''})`;
+        } else if (req.request_type === 'add_route') {
+            details = `<b>Route:</b> ${metadata.name || ''} (${metadata.type || ''}, ${metadata.estimated_minutes || ''} min)`;
+        } else if (req.request_type === 'add_trip') {
+            details = `<b>Trip:</b> ${metadata.trip_date || ''} (${metadata.shift || ''})`;
+        } else {
+            details = req.description;
+        }
+
+        tr.innerHTML = `
+            <td><strong>${req.user?.name || req.from || 'School Admin'}</strong></td>
+            <td><span class="status-badge active">${req.request_type.replace('add_', 'Add ').toUpperCase()}</span></td>
+            <td>${details}</td>
+            <td>
+                <span class="status-badge ${req.priority === 'high' ? 'danger' : req.priority === 'medium' ? 'warning' : 'active'}">
+                    ${req.priority.charAt(0).toUpperCase() + req.priority.slice(1)}
+                </span>
+            </td>
+            <td>
+                <span class="status-badge ${req.status}">
+                    ${req.status === 'pending' ? 'New' : req.status === 'resolved' ? 'Approved' : req.status === 'rejected' ? 'Rejected' : req.status}
+                </span>
+            </td>
+            <td>${req.created_at ? new Date(req.created_at).toLocaleString() : ''}</td>
+            <td>
+                <div class="table-actions">
+                    ${req.status === 'pending' ? `
+                        <button class="btn btn-success" style="padding: 6px 10px; font-size: 12px;" onclick="approveSchoolRequest(${req.id})">
+                            <i class="fas fa-check"></i> Approve
+                        </button>
+                        <button class="btn btn-danger" style="padding: 6px 10px; font-size: 12px; margin-left: 5px;" onclick="rejectSchoolRequest(${req.id})">
+                            <i class="fas fa-times"></i> Reject
+                        </button>
+                    ` : `
+                        <span style="color: var(--text-muted); font-size: 12px;">No Actions</span>
+                    `}
+                </div>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+async function approveSchoolRequest(id) {
+    if (!confirm('Are you sure you want to approve this request? This will create the entity in the system.')) return;
+    try {
+        await safestepApi(`/api/admin/service-requests/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'resolved' })
+        });
+        showToast('Request approved and created successfully.', 'success');
+        await loadSchoolRequestsFromApi();
+    } catch (err) {
+        console.error(err);
+        showToast('Failed to approve request.', 'error');
+    }
+}
+
+async function rejectSchoolRequest(id) {
+    if (!confirm('Are you sure you want to reject this request?')) return;
+    try {
+        await safestepApi(`/api/admin/service-requests/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'rejected' })
+        });
+        showToast('Request rejected.', 'info');
+        await loadSchoolRequestsFromApi();
+    } catch (err) {
+        console.error(err);
+        showToast('Failed to reject request.', 'error');
+    }
+}
+
+window.loadSchoolRequestsFromApi = loadSchoolRequestsFromApi;
+window.renderSchoolRequests = renderSchoolRequests;
+window.approveSchoolRequest = approveSchoolRequest;
+window.rejectSchoolRequest = rejectSchoolRequest;

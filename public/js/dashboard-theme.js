@@ -13,9 +13,16 @@
 
     function applyTheme(theme) {
         const isDark = theme === 'dark';
-        document.body.style.transition = `background-color ${TRANSITION_MS}ms ease, color ${TRANSITION_MS}ms ease`;
-        document.body.classList.toggle('dark-mode', isDark);
+
+        // Apply to <html> immediately (works even before <body> exists)
+        document.documentElement.classList.toggle('dark-mode', isDark);
         document.documentElement.setAttribute('data-dashboard-theme', theme);
+
+        // Apply to <body> if it exists
+        if (document.body) {
+            document.body.style.transition = `background-color ${TRANSITION_MS}ms ease, color ${TRANSITION_MS}ms ease`;
+            document.body.classList.toggle('dark-mode', isDark);
+        }
 
         const btn = getToggleButton();
         if (btn) {
@@ -39,28 +46,30 @@
         }
     }
 
-    function initDashboardTheme() {
-        const saved = localStorage.getItem(STORAGE_KEY) || 'light';
-        applyTheme(saved);
+    // Apply saved theme IMMEDIATELY (prevents flash — works in <head> too via <html> class)
+    const saved = localStorage.getItem(STORAGE_KEY) || 'light';
+    applyTheme(saved);
 
-        const btn = getToggleButton();
-        if (!btn || btn.dataset.themeBound === '1') {
-            return;
-        }
-
-        btn.dataset.themeBound = '1';
-        btn.addEventListener('click', () => {
-            const next = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
-            localStorage.setItem(STORAGE_KEY, next);
-            applyTheme(next);
-        });
+    // Re-apply on DOM ready to catch <body> and update button state
+    function onDomReady() {
+        applyTheme(localStorage.getItem(STORAGE_KEY) || 'light');
     }
-
-    window.SafeStepTheme = { applyTheme, initDashboardTheme, STORAGE_KEY };
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initDashboardTheme);
+        document.addEventListener('DOMContentLoaded', onDomReady);
     } else {
-        initDashboardTheme();
+        onDomReady();
     }
+
+    // Use event delegation for click to support dynamic themes / DOM updates
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('#themeToggle');
+        if (!btn) return;
+
+        const next = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
+        localStorage.setItem(STORAGE_KEY, next);
+        applyTheme(next);
+    });
+
+    window.SafeStepTheme = { applyTheme, STORAGE_KEY };
 })();
