@@ -8,6 +8,8 @@ use App\Models\Bus;
 use App\Models\BusLocation;
 use App\Models\BusRoute;
 use App\Models\Driver;
+use App\Models\EmergencyAlert;
+use App\Models\School;
 use App\Services\BusTrackingService;
 use App\Models\ParentProfile;
 use App\Models\Student;
@@ -25,6 +27,9 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $admin = $this->seedUser('Admin SafeStep', 'admin@safestep.com', 'admin');
+
+        $schools = $this->seedSchools();
+        $this->seedSchoolAdmins($schools);
 
         $drivers = collect([
             ['name' => 'Ahmed Khaled', 'email' => 'ahmed.khaled@safestep.com', 'phone' => '01012345678', 'license' => 'DR-1234-EG', 'exp' => 8],
@@ -57,16 +62,20 @@ class DatabaseSeeder extends Seeder
             $parents->push($parent);
 
             foreach ($data['children'] as $child) {
+                $school = $schools->first(fn (School $s) => $s->name === $child['school']);
                 $students->push(Student::updateOrCreate(
                     ['parent_id' => $parent->id, 'full_name' => $child['full_name']],
                     [
                         'grade' => $child['grade'],
                         'school_name' => $child['school'],
+                        'school_id' => $school?->id,
                         'active' => true,
                     ]
                 ));
             }
         }
+
+        $primarySchool = $schools->first();
 
         $buses = Bus::exists()
             ? Bus::orderBy('id')->take(4)->get()->values()
@@ -75,15 +84,24 @@ class DatabaseSeeder extends Seeder
                 ['bus_number' => 'BUS-002', 'plate_number' => 'DEF 5678', 'capacity' => 40],
                 ['bus_number' => 'BUS-003', 'plate_number' => 'GHI 9012', 'capacity' => 50],
                 ['bus_number' => 'BUS-004', 'plate_number' => 'JKL 3456', 'capacity' => 35],
-            ])->map(fn (array $data) => Bus::create($data + ['active' => true]))->values();
+            ])->map(fn (array $data, int $index) => Bus::create($data + [
+                'active' => true,
+                'school_id' => $primarySchool?->id,
+                'driver_id' => $drivers[$index % $drivers->count()]->id ?? null,
+                'status' => 'active',
+            ]))->values();
 
         $routes = BusRoute::exists()
             ? BusRoute::orderBy('id')->take(4)->get()->values()
-            : collect($this->routeSeedData())->map(fn (array $data) => BusRoute::create([
+            : collect($this->routeSeedData())->map(fn (array $data, int $index) => BusRoute::create([
                 'name' => $data['name'],
                 'type' => $data['type'],
                 'stops' => $data['stops'],
                 'estimated_minutes' => $data['estimated_minutes'],
+                'distance_km' => ($data['estimated_minutes'] ?? 30) * 0.5,
+                'school_id' => $primarySchool?->id,
+                'bus_id' => $buses[$index % $buses->count()]->id ?? null,
+                'driver_id' => $drivers[$index % $drivers->count()]->id ?? null,
                 'active' => true,
             ]))->values();
 
@@ -98,7 +116,9 @@ class DatabaseSeeder extends Seeder
                 ['driver_id' => $drivers[0]->id, 'bus_id' => $buses[3]->id, 'bus_route_id' => $routes[3]->id, 'trip_date' => $today, 'shift' => 'afternoon', 'status' => 'active', 'started_at' => now()->subMinutes(15)],
                 ['driver_id' => $drivers[1]->id, 'bus_id' => $buses[0]->id, 'bus_route_id' => $routes[0]->id, 'trip_date' => $yesterday, 'shift' => 'morning', 'status' => 'completed', 'started_at' => now()->subDay()->setTime(7, 0), 'ended_at' => now()->subDay()->setTime(8, 30)],
                 ['driver_id' => $drivers[2]->id, 'bus_id' => $buses[1]->id, 'bus_route_id' => $routes[1]->id, 'trip_date' => $yesterday, 'shift' => 'afternoon', 'status' => 'completed', 'started_at' => now()->subDay()->setTime(14, 0), 'ended_at' => now()->subDay()->setTime(15, 30)],
-            ])->map(fn (array $data) => Trip::create($data))->values();
+            ])->map(fn (array $data) => Trip::create($data + ['school_id' => $primarySchool?->id]))->values();
+
+        $this->syncSchoolFleet($schools, $drivers, $students, $buses, $routes, $trips);
 
         if (! Attendance::exists()) {
             $this->seedAttendance($trips, $students);
@@ -110,8 +130,15 @@ class DatabaseSeeder extends Seeder
 
         $this->seedNotifications($admin, $drivers, $parents);
         $this->seedApplications();
+        $schools->each(fn (School $school) => $this->seedEmergencyAlerts($school));
+
+        if (env('SEED_LARGE_SCALE', false)) {
+            $this->call(LargeScaleSeeder::class);
+        }
 
         $this->command?->info('SafeStep seed data is present. Seeder is idempotent and safe to rerun.');
+        $this->command?->info('School Admin login: school.admin@alazhar.safestep.com / password → /school-admin');
+        $this->command?->info('Join registration: /join | Large scale: SEED_LARGE_SCALE=true php artisan db:seed --class=LargeScaleSeeder');
     }
 
     private function seedApplications(): void
@@ -141,7 +168,7 @@ class DatabaseSeeder extends Seeder
         }
     }
 
-    private function seedUser(string $name, string $email, string $role): User
+    private function seedUser(string $name, string $email, string $role, ?int $schoolId = null): User
     {
         $user = User::firstOrNew(['email' => $email]);
         $user->fill([
@@ -149,11 +176,158 @@ class DatabaseSeeder extends Seeder
             'password' => $user->exists ? $user->password : Hash::make('password'),
             'plain_password' => 'password',
             'role' => $role,
+            'school_id' => $schoolId,
         ]);
         $user->forceFill(['email_verified_at' => $user->email_verified_at ?? now()]);
         $user->save();
 
         return $user;
+    }
+
+    private function seedSchools()
+    {
+        $data = [
+            [
+                'name' => 'Al-Azhar International School',
+                'email' => 'admin@alazhar.safestep.com',
+                'phone' => '03-1234567',
+                'address' => 'Smouha, Alexandria',
+                'principal_name' => 'Dr. Nadia Hassan',
+                'status' => 'active',
+            ],
+            [
+                'name' => 'Cairo American College',
+                'email' => 'admin@cac.safestep.com',
+                'phone' => '02-9876543',
+                'address' => 'Maadi, Cairo',
+                'principal_name' => 'Mr. James Wilson',
+                'status' => 'active',
+            ],
+            [
+                'name' => 'British International School Cairo',
+                'email' => 'admin@bisc.safestep.com',
+                'phone' => '02-5551234',
+                'address' => 'Heliopolis, Cairo',
+                'principal_name' => 'Mrs. Sarah Thompson',
+                'status' => 'active',
+            ],
+        ];
+
+        return collect($data)->map(fn (array $school) => School::updateOrCreate(
+            ['name' => $school['name']],
+            $school
+        ))->values();
+    }
+
+    private function seedSchoolAdmins($schools): void
+    {
+        $admins = [
+            ['name' => 'Nadia Hassan', 'email' => 'school.admin@alazhar.safestep.com', 'school' => 'Al-Azhar International School'],
+            ['name' => 'James Wilson', 'email' => 'school.admin@cac.safestep.com', 'school' => 'Cairo American College'],
+            ['name' => 'Sarah Thompson', 'email' => 'school.admin@bisc.safestep.com', 'school' => 'British International School Cairo'],
+        ];
+
+        foreach ($admins as $admin) {
+            $school = $schools->first(fn (School $s) => $s->name === $admin['school']);
+            $this->seedUser($admin['name'], $admin['email'], 'school_admin', $school?->id);
+        }
+    }
+
+    private function seedEmergencyAlerts(?School $school): void
+    {
+        if (! $school || EmergencyAlert::where('school_id', $school->id)->exists()) {
+            return;
+        }
+
+        $messages = [
+            'Al-Azhar International School' => 'Heavy fog reported on Smouha route — delays expected.',
+            'Cairo American College' => 'Traffic congestion near Maadi — afternoon pickup delayed.',
+            'British International School Cairo' => 'Road maintenance on Heliopolis corridor — monitor trip times.',
+        ];
+
+        EmergencyAlert::create([
+            'school_id' => $school->id,
+            'type' => 'weather',
+            'severity' => 'medium',
+            'status' => 'open',
+            'message' => $messages[$school->name] ?? 'Operational alert for school transport.',
+        ]);
+    }
+
+    private function syncSchoolFleet($schools, $drivers, $students, $buses, $routes, $trips): void
+    {
+        $plan = [
+            'Al-Azhar International School' => [
+                'driver_email' => 'ahmed.khaled@safestep.com',
+                'bus_numbers' => ['BUS-001', 'BUS-002'],
+                'route_index' => 0,
+            ],
+            'Cairo American College' => [
+                'driver_email' => 'mohamed.samir@safestep.com',
+                'bus_numbers' => ['BUS-003'],
+                'route_index' => 1,
+            ],
+            'British International School Cairo' => [
+                'driver_email' => 'hassan.ibrahim@safestep.com',
+                'bus_numbers' => ['BUS-004'],
+                'route_index' => 2,
+            ],
+        ];
+
+        foreach ($plan as $schoolName => $config) {
+            $school = $schools->first(fn (School $s) => $s->name === $schoolName);
+            if (! $school) {
+                continue;
+            }
+
+            $driver = Driver::with('user')->whereHas('user', fn ($q) => $q->where('email', $config['driver_email']))->first()
+                ?? $drivers->first();
+            if ($driver) {
+                $driver->update(['school_id' => $school->id, 'active' => true, 'status' => 'approved']);
+            }
+
+            $schoolBuses = Bus::whereIn('bus_number', $config['bus_numbers'])->get();
+            foreach ($schoolBuses as $bus) {
+                $bus->update([
+                    'school_id' => $school->id,
+                    'driver_id' => $driver?->id,
+                    'active' => true,
+                    'status' => 'active',
+                ]);
+            }
+
+            $route = $routes->values()[$config['route_index']] ?? null;
+            if ($route) {
+                $route->update([
+                    'school_id' => $school->id,
+                    'bus_id' => $schoolBuses->first()?->id,
+                    'driver_id' => $driver?->id,
+                    'active' => true,
+                ]);
+            }
+
+            $schoolStudents = Student::where('school_id', $school->id)->get();
+            foreach ($schoolStudents->values() as $index => $student) {
+                $bus = $schoolBuses[$index % max(1, $schoolBuses->count())] ?? $schoolBuses->first();
+                $student->update([
+                    'bus_id' => $bus?->id,
+                    'bus_route_id' => $route?->id,
+                    'school_name' => $school->name,
+                    'active' => true,
+                ]);
+            }
+
+            if ($schoolBuses->isNotEmpty()) {
+                Trip::whereIn('bus_id', $schoolBuses->pluck('id'))->update(['school_id' => $school->id]);
+            }
+        }
+
+        Student::whereNull('school_id')->whereNotNull('school_name')->get()->each(function (Student $student) use ($schools) {
+            $school = $schools->first(fn (School $s) => $s->name === $student->school_name);
+            if ($school) {
+                $student->update(['school_id' => $school->id]);
+            }
+        });
     }
 
     private function seedAttendance($trips, $students): void
@@ -223,13 +397,13 @@ class DatabaseSeeder extends Seeder
                 ['full_name' => 'Farida Mohamed', 'grade' => 'Grade 9', 'school' => 'British International School Cairo'],
             ]],
             ['name' => 'Hana Mostafa', 'email' => 'hana.mostafa@safestep.com', 'phone' => '01288776655', 'address' => 'New Cairo', 'children' => [
-                ['full_name' => 'Ziad Mostafa', 'grade' => 'Grade 2', 'school' => 'Maadi STEM School'],
-                ['full_name' => 'Salma Mostafa', 'grade' => 'Grade 8', 'school' => 'Maadi STEM School'],
+                ['full_name' => 'Ziad Mostafa', 'grade' => 'Grade 2', 'school' => 'Cairo American College'],
+                ['full_name' => 'Salma Mostafa', 'grade' => 'Grade 8', 'school' => 'Cairo American College'],
             ]],
             ['name' => 'Amira Khaled', 'email' => 'amira.khaled@safestep.com', 'phone' => '01555667788', 'address' => 'October City, Giza', 'children' => [
-                ['full_name' => 'Hamza Khaled', 'grade' => 'Grade 10', 'school' => 'Nile Egyptian Schools'],
-                ['full_name' => 'Jana Khaled', 'grade' => 'Grade 4', 'school' => 'Nile Egyptian Schools'],
-                ['full_name' => 'Kareem Khaled', 'grade' => 'Grade 6', 'school' => 'Nile Egyptian Schools'],
+                ['full_name' => 'Hamza Khaled', 'grade' => 'Grade 10', 'school' => 'British International School Cairo'],
+                ['full_name' => 'Jana Khaled', 'grade' => 'Grade 4', 'school' => 'British International School Cairo'],
+                ['full_name' => 'Kareem Khaled', 'grade' => 'Grade 6', 'school' => 'British International School Cairo'],
             ]],
         ];
     }

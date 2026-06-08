@@ -68,6 +68,15 @@ class ApplicationController extends Controller
                     'highest_qualification' => $data['highest_qualification'] ?? null,
                     'availability' => $data['availability'] ?? null,
                 ],
+                ApplicationRole::School->value => [
+                    'school_name' => $data['school_name'] ?? null,
+                    'school_email' => $data['school_email'] ?? null,
+                    'principal_name' => $data['principal_name'] ?? null,
+                    'school_address' => $data['school_address'] ?? null,
+                    'student_count' => $data['student_count'] ?? null,
+                    'bus_count' => $data['bus_count'] ?? null,
+                    'school_logo' => $this->storeSchoolLogo($request),
+                ],
                 default => [],
             };
 
@@ -79,7 +88,7 @@ class ApplicationController extends Controller
             $matchedUser = $this->resolveApplicationUser($request, $data, $role);
 
             $application = Application::create([
-                'user_id' => $matchedUser->id,
+                'user_id' => $matchedUser?->id,
                 'full_name' => $data['name'],
                 'email' => $data['email'],
                 'phone' => $data['phone'],
@@ -117,6 +126,15 @@ class ApplicationController extends Controller
         }
     }
 
+    private function storeSchoolLogo(ApplicationRequest $request): ?string
+    {
+        if (! $request->hasFile('school_logo')) {
+            return null;
+        }
+
+        return $request->file('school_logo')->store('applications/school-logos', 'public');
+    }
+
     private function resolveApplicationUser(ApplicationRequest $request, array $data, string $role): User
     {
         $email = strtolower((string) $data['email']);
@@ -128,6 +146,10 @@ class ApplicationController extends Controller
             && strtolower((string) $authUser->role) === $role
         ) {
             return $authUser;
+        }
+
+        if ($role === ApplicationRole::School->value) {
+            return User::where('email', $data['email'])->first();
         }
 
         $matchedUser = User::where('email', $data['email'])->first();

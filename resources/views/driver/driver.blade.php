@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Driver Dashboard - School Bus Tracking</title>
+    <link rel="icon" href="{{ asset('img/icon.jpg') }}" type="image/jpeg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -105,8 +106,9 @@
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="logo">
-            <i class="fas fa-bus"></i>
-            <h2>Driver Portal</h2>
+            <i class="fas fa-shield-alt"></i>
+            <h2>SAFESTEP BUS</h2>
+            <span class="portal-tag" style="display:block; font-size:11px; font-weight:600; color:rgba(255,255,255,.55); margin-top:2px; letter-spacing:.06em; text-transform:uppercase;">Driver Portal</span>
         </div>
         <nav class="nav-menu">
             <a href="#" class="nav-link active" data-page="dashboard">
@@ -1070,6 +1072,7 @@
         }
     </style>
 
+    <script src="{{ asset('js/dashboard-theme.js') }}"></script>
     <script src="{{ asset('js/driver.js') }}"></script>
     <script src="{{ asset('js/driver-api.js') }}"></script>
     <script src="{{ asset('js/i18n-driver.js') }}"></script>

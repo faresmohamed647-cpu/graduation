@@ -94,10 +94,11 @@ class AuthController extends Controller
     protected function redirectPathForRole(string $role): string
     {
         return match ($role) {
-            'admin'  => '/admin',
-            'driver' => '/driver',
-            'parent' => '/parent',
-            default  => '/',
+            'admin'        => '/admin',
+            'school_admin' => '/school-admin',
+            'driver'       => '/driver',
+            'parent'       => '/parent',
+            default        => '/',
         };
     }
 

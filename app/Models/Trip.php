@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Trip extends Model
 {
     protected $fillable = [
+        'school_id',
         'driver_id',
         'bus_id',
         'bus_route_id',
@@ -26,6 +27,11 @@ class Trip extends Model
         'ended_at' => 'datetime',
         'meta' => 'array',
     ];
+
+    public function school(): BelongsTo
+    {
+        return $this->belongsTo(School::class);
+    }
 
     public function driver(): BelongsTo
     {

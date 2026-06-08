@@ -6,10 +6,10 @@
 }
 
 :root {
-    --primary-color: #2563EB;
-    --primary-dark: #1E40AF;
-    --primary-light: #3B82F6;
-    --secondary-color: #1E40AF;
+    --primary-color: #1d4ed8;
+    --primary-dark: #1e3a8a;
+    --primary-light: #3b82f6;
+    --secondary-color: #0f766e;
     --success-color: #10B981;
     --success-dark: #059669;
     --warning-color: #F59E0B;
@@ -3662,4 +3662,234 @@ textarea:focus {
     .sidebar-overlay {
         display: none !important;
     }
+}
+
+/* ───────────────────────────────────────────────────────────
+   SafeStep Driver Portal - Dark Mode, Status Badges & RTL
+   ─────────────────────────────────────────────────────────── */
+
+body.dark-mode {
+    --light-bg: #0a1020;
+    --card-bg: #121a2b;
+    --text-dark: #f1f5f9;
+    --text-light: #cbd5e1;
+    --text-muted: #a5b4c7;
+    --border-color: #334155;
+    --border-light: #1e293b;
+    background: linear-gradient(135deg, #0a1020 0%, #121a2b 100%);
+    color: var(--text-dark);
+}
+
+body.dark-mode .theme-toggle {
+    background: #1f2937;
+    border-color: #334155;
+    color: #f1f5f9;
+}
+
+body.dark-mode .card,
+body.dark-mode .topbar,
+body.dark-mode .search-box,
+body.dark-mode .profile,
+body.dark-mode .table-wrapper,
+body.dark-mode .data-table,
+body.dark-mode .modal-content,
+body.dark-mode .settings-section {
+    background: #121a2b;
+    border-color: #334155;
+    color: var(--text-dark);
+}
+
+body.dark-mode .data-table thead {
+    background: #182338;
+}
+
+body.dark-mode .data-table th {
+    color: #f8fafc;
+}
+
+body.dark-mode .data-table td {
+    color: #e2e8f0;
+    border-bottom-color: #243244;
+}
+
+body.dark-mode .data-table tbody tr {
+    background: #121a2b;
+}
+
+body.dark-mode .data-table tbody tr:hover {
+    background: #1b263b;
+}
+
+body.dark-mode .sidebar {
+    background: #111827;
+}
+
+body.dark-mode .nav-link {
+    color: #cbd5e1;
+}
+
+body.dark-mode .nav-link.active,
+body.dark-mode .nav-link:hover {
+    color: #ffffff;
+}
+
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea {
+    background: #1e293b;
+    color: #f1f5f9;
+    border-color: #334155;
+}
+
+body.dark-mode .status-card.ready {
+    background-color: rgba(16, 185, 129, 0.1) !important;
+    border-color: rgba(16, 185, 129, 0.2) !important;
+}
+
+body.dark-mode .status-card.on-route {
+    background-color: rgba(59, 130, 246, 0.1) !important;
+    border-color: rgba(59, 130, 246, 0.2) !important;
+}
+
+body.dark-mode .status-card.completed {
+    background-color: rgba(107, 114, 128, 0.1) !important;
+    border-color: rgba(107, 114, 128, 0.2) !important;
+}
+
+body.dark-mode .time-display {
+    background: #1f2937;
+    color: #f1f5f9;
+    border-color: #334155;
+}
+
+/* Modern Status Badges */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 9999px;
+    text-transform: capitalize;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    white-space: nowrap;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
+}
+
+.badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.badge-success {
+    background-color: rgba(16, 185, 129, 0.12) !important;
+    color: #10B981 !important;
+    border: 1px solid rgba(16, 185, 129, 0.25) !important;
+}
+
+.badge-warning {
+    background-color: rgba(245, 158, 11, 0.12) !important;
+    color: #F59E0B !important;
+    border: 1px solid rgba(245, 158, 11, 0.25) !important;
+}
+
+.badge-danger {
+    background-color: rgba(239, 68, 68, 0.12) !important;
+    color: #EF4444 !important;
+    border: 1px solid rgba(239, 68, 68, 0.25) !important;
+}
+
+.badge-info {
+    background-color: rgba(59, 130, 246, 0.12) !important;
+    color: #3B82F6 !important;
+    border: 1px solid rgba(59, 130, 246, 0.25) !important;
+}
+
+/* Dark Mode Badges */
+body.dark-mode .badge-success {
+    background-color: rgba(16, 185, 129, 0.2) !important;
+    color: #34d399 !important;
+    border-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+body.dark-mode .badge-warning {
+    background-color: rgba(245, 158, 11, 0.2) !important;
+    color: #fbbf24 !important;
+    border-color: rgba(245, 158, 11, 0.35) !important;
+}
+
+body.dark-mode .badge-danger {
+    background-color: rgba(239, 68, 68, 0.2) !important;
+    color: #f87171 !important;
+    border-color: rgba(239, 68, 68, 0.35) !important;
+}
+
+body.dark-mode .badge-info {
+    background-color: rgba(59, 130, 246, 0.2) !important;
+    color: #60a5fa !important;
+    border-color: rgba(59, 130, 246, 0.35) !important;
+}
+
+/* Beautiful RTL Support */
+html[dir="rtl"] body {
+    text-align: right;
+}
+
+html[dir="rtl"] .sidebar {
+    left: auto;
+    right: 0;
+    border-right: none;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+html[dir="rtl"] .main-content {
+    margin-left: 0;
+    margin-right: var(--sidebar-width);
+}
+
+html[dir="rtl"] .nav-link {
+    flex-direction: row;
+}
+
+html[dir="rtl"] .nav-link::before {
+    left: auto;
+    right: 0;
+}
+
+html[dir="rtl"] .nav-link i {
+    margin-right: 0;
+    margin-left: 14px;
+}
+
+html[dir="rtl"] .nav-link span {
+    text-align: right;
+}
+
+html[dir="rtl"] .nav-link:hover {
+    transform: translateX(-4px);
+}
+
+html[dir="rtl"] .topbar-left {
+    flex-direction: row-reverse;
+}
+
+html[dir="rtl"] .topbar-right {
+    flex-direction: row-reverse;
+}
+
+html[dir="rtl"] .profile img {
+    margin-left: 0;
+    margin-right: 12px;
+}
+
+html[dir="rtl"] .card-header h3 {
+    text-align: right;
+}
+
+html[dir="rtl"] .data-table th, 
+html[dir="rtl"] .data-table td {
+    text-align: right;
 }

@@ -38,6 +38,11 @@
             --driver-glow: rgba(16,185,129,0.25);
             --driver-gradient: linear-gradient(135deg, #10b981, #047857);
 
+            --school-primary: #8b5cf6;
+            --school-secondary: #7c3aed;
+            --school-glow: rgba(139,92,246,0.25);
+            --school-gradient: linear-gradient(135deg, #8b5cf6, #6d28d9);
+
             /* Active role (default = parent) */
             --active-primary: var(--parent-primary);
             --active-secondary: var(--parent-secondary);
@@ -787,6 +792,10 @@
                     <i class="fas fa-id-card"></i>
                     <span data-i18n="role_driver">Driver</span>
                 </button>
+                <button type="button" class="role-tab" data-role="school_admin" id="tabSchoolAdmin" onclick="selectRole('school_admin')">
+                    <i class="fas fa-school"></i>
+                    <span data-i18n="role_school">School</span>
+                </button>
             </div>
 
             <!-- ERROR / SUCCESS MESSAGE -->
@@ -897,6 +906,13 @@
                 glow: 'rgba(16,185,129,0.25)',
                 icon: 'fas fa-id-card',
                 dashboardPath: '/driver'
+            },
+            school_admin: {
+                gradient: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
+                primary: '#8b5cf6',
+                glow: 'rgba(139,92,246,0.25)',
+                icon: 'fas fa-school',
+                dashboardPath: '/school-admin'
             }
         };
 
@@ -913,6 +929,7 @@
                 role_admin: 'Admin',
                 role_parent: 'Parent',
                 role_driver: 'Driver',
+                role_school: 'School',
                 label_email: 'Email Address',
                 label_password: 'Password',
                 ph_email: 'you@example.com',
@@ -939,6 +956,7 @@
                 role_admin: 'أدمن',
                 role_parent: 'ولي أمر',
                 role_driver: 'سائق',
+                role_school: 'مدرسة',
                 label_email: 'البريد الإلكتروني',
                 label_password: 'كلمة المرور',
                 ph_email: 'you@example.com',

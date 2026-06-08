@@ -12,6 +12,7 @@ class Application extends Model
     public const ROLE_PARENT = ApplicationRole::Parent->value;
     public const ROLE_DRIVER = ApplicationRole::Driver->value;
     public const ROLE_ADMIN  = ApplicationRole::Admin->value;
+    public const ROLE_SCHOOL = ApplicationRole::School->value;
 
     protected $fillable = [
         'user_id',

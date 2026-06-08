@@ -43,8 +43,15 @@ class TripController extends Controller
         $this->authorizeTrip($request, $trip);
 
         $data = $request->validate([
-            'student_id' => ['required', 'integer'],
+            'student_id' => ['required', 'integer', 'exists:students,id'],
         ]);
+
+        abort_unless(
+            $trip->attendance()->where('student_id', $data['student_id'])->exists()
+            || \App\Models\Student::whereKey($data['student_id'])->exists(),
+            422,
+            'Student is not assigned to this trip.'
+        );
 
         try {
             $attendance = $this->tripService->markPickedUp($trip, (int) $data['student_id']);
@@ -60,8 +67,14 @@ class TripController extends Controller
         $this->authorizeTrip($request, $trip);
 
         $data = $request->validate([
-            'student_id' => ['required', 'integer'],
+            'student_id' => ['required', 'integer', 'exists:students,id'],
         ]);
+
+        abort_unless(
+            $trip->attendance()->where('student_id', $data['student_id'])->exists(),
+            422,
+            'Student is not assigned to this trip.'
+        );
 
         try {
             $attendance = $this->tripService->markDroppedOff($trip, (int) $data['student_id']);

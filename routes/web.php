@@ -9,6 +9,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ParentController;
 use App\Http\Controllers\ParentDashboardController;
 use App\Http\Controllers\RegistrationController;
+use App\Http\Controllers\SchoolAdminController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\TripController;
@@ -30,6 +31,7 @@ Route::get('/logout', [AuthController::class, 'logout'])->middleware('auth')->na
 // Dedicated dashboard paths (used by role-based login redirect)
 Route::prefix('dashboard')->middleware('auth')->group(function () {
     Route::redirect('/admin', '/admin')->middleware('role:admin');
+    Route::redirect('/school-admin', '/school-admin')->middleware('role:school_admin');
 
     Route::get('/driver', [DriverDashboardController::class, 'index'])->middleware('role:driver');
     Route::get('/driver/applications/{application}', [DriverDashboardController::class, 'show'])->middleware('role:driver');
@@ -44,9 +46,12 @@ Route::post('/register/driver', [RegistrationController::class, 'registerDriver'
 Route::post('/apply/submit', [ApplicationController::class, 'submit']);
 
 // Public Application Pages
+Route::view('/join', 'website.join');
 Route::view('/apply/parent', 'website.apply-parent');
 Route::view('/apply/driver', 'website.apply-driver');
+Route::view('/apply/school', 'website.apply-school');
 Route::view('/apply/admin',  'website.apply-admin');
+Route::redirect('/apply', '/join');
 Route::view('/parents',      'website.parent-portal'); // New Premium Portal
 
 // Static website pages (Blade views already exist under resources/views/website)
@@ -126,6 +131,24 @@ Route::prefix('driver')->middleware(['auth', 'role:driver'])->group(function () 
 
     Route::redirect('/driver.html', '/driver', 301);
     Route::redirect('/driver-request.html', '/driver/request', 301);
+});
+
+Route::prefix('school-admin')->middleware(['auth', 'role:school_admin'])->group(function () {
+    Route::get('/', [SchoolAdminController::class, 'dashboard']);
+    Route::get('/parents', [SchoolAdminController::class, 'section'])->defaults('section', 'parents');
+    Route::get('/students', [SchoolAdminController::class, 'section'])->defaults('section', 'students');
+    Route::get('/buses', [SchoolAdminController::class, 'section'])->defaults('section', 'buses');
+    Route::get('/drivers', [SchoolAdminController::class, 'section'])->defaults('section', 'drivers');
+    Route::get('/routes', [SchoolAdminController::class, 'section'])->defaults('section', 'routes');
+    Route::get('/trips', [SchoolAdminController::class, 'section'])->defaults('section', 'trips');
+    Route::get('/attendance', [SchoolAdminController::class, 'section'])->defaults('section', 'attendance');
+    Route::get('/notifications', [SchoolAdminController::class, 'section'])->defaults('section', 'notifications');
+    Route::get('/emergency', [SchoolAdminController::class, 'section'])->defaults('section', 'emergency');
+    Route::get('/reports', [SchoolAdminController::class, 'section'])->defaults('section', 'reports');
+    Route::get('/tracking', [SchoolAdminController::class, 'section'])->defaults('section', 'tracking');
+    Route::get('/settings', [SchoolAdminController::class, 'section'])->defaults('section', 'settings');
+    Route::get('/activity-logs', [SchoolAdminController::class, 'section'])->defaults('section', 'activity-logs');
+    Route::redirect('/school-admin.html', '/school-admin', 301);
 });
 
 Route::prefix('parent')->middleware(['auth', 'role:parent'])->group(function () {

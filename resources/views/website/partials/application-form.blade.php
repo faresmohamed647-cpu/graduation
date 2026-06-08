@@ -65,6 +65,13 @@
             transition: color .2s;
         }
         .navbar-links a:hover { color: var(--text); }
+        .navbar-links a:first-child {
+            padding: 6px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: rgba(99,102,241,.08);
+            color: var(--accent-h);
+        }
 
         /* ── Hero ── */
         .hero {
@@ -98,6 +105,7 @@
         .role-pill.parent  { background: rgba(59,130,246,.12);  color: #60a5fa; border-color: rgba(59,130,246,.3); }
         .role-pill.driver  { background: rgba(34,197,94,.12);   color: #4ade80; border-color: rgba(34,197,94,.3); }
         .role-pill.admin   { background: rgba(168,85,247,.12);  color: #c084fc; border-color: rgba(168,85,247,.3); }
+        .role-pill.school  { background: rgba(139,92,246,.12);  color: #a78bfa; border-color: rgba(139,92,246,.3); }
 
         .hero h1 { font-size: 36px; font-weight: 800; margin-bottom: 12px; }
         .hero p   { font-size: 16px; color: var(--muted); max-width: 520px; margin: 0 auto; }
@@ -306,6 +314,7 @@
 <nav class="navbar">
     <a href="{{ url('/') }}" class="navbar-brand"><i class="fas fa-shield-alt"></i> SafeStep</a>
     <ul class="navbar-links">
+        <li><a href="{{ url('/join') }}"><i class="fas fa-arrow-right"></i> اختيار دور آخر</a></li>
         <li><a href="{{ url('/') }}">Home</a></li>
         <li><a href="{{ url('/login') }}">Login</a></li>
     </ul>
@@ -313,7 +322,7 @@
 
 <div class="hero">
     <div class="role-pill {{ $activeRole ?? 'parent' }}">
-        <i class="fas fa-{{ ($activeRole ?? 'parent') === 'driver' ? 'id-card' : (($activeRole ?? 'parent') === 'admin' ? 'shield-alt' : 'users') }}"></i>
+        <i class="fas fa-{{ ($activeRole ?? 'parent') === 'driver' ? 'id-card' : (($activeRole ?? 'parent') === 'school' ? 'school' : (($activeRole ?? 'parent') === 'admin' ? 'shield-alt' : 'users')) }}"></i>
         {{ ucfirst($activeRole ?? 'parent') }} Application
     </div>
     <h1>{{ $formTitle ?? 'Apply Now' }}</h1>
@@ -342,7 +351,7 @@
                 <span id="alertErrorMsg">Something went wrong. Please try again.</span>
             </div>
 
-            <form id="applicationForm" novalidate data-action="/api/applications">
+            <form id="applicationForm" novalidate data-action="/api/applications" enctype="multipart/form-data">
                 <input type="hidden" name="role" value="{{ $activeRole ?? 'parent' }}">
 
                 {{-- Personal Info --}}
@@ -408,6 +417,7 @@
                 <div class="section-label"><i class="fas fa-tag"></i>
                     @if(($activeRole ?? '') === 'parent')   Student & School Details
                     @elseif(($activeRole ?? '') === 'driver') Vehicle & Owner Details
+                    @elseif(($activeRole ?? '') === 'school') School Details
                     @else                                    Additional Information
                     @endif
                 </div>
@@ -431,6 +441,13 @@
                             <input type="number" id="field_{{ $field['name'] }}" name="{{ $field['name'] }}"
                                 {{ !empty($field['required']) ? 'required' : '' }}
                                 placeholder="{{ $field['placeholder'] ?? '' }}">
+                        @elseif(($field['type'] ?? 'text') === 'email')
+                            <input type="email" id="field_{{ $field['name'] }}" name="{{ $field['name'] }}"
+                                {{ !empty($field['required']) ? 'required' : '' }}
+                                placeholder="{{ $field['placeholder'] ?? '' }}">
+                        @elseif(($field['type'] ?? 'text') === 'file')
+                            <input type="file" id="field_{{ $field['name'] }}" name="{{ $field['name'] }}"
+                                accept="{{ $field['accept'] ?? 'image/*' }}">
                         @else
                             <input type="text" id="field_{{ $field['name'] }}" name="{{ $field['name'] }}"
                                 {{ !empty($field['required']) ? 'required' : '' }}
@@ -523,17 +540,21 @@
         clearErrors();
         setLoading(true);
 
-        const payload = collectData();
+        const hasFile = form.querySelector('input[type="file"]')?.files?.length > 0;
+        const payload = hasFile ? new FormData(form) : collectData();
 
         try {
+            const headers = {
+                'Accept': 'application/json',
+                'Authorization': 'Bearer ' + API_TOKEN,
+            };
+            if (!hasFile) {
+                headers['Content-Type'] = 'application/json';
+            }
             const response = await fetch('/api/applications', {
                 method: 'POST',
-                headers: {
-                    'Content-Type':  'application/json',
-                    'Accept':        'application/json',
-                    'Authorization': 'Bearer ' + API_TOKEN,
-                },
-                body: JSON.stringify(payload),
+                headers,
+                body: hasFile ? payload : JSON.stringify(payload),
             });
 
             const result = await response.json();

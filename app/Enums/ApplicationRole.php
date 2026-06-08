@@ -7,6 +7,7 @@ enum ApplicationRole: string
     case Parent = 'parent';
     case Driver = 'driver';
     case Admin = 'admin';
+    case School = 'school';
 
     public static function values(): array
     {

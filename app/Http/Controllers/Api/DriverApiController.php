@@ -153,6 +153,99 @@ class DriverApiController extends Controller
     /**
      * Get driver's applications/requests from the database.
      */
+    public function routeProgress(Request $request)
+    {
+        $driverId = $request->user()?->driverProfile?->id;
+        if (! $driverId) {
+            return response()->json(['success' => true, 'data' => null]);
+        }
+
+        $trip = Trip::with(['route', 'bus', 'attendance'])
+            ->where('driver_id', $driverId)
+            ->whereDate('trip_date', CarbonImmutable::today())
+            ->where('status', 'active')
+            ->latest('id')
+            ->first();
+
+        if (! $trip) {
+            return response()->json(['success' => true, 'data' => null]);
+        }
+
+        $stops = $trip->route?->stops ?? [];
+        $totalStops = count($stops);
+        $completed = $trip->attendance->whereIn('status', ['picked_up', 'dropped_off'])->count();
+        $totalStudents = max($trip->attendance->count(), 1);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'trip_id' => $trip->id,
+                'route_name' => $trip->route?->name,
+                'stops_total' => $totalStops,
+                'students_total' => $trip->attendance->count(),
+                'students_completed' => $completed,
+                'progress_percent' => round(($completed / $totalStudents) * 100, 1),
+            ],
+        ]);
+    }
+
+    public function performance(Request $request)
+    {
+        $driverId = $request->user()?->driverProfile?->id;
+        if (! $driverId) {
+            return response()->json(['success' => true, 'data' => ['score' => 0]]);
+        }
+
+        $completed = Trip::where('driver_id', $driverId)->where('status', 'completed')->count();
+        $total = Trip::where('driver_id', $driverId)->count();
+        $onTime = Trip::where('driver_id', $driverId)->where('status', 'completed')->whereNotNull('ended_at')->count();
+        $score = $total > 0 ? round((($onTime / max($total, 1)) * 0.6 + ($completed / max($total, 1)) * 0.4) * 100, 1) : 85;
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'score' => $score,
+                'completed_trips' => $completed,
+                'total_trips' => $total,
+                'fuel_tracking_ready' => true,
+            ],
+        ]);
+    }
+
+    public function maintenanceAlerts(Request $request)
+    {
+        $driverId = $request->user()?->driverProfile?->id;
+        if (! $driverId) {
+            return response()->json(['success' => true, 'data' => []]);
+        }
+
+        $busIds = \App\Models\Bus::where('driver_id', $driverId)->pluck('id');
+        $records = \App\Models\MaintenanceRecord::with('bus:id,bus_number')
+            ->whereIn('bus_id', $busIds)
+            ->whereIn('status', ['pending', 'in_progress'])
+            ->latest()
+            ->get();
+
+        $insuranceAlerts = \App\Models\Bus::whereIn('id', $busIds)
+            ->whereNotNull('insurance_expiry')
+            ->where('insurance_expiry', '<=', now()->addDays(30))
+            ->get()
+            ->map(fn ($b) => [
+                'type' => 'insurance',
+                'bus_number' => $b->bus_number,
+                'expiry' => $b->insurance_expiry?->toDateString(),
+                'message' => 'Insurance expires soon for ' . $b->bus_number,
+            ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'maintenance' => $records,
+                'insurance' => $insuranceAlerts,
+            ],
+        ]);
+    }
+
     public function requests(Request $request)
     {
         $user = $request->user();

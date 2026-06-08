@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Driver;
 use App\Models\ParentProfile;
+use App\Models\School;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -54,6 +55,30 @@ class SanctumRoleAccessTest extends TestCase
         Sanctum::actingAs($this->userWithRole('admin'));
 
         $this->getJson('/api/admin/dashboard/stats')
+            ->assertOk()
+            ->assertJsonPath('success', true);
+    }
+
+    public function test_school_admin_routes_require_school_admin_role(): void
+    {
+        $school = School::create([
+            'name' => 'Test School',
+            'status' => 'active',
+        ]);
+
+        $schoolAdmin = User::create([
+            'name' => 'School Admin',
+            'email' => 'schooladmin@example.test',
+            'password' => Hash::make('password'),
+            'role' => 'school_admin',
+            'school_id' => $school->id,
+        ]);
+
+        Sanctum::actingAs($this->userWithRole('parent'));
+        $this->getJson('/api/school-admin/dashboard/stats')->assertStatus(403);
+
+        Sanctum::actingAs($schoolAdmin);
+        $this->getJson('/api/school-admin/dashboard/stats')
             ->assertOk()
             ->assertJsonPath('success', true);
     }

@@ -38,7 +38,8 @@ class AdminUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users,email'],
             'password' => ['sometimes', 'string', 'min:6'],
-            'role' => ['sometimes', 'string', 'in:admin,driver,parent'],
+            'role' => ['sometimes', 'string', 'in:admin,driver,parent,school_admin'],
+            'school_id' => ['nullable', 'integer', 'exists:schools,id'],
         ]);
         $user = User::create([
             'name'           => $data['name'],
@@ -46,6 +47,7 @@ class AdminUserController extends Controller
             'password'       => Hash::make($data['password'] ?? 'password'),
             'plain_password' => $data['password'] ?? 'password',
             'role'           => $data['role'] ?? 'parent',
+            'school_id'      => $data['school_id'] ?? null,
         ]);
         return response()->json(['success' => true, 'data' => $user, 'message' => 'User created'], 201);
     }
@@ -55,7 +57,8 @@ class AdminUserController extends Controller
         $data = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
             'email' => ['sometimes', 'email', 'unique:users,email,' . $user->id],
-            'role' => ['sometimes', 'string', 'in:admin,driver,parent'],
+            'role' => ['sometimes', 'string', 'in:admin,driver,parent,school_admin'],
+            'school_id' => ['nullable', 'integer', 'exists:schools,id'],
         ]);
         $user->update($data);
         return response()->json(['success' => true, 'data' => $user, 'message' => 'User updated']);
@@ -69,6 +72,6 @@ class AdminUserController extends Controller
 
     public function roles()
     {
-        return response()->json(['success' => true, 'data' => ['admin', 'driver', 'parent']]);
+        return response()->json(['success' => true, 'data' => ['admin', 'school_admin', 'driver', 'parent']]);
     }
 }

@@ -67,6 +67,70 @@ class ParentApiController extends Controller
     /**
      * Get parent's applications/requests from the database.
      */
+    public function childTripHistory(Request $request, Student $student)
+    {
+        $parentId = $request->user()?->parentProfile?->id;
+        if ($student->parent_id !== $parentId) {
+            abort(403);
+        }
+
+        $history = $student->attendance()
+            ->with(['trip.bus', 'trip.route', 'trip.driver.user'])
+            ->latest()
+            ->limit(50)
+            ->get()
+            ->map(fn ($a) => [
+                'trip_date' => $a->trip?->trip_date,
+                'bus' => $a->trip?->bus?->bus_number,
+                'route' => $a->trip?->route?->name,
+                'driver' => $a->trip?->driver?->user?->name,
+                'status' => $a->status,
+                'picked_up_at' => $a->picked_up_at,
+                'dropped_off_at' => $a->dropped_off_at,
+            ]);
+
+        return response()->json(['success' => true, 'data' => $history]);
+    }
+
+    public function attendanceReport(Request $request)
+    {
+        $parentId = $request->user()?->parentProfile?->id;
+        if (! $parentId) {
+            return response()->json(['success' => true, 'data' => []]);
+        }
+
+        $studentIds = Student::where('parent_id', $parentId)->pluck('id');
+        $from = $request->get('from', now()->subDays(30)->toDateString());
+
+        $summary = \App\Models\Attendance::query()
+            ->selectRaw('students.full_name as student, attendance.status, COUNT(*) as count')
+            ->join('students', 'attendance.student_id', '=', 'students.id')
+            ->join('trips', 'attendance.trip_id', '=', 'trips.id')
+            ->whereIn('attendance.student_id', $studentIds)
+            ->where('trips.trip_date', '>=', $from)
+            ->groupBy('students.full_name', 'attendance.status')
+            ->get();
+
+        return response()->json(['success' => true, 'data' => $summary]);
+    }
+
+    public function emergencyStatus(Request $request)
+    {
+        $parentId = $request->user()?->parentProfile?->id;
+        if (! $parentId) {
+            return response()->json(['success' => true, 'data' => []]);
+        }
+
+        $schoolIds = Student::where('parent_id', $parentId)->pluck('school_id')->filter()->unique();
+        $studentIds = Student::where('parent_id', $parentId)->pluck('id');
+
+        $alerts = \App\Models\EmergencyAlert::where(function ($q) use ($schoolIds, $studentIds) {
+            $q->whereIn('school_id', $schoolIds)->orWhereIn('student_id', $studentIds);
+        })->latest()->limit(20)->get();
+
+        return response()->json(['success' => true, 'data' => $alerts]);
+    }
+
     public function requests(Request $request)
     {
         $user = $request->user();

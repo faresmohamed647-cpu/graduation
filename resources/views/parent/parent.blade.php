@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Parent Dashboard - School Bus Tracking</title>
+    <link rel="icon" href="{{ asset('img/icon.jpg') }}" type="image/jpeg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -24,7 +25,7 @@
     ></script>
     <style>
         :root{
-            --bg:#f6f7fb;--card:#ffffff;--muted:#6b7280;--accent:#0ea5a4;--focus:#2563eb
+            --bg:#f6f7fb;--card:#ffffff;--muted:#6b7280;--accent:#1d4ed8;--focus:#1d4ed8
         }
         body{background:var(--bg);font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial}
         .sr-only{position:absolute!important;height:1px;width:1px;overflow:hidden;clip:rect(1px,1px,1px,1px);white-space:nowrap;border:0;padding:0;margin:-1px}
@@ -41,7 +42,7 @@
         .map-overlay .overlay-row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
         .map-overlay button{font-size:13px;padding:6px 10px;border-radius:8px}
         .bus-marker i,.child-marker i{font-size:16px;color:#fff;padding:6px;border-radius:50%;display:inline-block}
-        .bus-marker{background:#0ea5a4}
+        .bus-marker{background:#1d4ed8}
         .child-marker{background:#2563eb}
         .map-overlay .progress{height:8px;background:rgba(15,23,42,0.06);border-radius:8px;overflow:hidden;margin-top:6px}
         .map-overlay .progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--focus));width:0%;transition:width .3s ease}
@@ -115,8 +116,9 @@
     <!-- Sidebar -->
     <aside class="sidebar" role="navigation" aria-label="Main navigation">
         <div class="logo">
-            <i class="fas fa-bus"></i>
-            <h2>BusTracker</h2>
+            <i class="fas fa-shield-alt"></i>
+            <h2>SAFESTEP BUS</h2>
+            <span class="portal-tag" style="display:block; font-size:11px; font-weight:600; color:rgba(255,255,255,.55); margin-top:2px; letter-spacing:.06em; text-transform:uppercase;">Parent Portal</span>
         </div>
         <nav id="mainNav" class="nav-menu" aria-label="Primary navigation">
             <a href="#" class="nav-link active" data-page="dashboard" role="button" aria-pressed="true" aria-current="page">
@@ -1543,6 +1545,7 @@
         });
     </script>
 
+    <script src="{{ asset('js/dashboard-theme.js') }}"></script>
     <script src="{{ asset('js/script.js') }}"></script>
     <script src="{{ asset('js/parent-api.js') }}"></script>
     <script src="{{ asset('js/i18n-parent.js') }}"></script>

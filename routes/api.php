@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\Api\AdminActivityLogController;
 use App\Http\Controllers\Api\AdminAttendanceController;
+use App\Http\Controllers\Api\AdminSystemHealthController;
 use App\Http\Controllers\Api\AdminApplicationController;
 use App\Http\Controllers\Api\AdminBusController;
 use App\Http\Controllers\Api\AdminDashboardController;
@@ -20,6 +22,19 @@ use App\Http\Controllers\Api\ApplicationController;
 use App\Http\Controllers\Api\DriverApiController;
 use App\Http\Controllers\Api\ParentApiController;
 use App\Http\Controllers\Api\RequestApiController;
+use App\Http\Controllers\Api\SchoolAdminAttendanceController;
+use App\Http\Controllers\Api\SchoolAdminBusController;
+use App\Http\Controllers\Api\SchoolAdminDashboardController;
+use App\Http\Controllers\Api\SchoolAdminDriverController;
+use App\Http\Controllers\Api\SchoolAdminEmergencyController;
+use App\Http\Controllers\Api\SchoolAdminNotificationController;
+use App\Http\Controllers\Api\SchoolAdminParentController;
+use App\Http\Controllers\Api\SchoolAdminReportController;
+use App\Http\Controllers\Api\SchoolAdminRouteController;
+use App\Http\Controllers\Api\SchoolAdminSettingsController;
+use App\Http\Controllers\Api\SchoolAdminStudentController;
+use App\Http\Controllers\Api\SchoolAdminTrackingController;
+use App\Http\Controllers\Api\SchoolAdminTripController;
 use App\Http\Controllers\Api\ServiceRequestController;
 use Illuminate\Support\Facades\Route;
 
@@ -89,6 +104,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/dashboard/attendance-summary', [AdminDashboardController::class, 'attendanceSummary']);
         Route::get('/dashboard/trips-overview', [AdminDashboardController::class, 'tripsOverview']);
         Route::get('/dashboard/fleet-status', [AdminDashboardController::class, 'fleetStatus']);
+        Route::get('/system/health', [AdminSystemHealthController::class, 'health']);
+        Route::get('/system/school-performance', [AdminSystemHealthController::class, 'schoolPerformance']);
+        Route::get('/system/emergency-overview', [AdminSystemHealthController::class, 'emergencyOverview']);
+        Route::get('/activity-logs', [AdminActivityLogController::class, 'index']);
 
         // Live bus tracking (Alexandria)
         Route::get('/tracking/live', [AdminTrackingController::class, 'live']);
@@ -202,6 +221,80 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/students', [DriverApiController::class, 'myStudents']);
         Route::get('/notifications', [DriverApiController::class, 'notifications']);
         Route::get('/requests', [DriverApiController::class, 'requests']);
+        Route::get('/route-progress', [DriverApiController::class, 'routeProgress']);
+        Route::get('/performance', [DriverApiController::class, 'performance']);
+        Route::get('/maintenance-alerts', [DriverApiController::class, 'maintenanceAlerts']);
+    });
+
+    // ── School Admin routes ──
+    Route::prefix('school-admin')->middleware('role:school_admin')->group(function () {
+        Route::get('/dashboard/stats', [SchoolAdminDashboardController::class, 'stats']);
+        Route::get('/dashboard/attendance-summary', [SchoolAdminDashboardController::class, 'attendanceSummary']);
+        Route::get('/dashboard/trips-overview', [SchoolAdminDashboardController::class, 'tripsOverview']);
+        Route::get('/dashboard/fleet-status', [SchoolAdminDashboardController::class, 'fleetStatus']);
+        Route::get('/dashboard/attendance-trends', [SchoolAdminDashboardController::class, 'attendanceTrends']);
+        Route::get('/dashboard/safety-reports', [SchoolAdminDashboardController::class, 'safetyReports']);
+        Route::get('/dashboard/kpis', [SchoolAdminDashboardController::class, 'kpis']);
+        Route::get('/dashboard/student-risk', [SchoolAdminDashboardController::class, 'studentRisk']);
+
+        Route::get('/parents', [SchoolAdminParentController::class, 'index']);
+        Route::get('/parents/{parent}', [SchoolAdminParentController::class, 'show']);
+
+        Route::get('/students', [SchoolAdminStudentController::class, 'index']);
+        Route::get('/students/{student}', [SchoolAdminStudentController::class, 'show']);
+        Route::post('/students', [SchoolAdminStudentController::class, 'store']);
+        Route::put('/students/{student}', [SchoolAdminStudentController::class, 'update']);
+        Route::delete('/students/{student}', [SchoolAdminStudentController::class, 'destroy']);
+        Route::get('/students/{student}/qr', [SchoolAdminStudentController::class, 'qrCode']);
+
+        Route::get('/buses', [SchoolAdminBusController::class, 'index']);
+        Route::get('/buses/{bus}', [SchoolAdminBusController::class, 'show']);
+        Route::post('/buses', [SchoolAdminBusController::class, 'store']);
+        Route::put('/buses/{bus}', [SchoolAdminBusController::class, 'update']);
+        Route::delete('/buses/{bus}', [SchoolAdminBusController::class, 'destroy']);
+        Route::get('/maintenance-records', [SchoolAdminBusController::class, 'maintenance']);
+        Route::post('/maintenance-records', [SchoolAdminBusController::class, 'storeMaintenance']);
+
+        Route::get('/drivers', [SchoolAdminDriverController::class, 'index']);
+        Route::get('/drivers/{driver}', [SchoolAdminDriverController::class, 'show']);
+        Route::put('/drivers/{driver}', [SchoolAdminDriverController::class, 'update']);
+
+        Route::get('/routes', [SchoolAdminRouteController::class, 'index']);
+        Route::get('/routes/{route}', [SchoolAdminRouteController::class, 'show']);
+        Route::post('/routes', [SchoolAdminRouteController::class, 'store']);
+        Route::put('/routes/{route}', [SchoolAdminRouteController::class, 'update']);
+        Route::delete('/routes/{route}', [SchoolAdminRouteController::class, 'destroy']);
+        Route::post('/routes/{route}/stops', [SchoolAdminRouteController::class, 'addStop']);
+
+        Route::get('/trips', [SchoolAdminTripController::class, 'index']);
+        Route::get('/trips/{trip}', [SchoolAdminTripController::class, 'show']);
+        Route::post('/trips', [SchoolAdminTripController::class, 'store']);
+        Route::put('/trips/{trip}', [SchoolAdminTripController::class, 'update']);
+        Route::delete('/trips/{trip}', [SchoolAdminTripController::class, 'destroy']);
+
+        Route::get('/attendance', [SchoolAdminAttendanceController::class, 'index']);
+        Route::get('/attendance/reports', [SchoolAdminAttendanceController::class, 'reports']);
+
+        Route::get('/notifications', [SchoolAdminNotificationController::class, 'index']);
+        Route::get('/notifications/center', [SchoolAdminNotificationController::class, 'center']);
+        Route::post('/notifications/send', [SchoolAdminNotificationController::class, 'send']);
+        Route::post('/notifications/send-bulk', [SchoolAdminNotificationController::class, 'sendBulk']);
+
+        Route::get('/tracking/live', [SchoolAdminTrackingController::class, 'live']);
+        Route::get('/tracking/buses/{bus}', [SchoolAdminTrackingController::class, 'bus']);
+        Route::get('/tracking/trips/{trip}/history', [SchoolAdminTrackingController::class, 'tripHistory']);
+
+        Route::get('/emergency-alerts', [SchoolAdminEmergencyController::class, 'index']);
+        Route::post('/emergency-alerts', [SchoolAdminEmergencyController::class, 'store']);
+        Route::post('/emergency-alerts/{emergencyAlert}/resolve', [SchoolAdminEmergencyController::class, 'resolve']);
+
+        Route::get('/reports', [SchoolAdminReportController::class, 'index']);
+        Route::get('/reports/export', [SchoolAdminReportController::class, 'export']);
+
+        Route::get('/settings', [SchoolAdminSettingsController::class, 'show']);
+        Route::put('/settings/school', [SchoolAdminSettingsController::class, 'updateSchool']);
+        Route::put('/settings/profile', [SchoolAdminSettingsController::class, 'updateProfile']);
+        Route::get('/activity-logs', [SchoolAdminSettingsController::class, 'activityLogs']);
     });
 
     // ── Parent routes ──
@@ -214,5 +307,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/notifications/{id}/read', [ParentApiController::class, 'markNotificationRead']);
         Route::post('/notifications/read-all', [ParentApiController::class, 'markAllRead']);
         Route::get('/requests', [ParentApiController::class, 'requests']);
+        Route::get('/children/{student}/trip-history', [ParentApiController::class, 'childTripHistory']);
+        Route::get('/attendance-report', [ParentApiController::class, 'attendanceReport']);
+        Route::get('/emergency-status', [ParentApiController::class, 'emergencyStatus']);
     });
 });

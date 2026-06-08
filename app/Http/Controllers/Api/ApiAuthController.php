@@ -17,7 +17,7 @@ class ApiAuthController extends Controller
             'name'     => ['required', 'string', 'max:255'],
             'email'    => ['required', 'email', 'unique:users,email'],
             'password' => ['required', 'string', 'min:6', 'confirmed'],
-            'role'     => ['sometimes', 'string', 'in:admin,driver,parent'],
+            'role'     => ['sometimes', 'string', 'in:admin,driver,parent,school_admin'],
         ]);
 
         $user = User::create([

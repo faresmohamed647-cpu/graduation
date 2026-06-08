@@ -72,6 +72,18 @@ class ApplicationRequest extends FormRequest
             ]);
         }
 
+        if ($role === ApplicationRole::School->value) {
+            $rules = array_merge($rules, [
+                'school_name' => ['required', 'string', 'max:255'],
+                'school_email' => ['required', 'email', 'max:255'],
+                'principal_name' => ['required', 'string', 'max:255'],
+                'school_address' => ['required', 'string', 'max:500'],
+                'student_count' => ['required', 'integer', 'min:1', 'max:50000'],
+                'bus_count' => ['required', 'integer', 'min:1', 'max:500'],
+                'school_logo' => ['nullable', 'image', 'max:4096'],
+            ]);
+        }
+
         return $rules;
     }
 

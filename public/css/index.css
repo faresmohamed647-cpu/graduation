@@ -6,10 +6,10 @@
 }
 
 :root {
-    --primary-color: #2563EB;
-    --primary-dark: #1E40AF;
-    --primary-light: #3B82F6;
-    --secondary-color: #1E40AF;
+    --primary-color: #1d4ed8;
+    --primary-dark: #1e3a8a;
+    --primary-light: #3b82f6;
+    --secondary-color: #0f766e;
     --success-color: #10B981;
     --success-dark: #059669;
     --warning-color: #F59E0B;
@@ -3619,4 +3619,82 @@ body.dark-mode .data-table tbody tr:hover {
     .sidebar-overlay {
         display: none !important;
     }
+}
+
+/* ───────────────────────────────────────────────────────────
+   SafeStep Parent Portal - Premium Status Badges & KPI Styling
+   ─────────────────────────────────────────────────────────── */
+
+/* Modern Status Badges */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 9999px;
+    text-transform: capitalize;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    white-space: nowrap;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
+}
+
+.badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.badge-success, .status-badge.on-the-way, .status-badge.ready {
+    background-color: rgba(16, 185, 129, 0.12) !important;
+    color: #10B981 !important;
+    border: 1px solid rgba(16, 185, 129, 0.25) !important;
+}
+
+.badge-warning {
+    background-color: rgba(245, 158, 11, 0.12) !important;
+    color: #F59E0B !important;
+    border: 1px solid rgba(245, 158, 11, 0.25) !important;
+}
+
+.badge-danger, .status-badge.emergency {
+    background-color: rgba(239, 68, 68, 0.12) !important;
+    color: #EF4444 !important;
+    border: 1px solid rgba(239, 68, 68, 0.25) !important;
+}
+
+.badge-info {
+    background-color: rgba(59, 130, 246, 0.12) !important;
+    color: #3B82F6 !important;
+    border: 1px solid rgba(59, 130, 246, 0.25) !important;
+}
+
+/* Dark Mode Badges */
+body.dark-mode .badge-success, 
+body.dark-mode .status-badge.on-the-way, 
+body.dark-mode .status-badge.ready {
+    background-color: rgba(16, 185, 129, 0.2) !important;
+    color: #34d399 !important;
+    border-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+body.dark-mode .badge-warning {
+    background-color: rgba(245, 158, 11, 0.2) !important;
+    color: #fbbf24 !important;
+    border-color: rgba(245, 158, 11, 0.35) !important;
+}
+
+body.dark-mode .badge-danger, 
+body.dark-mode .status-badge.emergency {
+    background-color: rgba(239, 68, 68, 0.2) !important;
+    color: #f87171 !important;
+    border-color: rgba(239, 68, 68, 0.35) !important;
+}
+
+body.dark-mode .badge-info {
+    background-color: rgba(59, 130, 246, 0.2) !important;
+    color: #60a5fa !important;
+    border-color: rgba(59, 130, 246, 0.35) !important;
 }

@@ -73,9 +73,7 @@
                 <a href="/contact" class="nav-item nav-link">Contact</a>
             </div>
             <div class="buttons">
-                <a href="{{ url('/apply/parent') }}" class="btn-link" data-aos="fade-up" data-aos-duration="1200" data-aos-delay="500">Parent</a>
-                <a href="{{ url('/apply/driver') }}" class="btn-link" data-aos="fade-up" data-aos-duration="1200" data-aos-delay="600">Driver</a>
-                <a href="{{ url('/apply/admin') }}" class="btn-link admin-btn" data-aos="fade-up" data-aos-duration="1200" data-aos-delay="700">Admin</a>
+                <a href="{{ url('/join') }}" class="btn-link join-btn" data-aos="fade-up" data-aos-duration="1200" data-aos-delay="500">Join SafeStep</a>
             </div>
             <div class="lang-wrapper">
     <a href="javascript:void(0)" class="order-btn lang-toggle">
@@ -110,8 +108,8 @@
                                 <h5 class="text-white text-uppercase mb-3 animated slideInDown">Your ticket to peace of mind!</h5>
                                 <h1 class="display-3 text-white animated slideInDown mb-4">#1 Place For Your <span class="text-primary">SAFTY</span> of your children</h1>
                                 <p class="fs-5 fw-medium text-white mb-4 pb-2">Trusted by leading schools across multiple regions</p>
-                                <a href="{{ url('/apply/parent') }}" class="btn btn-primary py-md-3 px-md-5 me-3 animated slideInLeft">STUDENT FOLLOW-UP</a>
-                                <a href="{{ url('/apply/parent') }}" class="btn btn-secondary py-md-3 px-md-5 animated slideInRight">Free session</a>
+                                <a href="{{ url('/join') }}" class="btn btn-primary py-md-3 px-md-5 me-3 animated slideInLeft">Join SafeStep</a>
+                                <a href="{{ url('/how-it-works') }}" class="btn btn-secondary py-md-3 px-md-5 animated slideInRight">How It Works</a>
                             </div>
                         </div>
                     </div>
@@ -126,8 +124,8 @@
                                 <h5 class="text-white text-uppercase mb-3 animated slideInDown">Your ticket to peace of mind!</h5>
                                 <h1 class="display-3 text-white animated slideInDown mb-4">#1 Place For Your <span class="text-primary">Transport</span> Solution</h1>
                                 <p class="fs-5 fw-medium text-white mb-4 pb-2">Parents can follow the school bus live, receive alerts, and feel confident that their children arrive safely and on time.</p>
-                                <a href="" class="btn btn-primary py-md-3 px-md-5 me-3 animated slideInLeft">Read More</a>
-                                <a href="" class="btn btn-secondary py-md-3 px-md-5 animated slideInRight">Free Quote</a>
+                                <a href="{{ url('/about') }}" class="btn btn-primary py-md-3 px-md-5 me-3 animated slideInLeft">Read More</a>
+                                <a href="{{ url('/quote') }}" class="btn btn-secondary py-md-3 px-md-5 animated slideInRight">Free Quote</a>
                             </div>
                         </div>
                     </div>
