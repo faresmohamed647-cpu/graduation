@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\AdminParentController;
 use App\Http\Controllers\Api\AdminRouteController;
 use App\Http\Controllers\Api\AdminStudentController;
 use App\Http\Controllers\Api\AdminTripController;
+use App\Http\Controllers\Api\AdminTrackingController;
 use App\Http\Controllers\Api\AdminMiscController;
 use App\Http\Controllers\Api\AdminReportController;
 use App\Http\Controllers\Api\AdminUserController;
@@ -88,6 +89,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/dashboard/attendance-summary', [AdminDashboardController::class, 'attendanceSummary']);
         Route::get('/dashboard/trips-overview', [AdminDashboardController::class, 'tripsOverview']);
         Route::get('/dashboard/fleet-status', [AdminDashboardController::class, 'fleetStatus']);
+
+        // Live bus tracking (Alexandria)
+        Route::get('/tracking/live', [AdminTrackingController::class, 'live']);
+        Route::get('/tracking/buses/{bus}', [AdminTrackingController::class, 'bus']);
+        Route::get('/tracking/trips/{trip}/history', [AdminTrackingController::class, 'tripHistory']);
 
         // Students CRUD
         Route::get('/students', [AdminStudentController::class, 'index']);

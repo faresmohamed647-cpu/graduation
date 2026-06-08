@@ -5,8 +5,10 @@ namespace Database\Seeders;
 use App\Models\Application;
 use App\Models\Attendance;
 use App\Models\Bus;
+use App\Models\BusLocation;
 use App\Models\BusRoute;
 use App\Models\Driver;
+use App\Services\BusTrackingService;
 use App\Models\ParentProfile;
 use App\Models\Student;
 use App\Models\Trip;
@@ -101,6 +103,11 @@ class DatabaseSeeder extends Seeder
         if (! Attendance::exists()) {
             $this->seedAttendance($trips, $students);
         }
+
+        $this->seedAlexandriaRoutes($routes);
+        $this->syncDemoTripsForToday($trips);
+        $this->seedBusLocations($trips, app(BusTrackingService::class));
+
         $this->seedNotifications($admin, $drivers, $parents);
         $this->seedApplications();
 
@@ -230,26 +237,91 @@ class DatabaseSeeder extends Seeder
     private function routeSeedData(): array
     {
         return [
-            ['name' => 'Nasr City to Heliopolis', 'type' => 'morning', 'estimated_minutes' => 35, 'stops' => [
-                ['name' => 'Nasr City Square', 'lat' => 30.0561, 'lng' => 31.3456, 'order' => 1],
-                ['name' => 'Abbas El-Akkad St', 'lat' => 30.0600, 'lng' => 31.3400, 'order' => 2],
-                ['name' => 'Heliopolis Club', 'lat' => 30.0870, 'lng' => 31.3240, 'order' => 3],
+            ['name' => 'Smouha to Sidi Gaber', 'type' => 'morning', 'estimated_minutes' => 35, 'stops' => [
+                ['name' => 'Smouha Club', 'lat' => 31.2156, 'lng' => 29.9553, 'order' => 1],
+                ['name' => 'Sporting', 'lat' => 31.2089, 'lng' => 29.9389, 'order' => 2],
+                ['name' => 'Sidi Gaber', 'lat' => 31.2187, 'lng' => 29.9422, 'order' => 3],
+                ['name' => 'Raml Station', 'lat' => 31.2001, 'lng' => 29.9187, 'order' => 4],
             ]],
-            ['name' => 'Maadi to Downtown Cairo', 'type' => 'morning', 'estimated_minutes' => 40, 'stops' => [
-                ['name' => 'Maadi Degla', 'lat' => 29.9602, 'lng' => 31.2506, 'order' => 1],
-                ['name' => 'Corniche El Nile', 'lat' => 30.0300, 'lng' => 31.2300, 'order' => 2],
-                ['name' => 'Tahrir Square', 'lat' => 30.0444, 'lng' => 31.2357, 'order' => 3],
+            ['name' => 'Sidi Bishr to Fleming', 'type' => 'morning', 'estimated_minutes' => 40, 'stops' => [
+                ['name' => 'Sidi Bishr', 'lat' => 31.2550, 'lng' => 29.9980, 'order' => 1],
+                ['name' => 'Mandara', 'lat' => 31.2700, 'lng' => 30.0200, 'order' => 2],
+                ['name' => 'Fleming', 'lat' => 31.2400, 'lng' => 29.9700, 'order' => 3],
             ]],
-            ['name' => 'New Cairo to Zamalek', 'type' => 'afternoon', 'estimated_minutes' => 50, 'stops' => [
-                ['name' => 'Tagamoa 5th Settlement', 'lat' => 30.0074, 'lng' => 31.4913, 'order' => 1],
-                ['name' => 'Rehab City Gate', 'lat' => 30.0580, 'lng' => 31.4900, 'order' => 2],
-                ['name' => 'Zamalek Center', 'lat' => 30.0616, 'lng' => 31.2192, 'order' => 3],
+            ['name' => 'Sporting to Stanley', 'type' => 'afternoon', 'estimated_minutes' => 30, 'stops' => [
+                ['name' => 'Sporting', 'lat' => 31.2089, 'lng' => 29.9389, 'order' => 1],
+                ['name' => 'Cleopatra', 'lat' => 31.2280, 'lng' => 29.9480, 'order' => 2],
+                ['name' => 'Stanley', 'lat' => 31.2380, 'lng' => 29.9620, 'order' => 3],
             ]],
-            ['name' => 'October City to Giza', 'type' => 'morning', 'estimated_minutes' => 45, 'stops' => [
-                ['name' => '6th October Mall', 'lat' => 29.9724, 'lng' => 30.9426, 'order' => 1],
-                ['name' => 'Faisal Street', 'lat' => 30.0131, 'lng' => 31.2089, 'order' => 2],
-                ['name' => 'Giza Square', 'lat' => 30.0100, 'lng' => 31.2100, 'order' => 3],
+            ['name' => 'Agami to Mansheya', 'type' => 'morning', 'estimated_minutes' => 50, 'stops' => [
+                ['name' => 'Agami', 'lat' => 31.0950, 'lng' => 29.7600, 'order' => 1],
+                ['name' => 'Miami', 'lat' => 31.2800, 'lng' => 30.0100, 'order' => 2],
+                ['name' => 'Mansheya', 'lat' => 31.1980, 'lng' => 29.8950, 'order' => 3],
             ]],
         ];
+    }
+
+    private function seedAlexandriaRoutes($routes): void
+    {
+        $alexRoutes = $this->routeSeedData();
+
+        foreach ($routes->values() as $index => $route) {
+            if (! isset($alexRoutes[$index])) {
+                break;
+            }
+
+            $route->update([
+                'name' => $alexRoutes[$index]['name'],
+                'type' => $alexRoutes[$index]['type'],
+                'stops' => $alexRoutes[$index]['stops'],
+                'estimated_minutes' => $alexRoutes[$index]['estimated_minutes'],
+            ]);
+        }
+    }
+
+    private function syncDemoTripsForToday($trips): void
+    {
+        $today = now()->toDateString();
+
+        foreach ($trips->take(4) as $trip) {
+            $trip->update(['trip_date' => $today]);
+        }
+    }
+
+    private function seedBusLocations($trips, BusTrackingService $tracking): void
+    {
+        $alexPositions = [
+            ['lat' => 31.2156, 'lng' => 29.9553, 'speed' => 38,  'name' => 'Smouha'],
+            ['lat' => 31.2550, 'lng' => 29.9980, 'speed' => 0,   'name' => 'Sidi Bishr'],
+            ['lat' => 31.2089, 'lng' => 29.9389, 'speed' => 32,  'name' => 'Sporting'],
+            ['lat' => 31.2001, 'lng' => 29.9187, 'speed' => 28,  'name' => 'Raml Station'],
+            ['lat' => 31.2380, 'lng' => 29.9620, 'speed' => 0,   'name' => 'Stanley'],
+            ['lat' => 31.2400, 'lng' => 29.9700, 'speed' => 35,  'name' => 'Fleming'],
+            ['lat' => 31.2280, 'lng' => 29.9480, 'speed' => 22,  'name' => 'Cleopatra'],
+            ['lat' => 31.1980, 'lng' => 29.8950, 'speed' => 25,  'name' => 'Mansheya'],
+        ];
+
+        $tripsByBus = Trip::whereDate('trip_date', now()->toDateString())
+            ->orderByDesc('id')
+            ->get()
+            ->unique('bus_id')
+            ->keyBy('bus_id');
+
+        Bus::where('active', true)->orderBy('id')->get()->each(function (Bus $bus, int $index) use ($alexPositions, $tracking, $tripsByBus) {
+            $position = $alexPositions[$index % count($alexPositions)];
+            $trip = $tripsByBus->get($bus->id);
+
+            try {
+                $tracking->updateLocation(
+                    $bus,
+                    $trip,
+                    $position['lat'],
+                    $position['lng'],
+                    $position['speed'],
+                );
+            } catch (\DomainException) {
+                // skip invalid demo coordinates
+            }
+        });
     }
 }

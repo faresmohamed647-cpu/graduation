@@ -569,33 +569,30 @@ function initDriverGpsMap() {
     updateDriverGpsFromApi();
 }
 
-async function updateDriverGpsFromApi() {
-    try {
-        const res = await fetch('http://localhost:4000/api/tracking');
-        if (!res.ok) return;
-        const data = await res.json();
-        const { lat, lng } = data;
-
-        if (driverMarker) {
-            driverMarker.setLatLng([lat, lng]);
-            if (driverMap) {
-                driverMap.setView([lat, lng], driverMap.getZoom());
-            }
-        }
-        if (driverMarker) {
-            driverMarker.bindPopup(`<strong>${busInfo.number}</strong><br>${busInfo.route}<br>Driver: Omer Mohamed`);
-        }
-    } catch (err) {
-        console.warn('Driver GPS API error', err);
-        simulatedLat += (Math.random() - 0.5) * 0.001;
-        simulatedLng += (Math.random() - 0.5) * 0.001;
-        if (driverMarker) {
-            driverMarker.setLatLng([simulatedLat, simulatedLng]);
-            if (driverMap) {
-                driverMap.setView([simulatedLat, simulatedLng], driverMap.getZoom());
-            }
-        }
+window.updateDriverMapPosition = function updateDriverMapPosition(lat, lng) {
+    if (!driverMarker) return;
+    driverMarker.setLatLng([lat, lng]);
+    if (driverMap) {
+        driverMap.setView([lat, lng], driverMap.getZoom());
     }
+    driverMarker.bindPopup(`<strong>${busInfo.number}</strong><br>${busInfo.route}<br>Alexandria Live GPS`);
+};
+
+window.simulateAlexandriaDriverMovement = function simulateAlexandriaDriverMovement() {
+    simulatedLat += (Math.random() - 0.5) * 0.0015;
+    simulatedLng += (Math.random() - 0.5) * 0.0015;
+    simulatedLat = Math.min(31.35, Math.max(31.05, simulatedLat));
+    simulatedLng = Math.min(30.10, Math.max(29.75, simulatedLng));
+    return {
+        lat: simulatedLat,
+        lng: simulatedLng,
+        speed: Math.max(0, Math.round(15 + Math.random() * 25))
+    };
+};
+
+async function updateDriverGpsFromApi() {
+    const point = window.simulateAlexandriaDriverMovement();
+    window.updateDriverMapPosition(point.lat, point.lng);
 }
 
 function startDriverGpsUpdates() {
@@ -622,31 +619,48 @@ const pauseTripBtn = document.getElementById('pauseTripBtn');
 const endTripBtn = document.getElementById('endTripBtn');
 const tripStatus = document.getElementById('tripStatus');
 
-function startTrip() {
+async function startTrip() {
+    startTripBtn.disabled = true;
+
+    try {
+        if (typeof startDriverTripApi === 'function') {
+            await startDriverTripApi();
+        }
+    } catch (error) {
+        showToast(error.message || 'Unable to start trip', 'error');
+        startTripBtn.disabled = false;
+        return;
+    }
+
     if (!tripStartTime) {
         tripStartTime = new Date();
         tripInterval = setInterval(updateTripInfo, 1000);
     }
-    
-    startTripBtn.disabled = true;
+
     pauseTripBtn.disabled = false;
     endTripBtn.disabled = false;
-    
+
     tripStatus.innerHTML = '<i class="fas fa-circle" style="color: #2ECC71;"></i><span>Trip In Progress</span>';
-    
+
     const statusCard = document.querySelector('.status-card');
     statusCard.className = 'card status-card on-route';
     document.getElementById('busStatusBadge').textContent = 'On Route';
-    
+
+    if (typeof startDriverLocationTracking === 'function') {
+        startDriverLocationTracking();
+    }
+
     if (!speedInterval) {
         speedInterval = setInterval(() => {
             const speed = Math.floor(Math.random() * 20) + 35;
             document.getElementById('currentSpeed').textContent = speed;
-            
+
             tripDistance += speed / 3600;
             document.getElementById('tripDistance').textContent = tripDistance.toFixed(1) + ' km';
         }, 1000);
     }
+
+    showToast('Trip started — GPS tracking active in Alexandria', 'success');
 }
 
 function pauseTrip() {
@@ -665,7 +679,21 @@ function pauseTrip() {
     tripStatus.innerHTML = '<i class="fas fa-circle" style="color: #F39C12;"></i><span>Trip Paused</span>';
 }
 
-function endTrip() {
+async function endTrip() {
+    endTripBtn.disabled = true;
+
+    try {
+        if (typeof completeDriverTripApi === 'function') {
+            await completeDriverTripApi();
+        } else if (typeof stopDriverLocationTracking === 'function') {
+            stopDriverLocationTracking();
+        }
+    } catch (error) {
+        showToast(error.message || 'Unable to complete trip', 'error');
+        endTripBtn.disabled = false;
+        return;
+    }
+
     if (tripInterval) {
         clearInterval(tripInterval);
         tripInterval = null;
@@ -674,23 +702,23 @@ function endTrip() {
         clearInterval(speedInterval);
         speedInterval = null;
     }
-    
+
     tripStartTime = null;
     tripDistance = 0;
     currentStop = 0;
-    
+
     startTripBtn.disabled = false;
     pauseTripBtn.disabled = true;
     endTripBtn.disabled = true;
-    
+
     tripStatus.innerHTML = '<i class="fas fa-circle" style="color: #95A5A6;"></i><span>Trip Completed</span>';
-    
+
     const statusCard = document.querySelector('.status-card');
     statusCard.className = 'card status-card completed';
     document.getElementById('busStatusBadge').textContent = 'Trip Completed';
-    
+
     document.getElementById('currentSpeed').textContent = '0';
-    
+
     showToast('Trip completed successfully!', 'success');
 }
 

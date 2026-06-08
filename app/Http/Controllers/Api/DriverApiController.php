@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Trip;
 use App\Models\Attendance;
+use App\Services\BusTrackingService;
 use App\Services\TripService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
@@ -81,10 +82,57 @@ class DriverApiController extends Controller
         return response()->json(['success' => true, 'data' => $att]);
     }
 
-    public function updateLocation(Request $request)
+    public function updateLocation(Request $request, BusTrackingService $tracking)
     {
-        $request->validate(['latitude' => ['required', 'numeric'], 'longitude' => ['required', 'numeric']]);
-        return response()->json(['success' => true, 'message' => 'Location updated']);
+        $driverId = $request->user()?->driverProfile?->id;
+        if (! $driverId) {
+            abort(403);
+        }
+
+        $data = $request->validate([
+            'latitude' => ['required', 'numeric', 'between:-90,90'],
+            'longitude' => ['required', 'numeric', 'between:-180,180'],
+            'speed' => ['nullable', 'numeric', 'min:0'],
+            'heading' => ['nullable', 'numeric', 'min:0', 'max:360'],
+        ]);
+
+        $trip = Trip::with('bus')
+            ->where('driver_id', $driverId)
+            ->whereDate('trip_date', CarbonImmutable::today())
+            ->where('status', 'active')
+            ->latest('id')
+            ->first();
+
+        if (! $trip || ! $trip->bus) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No active trip found. Start your trip before sending GPS.',
+            ], 422);
+        }
+
+        try {
+            $location = $tracking->updateLocation(
+                $trip->bus,
+                $trip,
+                (float) $data['latitude'],
+                (float) $data['longitude'],
+                isset($data['speed']) ? (float) $data['speed'] : null,
+                isset($data['heading']) ? (float) $data['heading'] : null,
+            );
+        } catch (\DomainException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Location updated',
+            'data' => [
+                'latitude' => (float) $location->latitude,
+                'longitude' => (float) $location->longitude,
+                'speed' => $location->speed,
+                'recorded_at' => $location->recorded_at?->toIso8601String(),
+            ],
+        ]);
     }
 
     public function myStudents(Request $request)

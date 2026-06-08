@@ -69,13 +69,9 @@ const maintenanceData = [
     { id: 8, busNumber: 'Bus #12', plateNumber: 'VWX-234', type: 'inspection', description: 'Emergency brake check', date: '2024-02-20', cost: 300, technician: 'Safety Inspector' }
 ];
 
-const liveTrackingData = [
-    { id: 1, busNumber: 'Bus #42', route: 'Route A - Downtown', currentLocation: '30.0449, 31.2390', speed: '35 km/h', status: 'moving', lastUpdate: '2024-02-19 08:30:00' },
-    { id: 2, busNumber: 'Bus #15', route: 'Route B - Uptown', currentLocation: '30.0480, 31.2450', speed: '0 km/h', status: 'stopped', lastUpdate: '2024-02-19 08:25:00' },
-    { id: 3, busNumber: 'Bus #28', route: 'Route C - Suburbs', currentLocation: '30.0520, 31.2500', speed: '42 km/h', status: 'moving', lastUpdate: '2024-02-19 08:32:00' },
-    { id: 4, busNumber: 'Bus #33', route: 'Route D - Airport', currentLocation: '30.0400, 31.2350', speed: '28 km/h', status: 'moving', lastUpdate: '2024-02-19 08:28:00' },
-    { id: 5, busNumber: 'Bus #07', route: 'Route E - Mall Area', currentLocation: '30.0465, 31.2410', speed: '0 km/h', status: 'stopped', lastUpdate: '2024-02-19 08:20:00' }
-];
+const ALEXANDRIA_MAP_CENTER = [31.2001, 29.9187];
+let liveTrackingApiData = [];
+let liveTrackingPollTimer = null;
 
 const studentsData = [
     { id: 1, studentId: 'STU001', name: 'Ahmed Mohamed', grade: 'Grade 5', school: 'Al-Azhar School', parent: 'Mohamed Hassan', pickupLocation: '12 El-Horreya Rd, Raml Station, Alexandria', dropoffLocation: 'Al-Azhar School', status: 'active' },
@@ -882,16 +878,10 @@ function playNotificationSound() {
 }
 
 function simulateRealtimeUpdates() {
-    liveTrackingData.forEach(bus => {
-        const coords = parseCoordinates(bus.currentLocation);
-        if (!coords) return;
-        const lat = (coords.lat + (Math.random() - 0.5) * 0.0015).toFixed(4);
-        const lng = (coords.lng + (Math.random() - 0.5) * 0.0015).toFixed(4);
-        bus.currentLocation = `${lat}, ${lng}`;
-        bus.speed = `${Math.max(0, Math.round(20 + Math.random() * 30))} km/h`;
-        bus.lastUpdate = new Date().toLocaleTimeString();
-        bus.status = Math.random() > 0.15 ? 'moving' : 'stopped';
-    });
+    const activePage = document.querySelector('.page.active');
+    if (activePage?.id === 'live-tracking' && typeof loadLiveTrackingFromApi === 'function') {
+        loadLiveTrackingFromApi().then(() => renderLiveTracking({ skipReload: true }));
+    }
 
     if (Math.random() > 0.6) {
         notificationsData.unshift({
@@ -1822,13 +1812,27 @@ function initTrackingMap(center) {
     if (!window.L || trackingMapInstance) return;
     const mapContainer = document.getElementById('liveTrackingMap');
     if (!mapContainer) return;
-    trackingMapInstance = L.map(mapContainer, { zoomControl: false }).setView(center, 13);
+    const mapCenter = center || ALEXANDRIA_MAP_CENTER;
+    trackingMapInstance = L.map(mapContainer, { zoomControl: false }).setView(mapCenter, 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(trackingMapInstance);
     L.control.zoom({ position: 'bottomright' }).addTo(trackingMapInstance);
 }
 
 function buildRouteStops(selectedBus) {
     if (!selectedBus) return [];
+
+    if (Array.isArray(selectedBus.routeStops) && selectedBus.routeStops.length) {
+        return selectedBus.routeStops
+            .map(stop => ({
+                name: stop.name || 'Stop',
+                lat: Number(stop.lat),
+                lng: Number(stop.lng),
+                order: stop.order ?? 0,
+            }))
+            .filter(stop => !Number.isNaN(stop.lat) && !Number.isNaN(stop.lng))
+            .sort((a, b) => a.order - b.order);
+    }
+
     const trip = tripsData.find(item => item.bus === selectedBus.busNumber || item.routeName === selectedBus.route);
     const stops = routeStopsData
         .filter(stop => stop.tripId === trip?.tripId)
@@ -1844,24 +1848,55 @@ function buildRouteStops(selectedBus) {
     return [{ name: 'Current GPS point', lat: selectedBus.lat, lng: selectedBus.lng }];
 }
 
+function createBusMapIcon(isSelected) {
+    return L.divIcon({
+        className: 'bus-map-marker',
+        html: `<div class="bus-map-marker-pin ${isSelected ? 'selected' : ''}"><i class="fas fa-bus"></i></div>`,
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
+        popupAnchor: [0, -18],
+    });
+}
+
 function updateTrackingMap(selectedBus, filteredBuses) {
-    if (!selectedBus || !selectedBus.hasGps) return;
-    initTrackingMap([selectedBus.lat, selectedBus.lng]);
+    if (!selectedBus) return;
+
+    const gpsBuses = filteredBuses.filter(bus => bus.hasGps);
+    const mapCenter = selectedBus.hasGps
+        ? [selectedBus.lat, selectedBus.lng]
+        : (gpsBuses[0] ? [gpsBuses[0].lat, gpsBuses[0].lng] : ALEXANDRIA_MAP_CENTER);
+
+    initTrackingMap(mapCenter);
     if (!trackingMapInstance) return;
 
-    filteredBuses.forEach(bus => {
-        if (!bus.hasGps) return;
+    const activeMarkerIds = new Set();
+
+    gpsBuses.forEach(bus => {
+        activeMarkerIds.add(bus.id);
         const existing = trackingMapMarkers.get(bus.id);
-        const markerLabel = `<strong>${bus.busNumber}</strong><br>${bus.route}<br>${bus.driver}`;
+        const markerLabel = `<strong>${bus.busNumber}</strong><br>${bus.route}<br>${bus.driver}<br>${bus.speed}`;
+        const icon = createBusMapIcon(bus.id === selectedBus.id);
+
         if (existing) {
-            existing.setLatLng([bus.lat, bus.lng]).bindPopup(markerLabel);
+            existing.setLatLng([bus.lat, bus.lng]).setIcon(icon).bindPopup(markerLabel);
         } else {
-            const marker = L.marker([bus.lat, bus.lng]).addTo(trackingMapInstance).bindPopup(markerLabel);
+            const marker = L.marker([bus.lat, bus.lng], { icon }).addTo(trackingMapInstance).bindPopup(markerLabel);
             trackingMapMarkers.set(bus.id, marker);
         }
     });
 
-    trackingMapInstance.setView([selectedBus.lat, selectedBus.lng], 14, { animate: true });
+    trackingMapMarkers.forEach((marker, busId) => {
+        if (!activeMarkerIds.has(busId)) {
+            marker.remove();
+            trackingMapMarkers.delete(busId);
+        }
+    });
+
+    if (selectedBus.hasGps) {
+        trackingMapInstance.setView([selectedBus.lat, selectedBus.lng], 14, { animate: true });
+    } else {
+        trackingMapInstance.setView(mapCenter, 12, { animate: true });
+    }
 
     if (trackingRouteLine) {
         trackingRouteLine.remove();
@@ -1873,34 +1908,90 @@ function updateTrackingMap(selectedBus, filteredBuses) {
     }
 
     const stops = buildRouteStops(selectedBus);
-    const routeCoords = [[selectedBus.lat, selectedBus.lng], ...stops.map(s => [s.lat, s.lng])];
-    trackingRouteLine = L.polyline(routeCoords, { color: '#2563eb', weight: 4, dashArray: '6 6' }).addTo(trackingMapInstance);
+    const routeCoords = selectedBus.hasGps
+        ? [[selectedBus.lat, selectedBus.lng], ...stops.map(s => [s.lat, s.lng])]
+        : stops.map(s => [s.lat, s.lng]);
+
+    if (routeCoords.length >= 2) {
+        trackingRouteLine = L.polyline(routeCoords, { color: '#2563eb', weight: 4, dashArray: '6 6' }).addTo(trackingMapInstance);
+    }
     trackingStopsLayer = L.layerGroup(stops.map(stop =>
         L.circleMarker([stop.lat, stop.lng], { radius: 6, color: '#10b981', fillColor: '#10b981', fillOpacity: 0.9 })
             .bindPopup(`<strong>${stop.name}</strong>`)
     )).addTo(trackingMapInstance);
 }
 
+function formatTrackingTimestamp(value) {
+    if (!value) return 'No recent update';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
+}
+
 function buildRegisteredTrackingData() {
-    const gpsByBus = new Map(liveTrackingData.map(item => [item.busNumber, item]));
-    return busesData.map(bus => {
-        const gps = gpsByBus.get(bus.busNumber);
-        const coords = parseCoordinates(gps?.currentLocation || '');
+    const gpsByBusId = new Map(liveTrackingApiData.map(item => [item.bus_id, item]));
+
+    const source = busesData.length
+        ? busesData
+        : liveTrackingApiData.map(item => ({
+            id: item.bus_id,
+            busNumber: item.bus_number,
+            driver: item.driver || 'Unassigned',
+            route: item.route || 'No Route Assigned',
+        }));
+
+    return source.map(bus => {
+        const gps = gpsByBusId.get(bus.id);
+        const lat = gps?.latitude ?? null;
+        const lng = gps?.longitude ?? null;
+        const hasGps = typeof lat === 'number' && typeof lng === 'number';
         const routeName = gps?.route || (bus.route && bus.route !== 'Unassigned' ? bus.route : 'No Route Assigned');
+
         return {
             id: bus.id,
-            busNumber: bus.busNumber,
+            busNumber: bus.busNumber || gps?.bus_number || `Bus #${bus.id}`,
             route: routeName,
-            currentLocation: gps?.currentLocation || 'No GPS signal',
-            speed: gps?.speed || 'N/A',
+            currentLocation: hasGps ? `${lat.toFixed(5)}, ${lng.toFixed(5)}` : 'No GPS signal',
+            speed: typeof gps?.speed === 'number' ? `${gps.speed} km/h` : 'N/A',
             status: gps?.status || 'inactive',
-            lastUpdate: gps?.lastUpdate || 'No recent update',
-            driver: bus.driver,
-            lat: coords?.lat ?? null,
-            lng: coords?.lng ?? null,
-            hasGps: Boolean(coords)
+            lastUpdate: formatTrackingTimestamp(gps?.last_update),
+            driver: gps?.driver || bus.driver || 'Unassigned',
+            lat,
+            lng,
+            hasGps,
+            routeStops: gps?.route_stops || [],
+            tripId: gps?.trip_id || null,
         };
     });
+}
+
+async function loadLiveTrackingFromApi() {
+    try {
+        const response = await safestepApi('/api/admin/tracking/live');
+        liveTrackingApiData = response.data || [];
+        return liveTrackingApiData;
+    } catch (error) {
+        console.warn('Live tracking API skipped:', error.message);
+        return liveTrackingApiData;
+    }
+}
+
+function startLiveTrackingPoll() {
+    if (liveTrackingPollTimer) return;
+    liveTrackingPollTimer = setInterval(async () => {
+        const activePage = document.querySelector('.page.active');
+        if (!activePage || activePage.id !== 'live-tracking') {
+            stopLiveTrackingPoll();
+            return;
+        }
+        await loadLiveTrackingFromApi();
+        renderLiveTracking({ skipReload: true });
+    }, 8000);
+}
+
+function stopLiveTrackingPoll() {
+    if (!liveTrackingPollTimer) return;
+    clearInterval(liveTrackingPollTimer);
+    liveTrackingPollTimer = null;
 }
 
 function getTrackingFilters() {
@@ -1986,7 +2077,7 @@ function renderTrackingMapPanel(filteredBuses) {
             <div class="tracking-map-canvas" id="liveTrackingMap"></div>
             <div class="tracking-stops">${stopsMarkup}</div>
             <div class="tracking-route-hint">
-                Suggested: ${selectedBus.route} optimized for pickup density. Best route saves ~6 minutes.
+                Alexandria live fleet map — ${selectedBus.route}
             </div>
             <div class="tracking-gps-card">
                 <div class="tracking-gps-header">
@@ -2016,7 +2107,7 @@ function renderTrackingMapPanel(filteredBuses) {
     setTimeout(() => updateTrackingMap(selectedBus, filteredBuses), 0);
 }
 
-function renderLiveTracking() {
+async function renderLiveTracking(options = {}) {
     const tbody = document.querySelector('#trackingTable tbody');
     if (!tbody) {
         console.error('Tracking table tbody not found');
@@ -2024,6 +2115,11 @@ function renderLiveTracking() {
     }
     setLoadingState('trackingTable', true);
     setLoadingState('trackingMapContent', true);
+
+    if (!options.skipReload) {
+        await loadLiveTrackingFromApi();
+        startLiveTrackingPoll();
+    }
 
     const allBuses = buildRegisteredTrackingData();
     populateTrackingFilters(allBuses);
@@ -2833,7 +2929,7 @@ function renderSmartAlerts() {
 }
 
 function runSmartAlertScan() {
-    liveTrackingData.forEach(bus => {
+    buildRegisteredTrackingData().forEach(bus => {
         const speed = Number(String(bus.speed).replace(/\D/g, '')) || 0;
         const trip = getTripByBus(bus.busNumber);
         const stoppedAlertExists = smartAlertsData.some(alert => alert.bus === bus.busNumber && alert.title === 'Bus stopped too long');
@@ -2872,7 +2968,7 @@ function notifySmartAlert(id) {
         id: notification.id,
         bus: alert.bus,
         driver: getTripByBus(alert.bus)?.driver || 'Unassigned',
-        location: liveTrackingData.find(item => item.busNumber === alert.bus)?.currentLocation || 'Unknown',
+        location: buildRegisteredTrackingData().find(item => item.busNumber === alert.bus)?.currentLocation || 'Unknown',
         type: notification.type === 'emergency' ? 'general' : 'delay',
         time: new Date().toISOString().replace('T', ' ').slice(0, 19),
         notes: notification.message
@@ -5150,21 +5246,11 @@ function exportReportPDF() {
     }, 1500);
 }
 
-function refreshTracking() {
+async function refreshTracking() {
     showToast('Refreshing live tracking...', 'info');
-    setTimeout(() => {
-        liveTrackingData.forEach(bus => {
-            const coords = parseCoordinates(bus.currentLocation);
-            if (coords) {
-                const lat = (coords.lat + ((Math.random() - 0.5) * 0.003)).toFixed(4);
-                const lng = (coords.lng + ((Math.random() - 0.5) * 0.003)).toFixed(4);
-                bus.currentLocation = `${lat}, ${lng}`;
-            }
-            bus.lastUpdate = new Date().toLocaleString();
-        });
-        renderLiveTracking();
-        showToast('Tracking data updated!', 'success');
-    }, 1000);
+    await loadLiveTrackingFromApi();
+    await renderLiveTracking({ skipReload: true });
+    showToast('Tracking data updated!', 'success');
 }
 
 // Show notifications popup
@@ -5534,6 +5620,9 @@ document.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('spa:pageChanged', (e) => {
     if (e.detail?.pageId === 'requests') {
         loadRequestsFromApi();
+    }
+    if (e.detail?.pageId !== 'live-tracking' && typeof stopLiveTrackingPoll === 'function') {
+        stopLiveTrackingPoll();
     }
 });
 
