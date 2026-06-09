@@ -10,6 +10,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/admin.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/responsive.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/management.css') }}">
     <link
         rel="stylesheet"
         href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -86,6 +88,10 @@
             <a href="#" class="nav-link" data-page="school-requests">
                 <i class="fas fa-school"></i>
                 <span>School Requests</span>
+            </a>
+            <a href="#" class="nav-link" data-page="management">
+                <i class="fas fa-sliders-h"></i>
+                <span>Management</span>
             </a>
             <a href="#" class="nav-link" data-page="account-recovery">
                 <i class="fas fa-key"></i>
@@ -2354,6 +2360,249 @@
                     </div>
                 </div>
             </div>
+            </div>
+        </div>
+
+        <!-- Management Page -->
+        <div class="page" id="management">
+            <div class="dashboard-grid">
+                <!-- Management Stats -->
+                <div class="card stat-card">
+                    <div class="stat-icon blue">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="adminUsersCount">{{ $stats['admin_users'] ?? 0 }}</h3>
+                        <p>Admin Users</p>
+                        <span class="stat-trend">System Admins</span>
+                    </div>
+                </div>
+
+                <div class="card stat-card">
+                    <div class="stat-icon green">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="approvedRequestsCount">{{ $stats['approved_requests'] ?? 0 }}</h3>
+                        <p>Approved Requests</p>
+                        <span class="stat-trend up"><i class="fas fa-arrow-up"></i> This month</span>
+                    </div>
+                </div>
+
+                <div class="card stat-card">
+                    <div class="stat-icon orange">
+                        <i class="fas fa-hourglass-half"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="pendingCount">{{ $stats['pending_items'] ?? 0 }}</h3>
+                        <p>Pending Reviews</p>
+                        <span class="stat-trend">Awaiting action</span>
+                    </div>
+                </div>
+
+                <div class="card stat-card">
+                    <div class="stat-icon purple">
+                        <i class="fas fa-ban"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="rejectedCount">{{ $stats['rejected_items'] ?? 0 }}</h3>
+                        <p>Rejected Items</p>
+                        <span class="stat-trend down"><i class="fas fa-arrow-down"></i> Improved</span>
+                    </div>
+                </div>
+
+                <!-- Admin Management -->
+                <div class="card" style="grid-column: span 2;">
+                    <div class="card-header">
+                        <h3>Admin Management</h3>
+                        <button class="btn-primary" onclick="addNewAdmin()">
+                            <i class="fas fa-user-plus"></i> Add Admin
+                        </button>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="data-table" id="adminsTable">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Created</th>
+                                    <th>Last Login</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Permissions Management -->
+                <div class="card" style="grid-column: span 2;">
+                    <div class="card-header">
+                        <h3>Role & Permissions</h3>
+                        <button class="btn-primary" onclick="createNewRole()">
+                            <i class="fas fa-plus"></i> Create Role
+                        </button>
+                    </div>
+                    <div class="filters" style="margin-bottom: 20px;">
+                        <div class="filter-item">
+                            <label for="roleFilter" class="form-label">Select Role</label>
+                            <select id="roleFilter" class="form-control" onchange="loadRolePermissions(this.value)">
+                                <option value="">Choose role...</option>
+                                <option value="admin">Admin</option>
+                                <option value="manager">Manager</option>
+                                <option value="supervisor">Supervisor</option>
+                                <option value="operator">Operator</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="permissionsContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
+                        <!-- Permissions checkboxes populated by JS -->
+                    </div>
+                    <div style="margin-top: 20px; display: flex; gap: 8px;">
+                        <button class="btn-primary" onclick="savePermissions()"><i class="fas fa-save"></i> Save Permissions</button>
+                        <button class="btn-secondary" onclick="resetPermissions()"><i class="fas fa-undo"></i> Reset</button>
+                    </div>
+                </div>
+
+                <!-- System Configuration -->
+                <div class="card" style="grid-column: span 2;">
+                    <div class="card-header">
+                        <h3>System Configuration</h3>
+                    </div>
+                    <div class="settings-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; padding: 20px;">
+                        <div class="setting-item">
+                            <label>App Name</label>
+                            <input type="text" class="form-control" value="SafeStep Bus" id="appName">
+                        </div>
+                        <div class="setting-item">
+                            <label>Support Email</label>
+                            <input type="email" class="form-control" value="support@safestep.com" id="supportEmail">
+                        </div>
+                        <div class="setting-item">
+                            <label>Support Phone</label>
+                            <input type="tel" class="form-control" value="+20 100 1234567" id="supportPhone">
+                        </div>
+                        <div class="setting-item">
+                            <label>Max Login Attempts</label>
+                            <input type="number" class="form-control" value="5" id="maxAttempts">
+                        </div>
+                        <div class="setting-item">
+                            <label>Session Timeout (minutes)</label>
+                            <input type="number" class="form-control" value="30" id="sessionTimeout">
+                        </div>
+                        <div class="setting-item">
+                            <label>Password Expiration (days)</label>
+                            <input type="number" class="form-control" value="90" id="passwordExpire">
+                        </div>
+                    </div>
+                    <div style="padding: 0 20px 20px; display: flex; gap: 8px;">
+                        <button class="btn-primary" onclick="saveSystemConfig()"><i class="fas fa-save"></i> Save Configuration</button>
+                        <button class="btn-secondary" onclick="resetSystemConfig()"><i class="fas fa-undo"></i> Reset</button>
+                    </div>
+                </div>
+
+                <!-- Application Submission Form -->
+                <div class="card" style="grid-column: 1/-1;">
+                    <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <h3 style="color: white;">✨ Create New Submission Form</h3>
+                        <span style="color: rgba(255,255,255,0.8); font-size: 13px;">Add new application form template for the system</span>
+                    </div>
+                    <div style="padding: 24px;">
+                        <div class="row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                            <div>
+                                <label class="form-label">Form Name</label>
+                                <input type="text" class="form-control" id="formName" placeholder="e.g., New Driver Application">
+                            </div>
+                            <div>
+                                <label class="form-label">Form Type</label>
+                                <select class="form-control" id="formType">
+                                    <option value="">Select Type</option>
+                                    <option value="application">Application</option>
+                                    <option value="complaint">Complaint</option>
+                                    <option value="request">Request</option>
+                                    <option value="registration">Registration</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <label class="form-label">Form Description</label>
+                        <textarea class="form-control" id="formDescription" placeholder="Describe the purpose of this form..." style="height: 100px; margin-bottom: 20px;"></textarea>
+
+                        <div style="background: linear-gradient(135deg, #f0fdf4 0%, #e0fdf4 100%); padding: 16px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #10b981;">
+                            <h4 style="margin: 0 0 12px 0; color: #047857;">📋 Form Fields</h4>
+                            <div id="formFieldsContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px;">
+                                <!-- Fields will be added here dynamically -->
+                            </div>
+                            <button class="btn-primary" onclick="addFormField()" style="margin-top: 12px; width: 100%;">
+                                <i class="fas fa-plus"></i> Add Field
+                            </button>
+                        </div>
+
+                        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                            <button class="btn-secondary" onclick="resetFormBuilder()"><i class="fas fa-undo"></i> Clear</button>
+                            <button class="btn-primary" onclick="saveSubmissionForm()"><i class="fas fa-save"></i> Create Form</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Submissions -->
+                <div class="card" style="grid-column: 1/-1;">
+                    <div class="card-header">
+                        <h3>Recent Submissions</h3>
+                        <div class="card-actions">
+                            <button class="btn-secondary btn-compact" onclick="refreshSubmissions()">
+                                <i class="fas fa-sync"></i> Refresh
+                            </button>
+                            <button class="btn-secondary btn-compact" onclick="exportSubmissions()">
+                                <i class="fas fa-file-excel"></i> Export
+                            </button>
+                        </div>
+                    </div>
+                    <div class="filters" style="margin-bottom: 20px;">
+                        <div class="filter-item">
+                            <label for="submissionTypeFilter" class="form-label">Type</label>
+                            <select id="submissionTypeFilter" class="form-control">
+                                <option value="all">All Types</option>
+                                <option value="application">Applications</option>
+                                <option value="complaint">Complaints</option>
+                                <option value="request">Requests</option>
+                            </select>
+                        </div>
+                        <div class="filter-item">
+                            <label for="submissionStatusFilter" class="form-label">Status</label>
+                            <select id="submissionStatusFilter" class="form-control">
+                                <option value="all">All Status</option>
+                                <option value="new">New</option>
+                                <option value="reviewed">Reviewed</option>
+                                <option value="approved">Approved</option>
+                                <option value="rejected">Rejected</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="data-table" id="submissionsTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Type</th>
+                                    <th>Submitted By</th>
+                                    <th>Email</th>
+                                    <th>Status</th>
+                                    <th>Submitted Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Activity Logs Page -->
@@ -2834,6 +3083,7 @@
     <script src="{{ asset('js/admin-enhancements.js') }}"></script>
     <script src="{{ asset('js/i18n-admin.js') }}"></script>
     <script src="{{ asset('js/ajax-forms.js') }}"></script>
+    <script src="{{ asset('js/management.js') }}"></script>
     <script>
     // SPA Event handler for Admin Dashboard (Replaces legacy navigation logic)
     document.addEventListener('spa:pageChanged', (e) => {

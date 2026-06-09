@@ -621,11 +621,13 @@ button,
     transform: translateX(4px);
 }
 
-/* Dashboard Grid */
+/* Dashboard Grid - 4 columns on desktop */
 .dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
     gap: 25px;
+    width: 100%;
+    overflow-x: hidden;
 }
 
 /* Stat Cards */

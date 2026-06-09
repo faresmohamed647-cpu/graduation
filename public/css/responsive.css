@@ -1,0 +1,790 @@
+/**
+ * ============================================================
+ *  SafeStep — Unified Responsive Stylesheet (v6)
+ *  Covers: Admin, School-Admin, Driver, Parent dashboards
+ *  Enhanced: Desktop 4-column grid, responsive breakdown
+ * ============================================================
+ */
+
+/* ============================================================
+   0. SIDEBAR OVERLAY — shared across all 4 dashboards
+   ============================================================ */
+.sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 999;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    pointer-events: none;
+}
+
+.sidebar-overlay.active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+/* ============================================================
+   0.5. RESPONSIVE BREAKPOINTS — DESKTOP (> 1024px)
+   ============================================================ */
+@media (min-width: 1441px) {
+    /* Extra large screens - improve spacing */
+    .card {
+        padding: 32px !important;
+    }
+
+    .dashboard-grid {
+        gap: 30px !important;
+    }
+
+    .page {
+        padding: 32px !important;
+    }
+}
+
+/* ============================================================
+   2. LARGE TABLET & SMALL DESKTOP (1024px - 1200px)
+   ============================================================ */
+@media (min-width: 1025px) and (max-width: 1200px) {
+    /* Adjust gap for 4-column grid in tight space */
+    .dashboard-grid {
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 18px !important;
+    }
+
+    .card {
+        padding: 24px !important;
+    }
+
+    .stat-info h3 {
+        font-size: 32px !important;
+    }
+}
+
+/* ============================================================
+   3. DESKTOP & TABLET LANDSCAPE — Screen size > 768px
+   ============================================================ */
+@media (min-width: 769px) {
+    /* Ensure the sidebar is visible by default */
+    .sidebar {
+        transform: translateX(0) !important;
+        left: 0 !important;
+        right: auto !important;
+        position: fixed !important;
+        width: var(--sidebar-width, 280px) !important;
+        height: 100vh !important;
+        z-index: 1000 !important;
+    }
+
+    /* Support desktop collapse (Admin dashboard uses .hidden) */
+    .sidebar.hidden {
+        transform: translateX(-100%) !important;
+    }
+
+    /* Main content flows beside sidebar */
+    .main-content {
+        margin-left: var(--sidebar-width, 280px) !important;
+        margin-right: 0 !important;
+        width: auto !important;
+        transition: margin-left 0.3s ease !important;
+    }
+
+    /* Collapsed sidebar margin override */
+    .main-content.sidebar-hidden {
+        margin-left: 0 !important;
+    }
+
+    /* The overlay should never appear on desktop */
+    .sidebar-overlay {
+        display: none !important;
+    }
+
+    /* Hide hamburger button */
+    .menu-toggle {
+        display: none !important;
+    }
+
+    /* ---------------- RTL SUPPORT FOR DESKTOP ---------------- */
+    html[dir="rtl"] .sidebar {
+        left: auto !important;
+        right: 0 !important;
+        transform: translateX(0) !important;
+    }
+
+    html[dir="rtl"] .sidebar.hidden {
+        transform: translateX(100%) !important;
+    }
+
+    html[dir="rtl"] .main-content {
+        margin-right: var(--sidebar-width, 280px) !important;
+        margin-left: 0 !important;
+    }
+
+    html[dir="rtl"] .main-content.sidebar-hidden {
+        margin-right: 0 !important;
+    }
+}
+
+/* ============================================================
+   2. MOBILE & TABLET PORTRAIT — Screen size ≤ 768px
+   ============================================================ */
+@media (max-width: 768px) {
+    /* ---- Sidebar: LTR — slide off to the LEFT by default ---- */
+    .sidebar {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        height: 100vh !important;
+        width: 260px !important;
+        z-index: 1001 !important;
+        transform: translateX(-100%) !important;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+
+    /* Open state is managed by body.sidebar-open class across all JS */
+    body.sidebar-open .sidebar {
+        transform: translateX(0) !important;
+        box-shadow: 0 20px 60px rgba(15, 23, 42, 0.3) !important;
+    }
+
+    /* Main content: full width, no sidebar margins */
+    .main-content,
+    .main-content.sidebar-hidden {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        width: 100% !important;
+    }
+
+    /* Show hamburger button */
+    .menu-toggle {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    /* ---------------- RTL SUPPORT FOR MOBILE ---------------- */
+    html[dir="rtl"] .sidebar {
+        left: auto !important;
+        right: 0 !important;
+        transform: translateX(100%) !important;
+    }
+
+    html[dir="rtl"] body.sidebar-open .sidebar {
+        transform: translateX(0) !important;
+    }
+
+    html[dir="rtl"] .main-content,
+    html[dir="rtl"] .main-content.sidebar-hidden {
+        margin-right: 0 !important;
+        margin-left: 0 !important;
+    }
+}
+
+/* ============================================================
+   3. GENERAL INTERFACE RESPONSIVENESS (≤ 1024px)
+   ============================================================ */
+@media (max-width: 1024px) {
+    /* Dashboard grid formatting - 3 columns */
+    .dashboard-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 20px !important;
+    }
+
+    /* Make large cards occupy span 2 */
+    .chart-card,
+    .activity-card,
+    .bus-status-card,
+    .timeline-card,
+    .progress-card,
+    .actions-card,
+    .emergency-card,
+    .schedule-card,
+    .driver-info-card {
+        grid-column: span 2 !important;
+    }
+}
+
+/* ============================================================
+   4. TABLET VIEWS (≤ 992px)
+   ============================================================ */
+@media (max-width: 992px) {
+    /* Page layout */
+    .page {
+        padding: 16px !important;
+    }
+
+    /* Dashboard grid formatting - 2 columns */
+    .dashboard-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 16px !important;
+    }
+
+    /* Make large cards occupy full width */
+    .chart-card,
+    .activity-card,
+    .bus-status-card,
+    .timeline-card,
+    .progress-card,
+    .actions-card,
+    .emergency-card,
+    .schedule-card,
+    .driver-info-card,
+    .dashboard-grid .card:not(.stat-card) {
+        grid-column: 1 / -1 !important;
+    }
+
+    /* Target Parent Specific Layouts */
+    .stats-container {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 16px !important;
+        grid-column: 1 / -1 !important;
+    }
+
+    .attendance-summary-cards {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 16px !important;
+    }
+    
+    .attendance-summary-cards .card:last-child {
+        grid-column: 1 / -1 !important; /* Balance the 5th card */
+    }
+
+    .payment-summary {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 16px !important;
+    }
+
+    .bus-status-grid {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 16px !important;
+    }
+
+    /* Grids to single column */
+    .recovery-summary-grid,
+    .support-options,
+    .settings-grid,
+    .profile-content-grid,
+    .activity-logs-layout,
+    .tracking-map-panel,
+    .trip-playback-layout,
+    .family-calc-grid,
+    .child-details-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Filters: stack vertically */
+    .filters {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+
+    .filter-item {
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+
+    /* Card header responsiveness */
+    .card-header {
+        flex-wrap: wrap !important;
+        gap: 10px !important;
+    }
+
+    /* Responsive Tables */
+    .table-wrapper,
+    .table-responsive,
+    .attendance-table-wrapper {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        border-radius: var(--radius-md, 8px) !important;
+    }
+
+    .data-table {
+        min-width: 600px !important;
+    }
+}
+
+/* ============================================================
+   5. MOBILE VIEWS (≤ 768px)
+   ============================================================ */
+@media (max-width: 768px) {
+    /* 
+     * Force native LTR/RTL flow on mobile for flex layouts.
+     * Overrides the inline styles in parent/driver blade files
+     * that manually do row-reverse, causing double-reverses.
+     */
+    html[dir="rtl"] .topbar,
+    html[dir="rtl"] .topbar-left,
+    html[dir="rtl"] .topbar-right,
+    html[dir="rtl"] .card-header,
+    html[dir="rtl"] .activity-item,
+    html[dir="rtl"] .profile {
+        flex-direction: row !important;
+    }
+
+    /* Mobile Dashboard Grid - single column */
+    .dashboard-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+
+    /* Make chart cards full width on mobile */
+    .chart-card,
+    .activity-card,
+    .bus-status-card,
+    .timeline-card,
+    .progress-card,
+    .actions-card,
+    .emergency-card,
+    .schedule-card,
+    .driver-info-card {
+        grid-column: auto !important;
+    }
+
+    /* Prevent double scrollbar scrolling glitches by making inner page scrollable at body level */
+    .page.active {
+        max-height: none !important;
+        overflow-y: visible !important;
+    }
+
+    /* Responsive Topbar */
+    .topbar {
+        height: auto !important;
+        min-height: 64px !important;
+        padding: 12px 16px !important;
+        flex-wrap: wrap !important;
+        gap: 12px !important;
+    }
+
+    .topbar-left {
+        width: 100% !important;
+        justify-content: space-between !important;
+    }
+
+    .topbar-right {
+        width: 100% !important;
+        justify-content: space-between !important;
+        gap: 10px !important;
+    }
+
+    html[dir="rtl"] .topbar-left {
+        flex-direction: row-reverse !important;
+    }
+
+    /* Page title */
+    .topbar h1,
+    #pageTitle {
+        font-size: 18px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        max-width: calc(100% - 60px) !important;
+    }
+
+    /* Hide search box in header on mobile to save space */
+    .search-box {
+        display: none !important;
+    }
+
+    /* Uniform premium circular buttons in header */
+    .theme-toggle,
+    .theme-toggle.lang-toggle,
+    .notification-icon {
+        width: 40px !important;
+        height: 40px !important;
+        padding: 0 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 50% !important;
+        border: 2px solid var(--border-color, #E2E8F0) !important;
+        background: var(--light-bg, #F8FAFC) !important;
+        color: var(--text-dark, #0F172A) !important;
+    }
+
+    .theme-toggle span,
+    .lang-toggle span {
+        display: none !important;
+    }
+
+    /* Profile avatar styling on mobile */
+    .profile {
+        padding: 0 !important;
+        background: none !important;
+        gap: 0 !important;
+    }
+
+    .profile img {
+        width: 40px !important;
+        height: 40px !important;
+        border-width: 2px !important;
+    }
+
+    .profile span {
+        display: none !important;
+    }
+
+    /* Stat Cards layout tweaks - keeping row format but compact */
+    .stat-card {
+        padding: 16px !important;
+        gap: 12px !important;
+        flex-direction: row !important;
+        text-align: start !important;
+        align-items: center !important;
+    }
+
+    .stat-icon {
+        width: 52px !important;
+        height: 52px !important;
+        font-size: 22px !important;
+    }
+
+    .stat-info h3,
+    .stat-details h3 {
+        font-size: 26px !important;
+        margin-bottom: 2px !important;
+    }
+
+    .stat-info p,
+    .stat-details p {
+        font-size: 13px !important;
+        margin-bottom: 4px !important;
+    }
+
+    .stat-trend {
+        font-size: 11px !important;
+        padding: 2px 6px !important;
+    }
+
+    /* Card styling for mobile */
+    .card {
+        padding: 16px !important;
+        border-radius: var(--radius-lg) !important;
+    }
+
+    .card-header {
+        margin-bottom: 16px !important;
+        padding-bottom: 12px !important;
+        gap: 8px !important;
+    }
+
+    .card-header h3 {
+        font-size: 18px !important;
+    }
+
+    .view-all {
+        font-size: 12px !important;
+        padding: 4px 8px !important;
+    }
+
+    /* Activity and Timeline cards */
+    .activity-item {
+        padding: 12px !important;
+        gap: 12px !important;
+    }
+
+    .activity-icon {
+        width: 40px !important;
+        height: 40px !important;
+        font-size: 18px !important;
+    }
+
+    .timeline-item {
+        padding: 12px !important;
+        gap: 10px !important;
+    }
+
+    .timeline-dot {
+        width: 10px !important;
+        height: 10px !important;
+    }
+
+    /* Button styling for mobile */
+    .btn-primary,
+    .btn-secondary {
+        padding: 10px 14px !important;
+        font-size: 13px !important;
+    }
+
+    /* Page Padding + Bottom Safe Space */
+    .page {
+        padding: 12px !important;
+        padding-bottom: 80px !important;
+    }
+
+    /* Driver specific screens */
+    .action-buttons {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+    }
+
+    .action-btn {
+        padding: 12px 8px !important;
+        font-size: 13px !important;
+    }
+
+    .route-container,
+    .trip-container {
+        grid-template-columns: 1fr !important;
+    }
+
+    .trip-controls {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+
+    .trip-btn {
+        width: 100% !important;
+    }
+
+    .trip-info {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+    }
+
+    .time-display {
+        display: none !important;
+    }
+
+    /* Parent specific tracking screen */
+    .tracking-container {
+        grid-template-columns: 1fr !important;
+    }
+
+    .map-container {
+        height: 280px !important;
+    }
+
+    .tracking-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 12px !important;
+    }
+
+    .tracking-status {
+        width: 100% !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+
+    .tracking-info {
+        display: flex !important;
+        gap: 16px !important;
+        width: 100% !important;
+    }
+
+    .tracking-footer {
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 12px !important;
+        padding: 16px !important;
+        width: 100% !important;
+    }
+
+    .tracking-footer button,
+    .tracking-footer a {
+        flex: 1 !important;
+        justify-content: center !important;
+        margin: 0 !important;
+    }
+
+    /* Bus Status Content spacing */
+    .status-content {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 16px !important;
+        align-items: center !important;
+        width: 100% !important;
+    }
+
+    .status-content .eta {
+        width: 100% !important;
+    }
+
+    .eta h2 {
+        font-size: 36px !important;
+    }
+
+    .status-badge {
+        font-size: 11px !important;
+        padding: 4px 10px !important;
+    }
+
+    /* Children attendance details */
+    .attendance-grid {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)) !important;
+        gap: 8px !important;
+        width: 100% !important;
+    }
+
+    .attendance-day {
+        min-width: unset !important;
+        padding: 12px 8px !important;
+    }
+
+    /* Profile & Child headers stacking on mobile */
+    .child-header,
+    .profile-header {
+        flex-direction: column !important;
+        text-align: center !important;
+        align-items: center !important;
+        padding: 24px 16px !important;
+        gap: 16px !important;
+    }
+
+    .profile-stats {
+        justify-content: center !important;
+        gap: 20px !important;
+        width: 100% !important;
+    }
+
+    /* Not going today full width */
+    .child-actions-row {
+        width: 100% !important;
+        display: flex !important;
+        justify-content: center !important;
+    }
+    .child-actions-row button,
+    .child-actions-row a,
+    .child-action-btn {
+        width: 100% !important;
+        justify-content: center !important;
+    }
+
+    /* Modals styling */
+    .modal-content,
+    .safestep-modal-content,
+    .profile-modal-content {
+        width: 92vw !important;
+        max-width: 480px !important;
+        max-height: 85vh !important;
+        margin: auto !important;
+        padding: 18px !important;
+        border-radius: 16px !important;
+        overflow-y: auto !important;
+    }
+
+    .profile-modal-footer {
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+
+    .profile-modal-footer button,
+    .btn-profile-primary,
+    .btn-profile-secondary {
+        width: 100% !important;
+        justify-content: center !important;
+    }
+}
+
+/* ============================================================
+   5.5. MEDIUM PHONES (481px - 600px)
+   ============================================================ */
+@media (max-width: 600px) and (min-width: 481px) {
+    /* Slightly more compact for medium phones */
+    .page {
+        padding: 10px !important;
+    }
+
+    .card {
+        padding: 14px !important;
+    }
+
+    .stat-card {
+        padding: 12px !important;
+    }
+
+    .dashboard-grid {
+        gap: 10px !important;
+    }
+
+    .topbar {
+        padding: 10px 12px !important;
+        gap: 10px !important;
+    }
+}
+
+/* ============================================================
+   6. SMALL PHONES (≤ 480px)
+   ============================================================ */
+@media (max-width: 480px) {
+    /* Everything stacks to 1 column */
+    .dashboard-grid,
+    .stats-container,
+    .attendance-summary-cards,
+    .bus-status-grid,
+    .action-buttons,
+    .trip-info,
+    .profile-form,
+    .settings-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Extremely small title limit */
+    #pageTitle {
+        font-size: 16px !important;
+        max-width: 160px !important;
+    }
+
+    /* Compact padding for pages and cards */
+    .page {
+        padding: 8px !important;
+        padding-bottom: 72px !important;
+    }
+
+    .card {
+        padding: 14px !important;
+    }
+
+    .card-header h3 {
+        font-size: 16px !important;
+    }
+
+    /* Map overlays */
+    .map-overlay {
+        right: 8px !important;
+        left: 8px !important;
+        top: auto !important;
+        bottom: 8px !important;
+        min-width: unset !important;
+    }
+}
+
+/* ============================================================
+   6. MISC AND BODY SCROLL FIX
+   ============================================================ */
+body.sidebar-open {
+    overflow: hidden !important;
+}
+
+body.dark-mode .sidebar-overlay {
+    background: rgba(15, 23, 42, 0.7) !important;
+}
+
+@media print {
+    .sidebar,
+    .topbar,
+    .menu-toggle,
+    .theme-toggle,
+    .lang-toggle,
+    .sidebar-overlay {
+        display: none !important;
+    }
+
+    .main-content {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .page {
+        display: block !important;
+        padding: 0 !important;
+    }
+}

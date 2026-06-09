@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/index.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/responsive.css') }}">
     <link
         rel="stylesheet"
         href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -37,7 +38,35 @@
         .site-footer{margin:28px 16px;padding:12px 16px;background:transparent;color:var(--muted);font-size:13px;border-top:1px solid rgba(15,23,42,0.04);display:flex;justify-content:space-between;align-items:center}
         .small-muted{color:var(--muted);font-size:13px}
         /* Map overlay + markers */
-        .map-container{position:relative}
+        .map-container{position:relative;border-radius:12px;overflow:hidden}
+        .map-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #e8eff5;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+            border-radius: 12px;
+            color: var(--muted);
+        }
+        .map-placeholder i {
+            font-size: 54px;
+            margin-bottom: 12px;
+            color: var(--accent);
+            opacity: 0.7;
+        }
+        .map-placeholder p {
+            font-size: 15px;
+            font-weight: 600;
+            margin: 0;
+        }
         .map-overlay{position:absolute;right:18px;top:18px;background:rgba(255,255,255,0.96);padding:10px;border-radius:10px;box-shadow:0 6px 20px rgba(16,24,40,.06);min-width:180px;z-index:600}
         .map-overlay .overlay-row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
         .map-overlay button{font-size:13px;padding:6px 10px;border-radius:8px}
@@ -390,7 +419,7 @@
                                 <button id="followBusBtn" class="btn-secondary" type="button">Center Bus</button>
                             </div>
                             <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="arrivalProgress"><i></i></div>
-                            <div class="meta"><span id="etaShort">ETA: --</span> â€¢ <button id="shareChildBtn" class="btn-secondary" type="button">Share</button></div>
+                            <div class="meta"><span id="etaShort">ETA: --</span> &bull; <button id="shareChildBtn" class="btn-secondary" type="button">Share</button></div>
                         </div>
                     </div>
                     <div class="tracking-footer">
@@ -783,7 +812,7 @@
     </div>
 
     <footer class="site-footer" role="contentinfo">
-        <div class="small-muted">BusTracker â€¢ v1.0</div>
+        <div class="small-muted">BusTracker &bull; v1.0</div>
         <div class="small-muted">Last updated: <span id="lastUpdated">-</span></div>
     </footer>
 
@@ -802,14 +831,82 @@
         // menu toggle
         const menuBtn = document.getElementById('menuToggle');
         const sidebar = document.querySelector('.sidebar');
-        if(menuBtn && sidebar){
-            menuBtn.addEventListener('click', ()=>{
-                if (window.innerWidth <= 768) return;
-                const expanded = menuBtn.getAttribute('aria-expanded') === 'true';
-                menuBtn.setAttribute('aria-expanded', String(!expanded));
-                sidebar.classList.toggle('collapsed');
-            });
+        
+        // Create sidebar overlay for mobile if it doesn't exist
+        let sidebarOverlay = document.querySelector('.sidebar-overlay');
+        if (!sidebarOverlay) {
+            sidebarOverlay = document.createElement('div');
+            sidebarOverlay.className = 'sidebar-overlay';
+            document.body.appendChild(sidebarOverlay);
         }
+
+        function setSidebarState(isOpen) {
+            if (!sidebar) return;
+            const isMobile = window.innerWidth <= 768;
+
+            if (isMobile) {
+                sidebar.classList.remove('collapsed');
+                sidebar.classList.toggle('active', isOpen);
+                sidebarOverlay.classList.toggle('active', isOpen);
+                document.body.classList.toggle('sidebar-open', isOpen);
+                if (menuBtn) {
+                    menuBtn.setAttribute('aria-expanded', String(isOpen));
+                    const icon = menuBtn.querySelector('i');
+                    if (icon) {
+                        icon.classList.toggle('fa-bars', !isOpen);
+                        icon.classList.toggle('fa-times', isOpen);
+                    }
+                }
+            } else {
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                document.body.classList.remove('sidebar-open');
+                if (menuBtn) {
+                    const expanded = sidebar.classList.contains('collapsed');
+                    menuBtn.setAttribute('aria-expanded', String(!expanded));
+                    const icon = menuBtn.querySelector('i');
+                    if (icon) {
+                        icon.classList.add('fa-bars');
+                        icon.classList.remove('fa-times');
+                    }
+                }
+            }
+        }
+
+        if (menuBtn && sidebar) {
+            menuBtn.addEventListener('click', () => {
+                const isMobile = window.innerWidth <= 768;
+                if (isMobile) {
+                    const isOpen = sidebar.classList.contains('active');
+                    setSidebarState(!isOpen);
+                } else {
+                    const collapsed = sidebar.classList.toggle('collapsed');
+                    localStorage.setItem('sidebar_collapsed', collapsed ? '1' : '0');
+                    menuBtn.setAttribute('aria-expanded', String(!collapsed));
+                }
+            });
+
+            // Restore collapsed state on desktop
+            try {
+                if (window.innerWidth > 768) {
+                    const savedCollapsed = localStorage.getItem('sidebar_collapsed') === '1';
+                    if (savedCollapsed) {
+                        sidebar.classList.add('collapsed');
+                        menuBtn.setAttribute('aria-expanded', 'false');
+                    }
+                }
+            } catch(e) {}
+        }
+
+        if (sidebarOverlay) {
+            sidebarOverlay.addEventListener('click', () => setSidebarState(false));
+        }
+
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                setSidebarState(false);
+            }
+        });
 
         // map + tracking helpers
         const mapEl = document.getElementById('gpsMap');
@@ -838,6 +935,13 @@
 
                 routeLine = L.polyline([busPos, childPos], {color:'#0ea5a4', weight:4, opacity:0.9, dashArray:'6 6'}).addTo(mapInstance);
                 updateTrackingInfo(busPos, childPos, initialDist);
+
+                // hide placeholder
+                const placeholder = document.querySelector('.map-placeholder');
+                if(placeholder){
+                    placeholder.style.opacity = '0';
+                    setTimeout(() => placeholder.style.display = 'none', 400);
+                }
 
                 // simulate bus movement towards child (gentle)
                 let t=0; const steps=120; const simulate = ()=>{
@@ -891,12 +995,35 @@
             try{ const ring = L.circle(loc, {radius:40, color:'#0ea5a4', weight:2, fill:false}).addTo(mapInstance); setTimeout(()=> mapInstance.removeLayer(ring),1600);}catch(e){}
         }
 
-        // observe and init map lazily
-        if(mapEl){
-            if('IntersectionObserver' in window){
-                const io = new IntersectionObserver((entries,obs)=>{ entries.forEach(e=>{ if(e.isIntersecting){ initMap(); obs.disconnect(); } }); },{rootMargin:'200px'});
-                io.observe(mapEl);
-            } else { initMap(); }
+        // Handle SPA page transitions for tracking page
+        document.addEventListener('spa:pageChanged', function(e) {
+            // Close mobile sidebar on page navigation to reset state
+            if (typeof setSidebarState === 'function') {
+                setSidebarState(false);
+            }
+
+            if (e.detail.pageId === 'tracking') {
+                setTimeout(function() {
+                    if (typeof L !== 'undefined') {
+                        if (!mapInited) {
+                            initMap();
+                        } else if (mapInstance) {
+                            try {
+                                mapInstance.invalidateSize();
+                            } catch(err) {
+                                console.warn('invalidateSize failed', err);
+                            }
+                        }
+                    }
+                }, 150);
+            }
+        });
+
+        // Check if page is already active on load
+        if (mapEl && document.getElementById('tracking')?.classList.contains('active')) {
+            setTimeout(function() {
+                if (typeof L !== 'undefined' && !mapInited) initMap();
+            }, 150);
         }
 
         // wire overlay buttons
