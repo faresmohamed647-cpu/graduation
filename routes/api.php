@@ -219,6 +219,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/trips/{trip}/attendance', [DriverApiController::class, 'markAttendance']);
         Route::post('/location', [DriverApiController::class, 'updateLocation']);
         Route::get('/students', [DriverApiController::class, 'myStudents']);
+        Route::post('/trips/report-issue', [DriverApiController::class, 'reportTripIssue']);
         Route::get('/notifications', [DriverApiController::class, 'notifications']);
         Route::get('/requests', [DriverApiController::class, 'requests']);
         Route::get('/route-progress', [DriverApiController::class, 'routeProgress']);
