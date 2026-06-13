@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
+use App\Services\SchoolLoginProvisioner;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -13,7 +15,7 @@ class AuthController extends Controller
         return view('auth.login');
     }
 
-    public function login(Request $request)
+    public function login(Request $request, SchoolLoginProvisioner $schoolLoginProvisioner)
     {
         $credentials = $request->validate([
             'email' => ['required', 'email'],
@@ -21,18 +23,32 @@ class AuthController extends Controller
         ]);
 
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
+            $user = User::where('email', $credentials['email'])->first();
+
+            if (! $user) {
+                $user = $schoolLoginProvisioner->provisionFromExistingApplication(
+                    $credentials['email'],
+                    $credentials['password']
+                );
+            } elseif ($schoolLoginProvisioner->repairPasswordFromPlainText($user, $credentials['password'])) {
+                $user->refresh();
+            }
+
+            if ($user) {
+                Auth::login($user, $request->boolean('remember'));
+            }
+        }
+
+        if (! Auth::check()) {
             throw ValidationException::withMessages([
-                'email' => ['بيانات الدخول غير صحيحة.'],
+                'email' => ['Invalid login details.'],
             ]);
         }
 
         $user = $request->user();
         $selectedRole = strtolower((string) $request->input('role', ''));
-
-        if ($selectedRole !== '' && $selectedRole !== strtolower((string) $user->role)) {
-        // توحيد مسميات الأدوار لمنع الخطأ (مثلاً: تحويل school إلى school_admin)
         $userRole = strtolower((string) $user->role);
-        $targetRole = ($selectedRole === 'school') ? 'school_admin' : $selectedRole;
+        $targetRole = $selectedRole === 'school' ? 'school_admin' : $selectedRole;
 
         if ($targetRole !== '' && $targetRole !== $userRole) {
             Auth::logout();
@@ -40,22 +56,22 @@ class AuthController extends Controller
             $request->session()->regenerateToken();
 
             throw ValidationException::withMessages([
-                'email' => ['This account is registered as ' . $user->role . '. Please choose the correct login tab.'],
-                'email' => ['هذا الحساب مسجل كـ ' . ($user->role ?? 'مستخدم') . '. يرجى اختيار التبويب الصحيح للدخول.'],
+                'email' => ['This account is registered as ' . ($user->role ?? 'user') . '. Please choose the correct login tab.'],
             ]);
         }
 
-        // Check if driver account is pending approval
-        if ($user->role === 'driver') {
+        // Keep driver approval behavior unchanged. Schools are allowed into their
+        // locked dashboard so they can complete the required profile form.
+        if ($userRole === 'driver') {
             $driver = $user->driverProfile;
-            if ($driver && in_array($driver->status, ['pending', 'interview_scheduled'])) {
+            if ($driver && in_array($driver->status, ['pending', 'interview_scheduled'], true)) {
                 Auth::logout();
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();
 
-                $msg = 'حسابك لسه تحت المراجعة.';
+                $msg = 'Your account is still under review.';
                 if ($driver->interview_date) {
-                    $msg .= ' ميعاد المقابلة: ' . $driver->interview_date->format('Y-m-d h:i A');
+                    $msg .= ' Interview date: ' . $driver->interview_date->format('Y-m-d h:i A');
                 }
 
                 throw ValidationException::withMessages([
@@ -69,7 +85,7 @@ class AuthController extends Controller
                 $request->session()->regenerateToken();
 
                 throw ValidationException::withMessages([
-                    'email' => ['تم رفض طلبك. تواصل مع الإدارة لمزيد من المعلومات.'],
+                    'email' => ['Your request was rejected. Please contact administration for more information.'],
                 ]);
             }
         }
@@ -82,12 +98,11 @@ class AuthController extends Controller
         $apiToken = $user->createToken('dashboard-session')->plainTextToken;
         $request->session()->put('api_token', $apiToken);
 
-        // If this is an AJAX request return JSON with the token.
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
-                'success'   => true,
+                'success' => true,
                 'api_token' => $apiToken,
-                'redirect'  => $this->redirectPathForRole($user->role),
+                'redirect' => $this->redirectPathForRole($user->role),
             ]);
         }
 
@@ -100,11 +115,11 @@ class AuthController extends Controller
     protected function redirectPathForRole(string $role): string
     {
         return match ($role) {
-            'admin'        => '/admin',
+            'admin' => '/admin',
             'school_admin' => '/school-admin',
-            'driver'       => '/driver',
-            'parent'       => '/parent',
-            default        => '/',
+            'driver' => '/driver',
+            'parent' => '/parent',
+            default => '/',
         };
     }
 

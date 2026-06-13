@@ -6,11 +6,13 @@ use App\Enums\ApplicationRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ApplicationRequest;
 use App\Models\Application;
+use App\Models\School;
 use App\Models\User;
 use App\Services\AdminSubmissionNotifier;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class ApplicationController extends Controller
@@ -85,19 +87,23 @@ class ApplicationController extends Controller
                 $notes = trim($notes . ($notes !== '' ? PHP_EOL : '') . 'meta:' . json_encode($roleMetadata, JSON_UNESCAPED_UNICODE));
             }
 
-            $matchedUser = $this->resolveApplicationUser($request, $data, $role);
+            if ($role === ApplicationRole::School->value) {
+                $application = $this->storeSchoolApplication($data, $roleMetadata, $notes);
+            } else {
+                $matchedUser = $this->resolveApplicationUser($request, $data, $role);
 
-            $application = Application::create([
-                'user_id' => $matchedUser?->id,
-                'full_name' => $data['name'],
-                'email' => $data['email'],
-                'phone' => $data['phone'],
-                'address' => $data['address'],
-                'role' => $role,
-                'experience' => $data['experience'],
-                'notes' => $notes !== '' ? $notes : null,
-                'status' => 'pending',
-            ]);
+                $application = Application::create([
+                    'user_id' => $matchedUser?->id,
+                    'full_name' => $data['name'],
+                    'email' => $data['email'],
+                    'phone' => $data['phone'],
+                    'address' => $data['address'],
+                    'role' => $role,
+                    'experience' => $data['experience'],
+                    'notes' => $notes !== '' ? $notes : null,
+                    'status' => 'pending',
+                ]);
+            }
 
             AdminSubmissionNotifier::notify(
                 'application',
@@ -111,6 +117,8 @@ class ApplicationController extends Controller
                 'message' => 'Application submitted successfully',
                 'data' => $application,
             ], 201);
+        } catch (ValidationException $exception) {
+            throw $exception;
         } catch (Throwable $exception) {
             Log::error('Failed to store application', [
                 'ip' => $request->ip(),
@@ -133,6 +141,86 @@ class ApplicationController extends Controller
         }
 
         return $request->file('school_logo')->store('applications/school-logos', 'public');
+    }
+
+    private function storeSchoolApplication(array $data, array $metadata, string $notes): Application
+    {
+        return DB::transaction(function () use ($data, $metadata, $notes) {
+            $existingUser = User::where('email', $data['email'])->first();
+
+            if ($existingUser && ! in_array($existingUser->role, ['school_admin', 'school'], true)) {
+                throw ValidationException::withMessages([
+                    'email' => ['This email is already registered with another account type.'],
+                ]);
+            }
+
+            $school = $existingUser?->school;
+
+            if (! $school) {
+                $school = School::create([
+                    'name' => $metadata['school_name'] ?? $data['name'],
+                    'email' => $metadata['school_email'] ?? $data['email'],
+                    'phone' => $data['phone'],
+                    'address' => $metadata['school_address'] ?? $data['address'],
+                    'principal_name' => $metadata['principal_name'] ?? $data['name'],
+                    'logo' => $metadata['school_logo'] ?? null,
+                    'student_count' => isset($metadata['student_count']) ? (int) $metadata['student_count'] : null,
+                    'bus_count' => isset($metadata['bus_count']) ? (int) $metadata['bus_count'] : null,
+                    'status' => 'pending_details',
+                    'active' => false,
+                    'notes' => 'Provisioned from school registration.',
+                ]);
+            } elseif ($school->status !== 'active') {
+                $school->fill([
+                    'name' => $metadata['school_name'] ?? $school->name,
+                    'email' => $metadata['school_email'] ?? $school->email,
+                    'phone' => $data['phone'] ?? $school->phone,
+                    'address' => $metadata['school_address'] ?? $school->address,
+                    'principal_name' => $metadata['principal_name'] ?? $school->principal_name,
+                    'student_count' => isset($metadata['student_count']) ? (int) $metadata['student_count'] : $school->student_count,
+                    'bus_count' => isset($metadata['bus_count']) ? (int) $metadata['bus_count'] : $school->bus_count,
+                ]);
+
+                if (! empty($metadata['school_logo'])) {
+                    $school->logo = $metadata['school_logo'];
+                }
+
+                if (! in_array($school->status, ['pending_details', 'pending_approval'], true)) {
+                    $school->status = 'pending_details';
+                    $school->active = false;
+                }
+
+                $school->save();
+            }
+
+            $userData = [
+                'name' => $data['name'],
+                'role' => 'school_admin',
+                'school_id' => $school->id,
+            ];
+
+            if (! empty($data['password'])) {
+                $userData['password'] = Hash::make($data['password']);
+                $userData['plain_password'] = $data['password'];
+            }
+
+            $user = User::updateOrCreate(
+                ['email' => $data['email']],
+                $userData
+            );
+
+            return Application::create([
+                'user_id' => $user->id,
+                'full_name' => $data['name'],
+                'email' => $data['email'],
+                'phone' => $data['phone'],
+                'address' => $data['address'],
+                'role' => ApplicationRole::School->value,
+                'experience' => $data['experience'],
+                'notes' => $notes !== '' ? $notes : null,
+                'status' => 'accepted',
+            ]);
+        });
     }
 
     private function resolveApplicationUser(ApplicationRequest $request, array $data, string $role): ?User

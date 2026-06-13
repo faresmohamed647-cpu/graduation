@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\SchoolLoginProvisioner;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -45,7 +46,7 @@ class ApiAuthController extends Controller
         ], 201);
     }
 
-    public function login(Request $request)
+    public function login(Request $request, SchoolLoginProvisioner $schoolLoginProvisioner)
     {
         $credentials = $request->validate([
             'email'    => ['required', 'email'],
@@ -53,6 +54,17 @@ class ApiAuthController extends Controller
         ]);
 
         $user = User::where('email', $credentials['email'])->first();
+
+        if (! $user || ! Hash::check($credentials['password'], $user->password)) {
+            if (! $user) {
+                $user = $schoolLoginProvisioner->provisionFromExistingApplication(
+                    $credentials['email'],
+                    $credentials['password']
+                );
+            } elseif ($schoolLoginProvisioner->repairPasswordFromPlainText($user, $credentials['password'])) {
+                $user->refresh();
+            }
+        }
 
         if (! $user || ! Hash::check($credentials['password'], $user->password)) {
             throw ValidationException::withMessages([
