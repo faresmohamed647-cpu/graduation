@@ -65,6 +65,10 @@
                 <i class="fas fa-file-alt"></i>
                 <span>Applications</span>
             </a>
+            <a href="#" class="nav-link" data-page="student-assignments">
+                <i class="fas fa-user-check"></i>
+                <span>Student Assignments</span>
+            </a>
             <a href="#" class="nav-link" data-page="parents">
                 <i class="fas fa-users"></i>
                 <span>Parents</span>
@@ -463,6 +467,21 @@
                             <tr><td colspan="6">Loading applications...</td></tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Student Assignments Page -->
+        <div class="page" id="student-assignments">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Parent Children Assignment</h3>
+                    <button class="btn-secondary btn-compact" type="button" onclick="loadStudentAssignmentsFromApi()">
+                        <i class="fas fa-rotate"></i> Refresh
+                    </button>
+                </div>
+                <div id="studentAssignmentsList" style="padding:20px;display:flex;flex-direction:column;gap:16px;">
+                    <div style="color:var(--text-secondary);">Loading assignment requests...</div>
                 </div>
             </div>
         </div>
@@ -3094,6 +3113,9 @@
         if (pageId === 'applications' && typeof renderApplications === 'function') {
             renderApplications();
             if (typeof loadApplicationsFromApi === 'function') loadApplicationsFromApi();
+        } else if (pageId === 'student-assignments' && typeof renderStudentAssignments === 'function') {
+            renderStudentAssignments();
+            if (typeof loadStudentAssignmentsFromApi === 'function') loadStudentAssignmentsFromApi();
         } else if (pageId === 'parents' && typeof renderParents === 'function') {
             renderParents();
             if (typeof loadParentsFromApi === 'function') loadParentsFromApi();

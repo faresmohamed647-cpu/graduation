@@ -135,7 +135,7 @@ class ApplicationController extends Controller
         return $request->file('school_logo')->store('applications/school-logos', 'public');
     }
 
-    private function resolveApplicationUser(ApplicationRequest $request, array $data, string $role): User
+    private function resolveApplicationUser(ApplicationRequest $request, array $data, string $role): ?User
     {
         $email = strtolower((string) $data['email']);
         $authUser = $request->user();

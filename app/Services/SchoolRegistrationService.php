@@ -21,7 +21,7 @@ class SchoolRegistrationService
             'address' => $meta['school_address'] ?? $application->address,
             'principal_name' => $meta['principal_name'] ?? $application->full_name,
             'logo' => $meta['school_logo'] ?? null,
-            'status' => 'active',
+            'status' => 'pending_details',
             'notes' => 'Provisioned from application #' . $application->id,
         ]);
 

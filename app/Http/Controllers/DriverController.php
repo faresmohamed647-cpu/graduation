@@ -18,24 +18,62 @@ class DriverController extends Controller
         $today = CarbonImmutable::today();
         $todayTrip = null;
         $trips = collect([]);
+        $assignedBus = null;
+        $isApproved = false;
+        $appStatus = 'pending';
 
-        if ($driverId) {
-            $todayTrip = Trip::query()
-                ->with(['bus', 'route', 'attendance.student'])
-                ->where('driver_id', $driverId)
-                ->whereDate('trip_date', $today)
-                ->latest('id')
-                ->first();
+        $driverProfile = $user?->driverProfile;
+        if ($driverProfile) {
+            $applications = $this->applicationsForUser($user, 'driver')->limit(10)->get();
+            $acceptedApplication = $applications->firstWhere('status', 'accepted');
+            $pendingApplication = $applications->firstWhere('status', 'pending');
+            $rejectedApplication = $applications->firstWhere('status', 'rejected');
 
-            $trips = Trip::query()
-                ->with(['bus', 'route'])
-                ->where('driver_id', $driverId)
-                ->latest('trip_date')
-                ->limit(20)
-                ->get();
+            if ($driverProfile->status === 'approved') {
+                $isApproved = true;
+                $appStatus = 'approved';
+            } elseif ($driverProfile->status === 'pending_details') {
+                $isApproved = false;
+                $appStatus = 'pending_details';
+            } elseif ($driverProfile->status === 'pending_approval') {
+                $isApproved = false;
+                $appStatus = 'pending_approval';
+            } elseif ($driverProfile->status === 'rejected' || $rejectedApplication) {
+                $isApproved = false;
+                $appStatus = 'rejected';
+            } elseif ($acceptedApplication || $driverProfile->active) {
+                if (empty($driverProfile->status)) {
+                    $driverProfile->update(['status' => 'pending_details']);
+                }
+                $isApproved = false;
+                $appStatus = $driverProfile->status ?: 'pending_details';
+            } else {
+                $isApproved = false;
+                $appStatus = 'pending';
+            }
+
+            if ($isApproved && $driverId) {
+                $assignedBus = \App\Models\Bus::where('driver_id', $driverId)->first();
+            }
+
+            if ($driverId) {
+                $todayTrip = Trip::query()
+                    ->with(['bus', 'route', 'attendance.student'])
+                    ->where('driver_id', $driverId)
+                    ->whereDate('trip_date', $today)
+                    ->latest('id')
+                    ->first();
+
+                $trips = Trip::query()
+                    ->with(['bus', 'route'])
+                    ->where('driver_id', $driverId)
+                    ->latest('trip_date')
+                    ->limit(20)
+                    ->get();
+            }
+        } else {
+            $applications = collect([]);
         }
-
-        $applications = $this->applicationsForUser($user, 'driver')->limit(10)->get();
 
         $stats = [
             'trips_today' => $trips->where('trip_date', $today->format('Y-m-d'))->count(),
@@ -58,6 +96,9 @@ class DriverController extends Controller
             'trips' => $trips,
             'applications' => $applications,
             'stats' => $stats,
+            'isApproved' => $isApproved,
+            'appStatus' => $appStatus,
+            'assignedBus' => $assignedBus,
         ]);
     }
 

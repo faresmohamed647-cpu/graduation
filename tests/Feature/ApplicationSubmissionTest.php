@@ -228,13 +228,13 @@ class ApplicationSubmissionTest extends TestCase
         // Verify Application is linked to the User
         $this->assertEquals($user->id, $driverApp->fresh()->user_id);
 
-        // Verify Driver profile was created
+        // Verify Driver profile was created in pending_details / inactive state
         $this->assertDatabaseHas('drivers', [
             'user_id' => $user->id,
             'car_plate' => 'XYZ 123',
             'car_model' => '2022',
-            'status' => 'approved',
-            'active' => true,
+            'status' => 'pending_details',
+            'active' => false,
         ]);
     }
 
@@ -287,6 +287,45 @@ class ApplicationSubmissionTest extends TestCase
             'education_system' => 'National',
             'school_name' => 'Green School',
             'active' => true,
+        ]);
+    }
+
+    private function validSchoolPayload(): array
+    {
+        return [
+            'name' => 'Principal Principal',
+            'email' => 'principal@school.test',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'phone' => '01012345679',
+            'address' => 'Alexandria, Egypt',
+            'role' => 'school',
+            'experience' => 'School fleet management experience.',
+            'school_name' => 'Test Academy',
+            'school_email' => 'info@testacademy.com',
+            'principal_name' => 'Principal Principal',
+            'school_address' => 'Smouha, Alexandria',
+            'student_count' => 500,
+            'bus_count' => 10,
+        ];
+    }
+
+    public function test_school_submission_succeeds(): void
+    {
+        $response = $this->postJson(
+            '/api/applications',
+            $this->validSchoolPayload(),
+            $this->apiHeaders()
+        );
+
+        $response->assertStatus(201)
+            ->assertJsonPath('status', 'success');
+
+        $this->assertDatabaseHas('applications', [
+            'email' => 'principal@school.test',
+            'role' => 'school',
+            'status' => 'pending',
+            'user_id' => null,
         ]);
     }
 }

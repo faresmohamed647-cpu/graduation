@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Student;
 use App\Models\Trip;
+use Illuminate\Support\Facades\DB;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 
@@ -16,8 +17,32 @@ class ParentApiController extends Controller
         if (!$parentId) {
             return response()->json(['success' => true, 'data' => ['children' => [], 'latest_trip' => null]]);
         }
-        $children = Student::where('parent_id', $parentId)->where('active', true)->get()
-            ->map(fn ($s) => ['id' => $s->id, 'full_name' => $s->full_name, 'grade' => $s->grade, 'school_name' => $s->school_name]);
+        $students = Student::where('parent_id', $parentId)
+            ->where('active', true)
+            ->with(['bus.driver.user', 'route'])
+            ->get();
+
+        $children = $students->map(fn ($s) => [
+            'id' => $s->id,
+            'full_name' => $s->full_name,
+            'grade' => $s->grade,
+            'school_name' => $s->school_name,
+            'bus' => $s->bus ? [
+                'id' => $s->bus->id,
+                'bus_number' => $s->bus->bus_number,
+                'driver' => $s->bus->driver ? [
+                    'id' => $s->bus->driver->id,
+                    'user' => $s->bus->driver->user ? [
+                        'name' => $s->bus->driver->user->name,
+                    ] : null,
+                ] : null,
+            ] : null,
+            'route' => $s->route ? [
+                'id' => $s->route->id,
+                'name' => $s->route->name,
+            ] : null,
+        ]);
+
         $latestTrip = Trip::whereHas('attendance', fn ($q) => $q->whereIn('student_id', $children->pluck('id')))
             ->latest('id')->first();
         return response()->json(['success' => true, 'data' => ['children' => $children, 'latest_trip' => $latestTrip]]);
@@ -27,8 +52,75 @@ class ParentApiController extends Controller
     {
         $parentId = $request->user()?->parentProfile?->id;
         if (!$parentId) { return response()->json(['success' => true, 'data' => []]); }
-        $students = Student::where('parent_id', $parentId)->get();
+        $students = Student::where('parent_id', $parentId)
+            ->with(['bus.driver.user', 'route'])
+            ->get();
         return response()->json(['success' => true, 'data' => $students]);
+    }
+
+    public function submitChildren(Request $request)
+    {
+        $user = $request->user();
+        $parent = $user?->parentProfile;
+
+        if (! $parent || ! $parent->active) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Your parent application must be accepted before submitting children details.',
+            ], 422);
+        }
+
+        $existingCount = Student::where('parent_id', $parent->id)->count();
+        if ($existingCount > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Children details were already submitted.',
+            ], 422);
+        }
+
+        $data = $request->validate([
+            'children' => ['required', 'array', 'min:1', 'max:10'],
+            'children.*.full_name' => ['required', 'string', 'max:255'],
+            'children.*.age' => ['nullable', 'integer', 'min:2', 'max:25'],
+            'children.*.grade' => ['nullable', 'string', 'max:50'],
+            'children.*.school_name' => ['nullable', 'string', 'max:255'],
+            'children.*.pickup_location' => ['nullable', 'string', 'max:255'],
+            'children.*.dropoff_location' => ['nullable', 'string', 'max:255'],
+            'children.*.pickup_time' => ['nullable', 'date_format:H:i'],
+            'children.*.dropoff_time' => ['nullable', 'date_format:H:i'],
+            'children.*.has_medical_condition' => ['nullable', 'boolean'],
+            'children.*.medical_condition' => ['nullable', 'string', 'max:2000'],
+            'children.*.medication' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $students = DB::transaction(function () use ($data, $parent) {
+            return collect($data['children'])->map(function (array $child) use ($parent) {
+                $hasMedicalCondition = (bool) ($child['has_medical_condition'] ?? false);
+
+                return Student::create([
+                    'parent_id' => $parent->id,
+                    'full_name' => $child['full_name'],
+                    'age' => $child['age'] ?? null,
+                    'grade' => $child['grade'] ?? null,
+                    'school_name' => $child['school_name'] ?? $parent->school_name,
+                    'pickup_location' => $child['pickup_location'] ?? $parent->address,
+                    'dropoff_location' => $child['dropoff_location'] ?? ($child['school_name'] ?? $parent->school_name),
+                    'pickup_time' => $child['pickup_time'] ?? null,
+                    'dropoff_time' => $child['dropoff_time'] ?? null,
+                    'has_medical_condition' => $hasMedicalCondition,
+                    'medical_condition' => $hasMedicalCondition ? ($child['medical_condition'] ?? null) : null,
+                    'medication' => $hasMedicalCondition ? ($child['medication'] ?? null) : null,
+                    'assignment_status' => 'pending',
+                    'active' => true,
+                ]);
+            })->values();
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Children details submitted. Admin will assign a driver and bus.',
+            'data' => $students,
+        ], 201);
     }
 
     public function child(Request $request, Student $student)

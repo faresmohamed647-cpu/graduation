@@ -51,7 +51,30 @@
         'Students': 'الطلاب',
         'Route': 'المسار',
         'Logout': 'تسجيل الخروج',
-        'Dark': 'داكن'
+        'Dark': 'داكن',
+        'Register Driver Profile Details': 'تسجيل بيانات ملف السائق',
+        'Required step to activate driver account': 'خطوة ضرورية لتفعيل حساب السائق',
+        'Full Name': 'الاسم الكامل',
+        'Phone Number': 'رقم الهاتف',
+        'Age': 'العمر',
+        'Gender': 'النوع',
+        'Male': 'ذكر',
+        'Female': 'أنثى',
+        'License Number': 'رقم رخصة القيادة',
+        'Years of Experience': 'سنوات الخبرة',
+        'Bus/Car Type': 'نوع الحافلة/السيارة',
+        'Bus/Car Model': 'موديل الحافلة/السيارة',
+        'Plate Number': 'رقم اللوحة',
+        'Home Address': 'عنوان السكن',
+        'National ID Document': 'البطاقة الشخصية',
+        'Criminal Record Document (Fish)': 'الفيش الجنائي',
+        'Submit Details': 'إرسال التفاصيل',
+        'Profile Details Submitted': 'تم إرسال بيانات الملف الشخصي',
+        'Thank you for registering your profile details. The administration is currently reviewing your application, license information, and vehicle details. You will receive access to your driver dashboard once approved.': 'شكرًا لتسجيل بيانات ملفك الشخصي. تقوم الإدارة حاليًا بمراجعة طلبك ومعلومات الرخصة وتفاصيل الحافلة. ستتمكن من الدخول إلى لوحة التحكم فور الموافقة.',
+        'Pending Approval': 'في انتظار الموافقة',
+        'Status:': 'الحالة:',
+        'Sending...': 'جاري الإرسال...',
+        'Driver profile details submitted successfully.': 'تم تقديم بيانات ملف السائق بنجاح.'
     };
 
     const wordMap = {

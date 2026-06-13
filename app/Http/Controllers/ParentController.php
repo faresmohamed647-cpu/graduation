@@ -20,12 +20,32 @@ class ParentController extends Controller
         $children = collect([]);
         $attendanceRecords = collect([]);
         $latestTrip = null;
+        $assignedChildrenCount = 0;
+        $assignedBus = null;
+        $assignedDriver = null;
+        $assignedRoute = null;
 
         if ($parentId) {
             $children = Student::where('parent_id', $parentId)
                 ->where('active', true)
+                ->with(['bus.driver.user', 'route'])
                 ->orderBy('full_name')
                 ->get();
+
+            $assignedChildrenCount = Student::where('parent_id', $parentId)
+                ->whereNotNull('bus_id')
+                ->count();
+
+            $firstAssignedStudent = Student::where('parent_id', $parentId)
+                ->whereNotNull('bus_id')
+                ->with(['bus.driver.user', 'route'])
+                ->first();
+
+            if ($firstAssignedStudent) {
+                $assignedBus = $firstAssignedStudent->bus;
+                $assignedDriver = $assignedBus?->driver;
+                $assignedRoute = $firstAssignedStudent->route;
+            }
 
             $childIds = $children->pluck('id')->all();
             if ($childIds) {
@@ -47,6 +67,29 @@ class ParentController extends Controller
         }
 
         $applications = $this->applicationsForUser($user, 'parent')->limit(10)->get();
+        $acceptedApplication = $applications->firstWhere('status', 'accepted');
+        $pendingApplication = $applications->firstWhere('status', 'pending');
+        $rejectedApplication = $applications->firstWhere('status', 'rejected');
+
+        $isApproved = false;
+        $appStatus = 'pending';
+
+        if ($user?->parentProfile) {
+            if ($user->parentProfile->active || $acceptedApplication) {
+                $isApproved = true;
+                $appStatus = 'approved';
+            } elseif ($rejectedApplication) {
+                $appStatus = 'rejected';
+            } else {
+                $appStatus = 'pending';
+            }
+        }
+
+        $childFormCount = (int) (
+            $user?->parentProfile?->student_count
+            ?: ($acceptedApplication?->metadata['student_count'] ?? 1)
+        );
+        $childFormCount = max(1, min($childFormCount, 10));
 
         $stats = [
             'children_count' => $children->count(),
@@ -68,8 +111,16 @@ class ParentController extends Controller
             'children' => $children,
             'attendanceRecords' => $attendanceRecords,
             'applications' => $applications,
+            'acceptedApplication' => $acceptedApplication,
+            'childFormCount' => $childFormCount,
             'latestTrip' => $latestTrip,
             'stats' => $stats,
+            'isApproved' => $isApproved,
+            'appStatus' => $appStatus,
+            'assignedChildrenCount' => $assignedChildrenCount,
+            'assignedBus' => $assignedBus,
+            'assignedDriver' => $assignedDriver,
+            'assignedRoute' => $assignedRoute,
         ]);
     }
 

@@ -24,8 +24,17 @@ class AdminStudentController extends Controller
         $mapped = collect($items)->map(fn (Student $s) => [
             'id'          => $s->id,
             'name'        => $s->full_name,
+            'age'         => $s->age,
             'grade'       => $s->grade,
             'school_name' => $s->school_name,
+            'pickup_location' => $s->pickup_location,
+            'dropoff_location' => $s->dropoff_location,
+            'pickup_time' => $s->pickup_time,
+            'dropoff_time' => $s->dropoff_time,
+            'has_medical_condition' => $s->has_medical_condition,
+            'medical_condition' => $s->medical_condition,
+            'medication' => $s->medication,
+            'assignment_status' => $s->assignment_status,
             'active'      => $s->active,
             'parent_id'   => $s->parent_id,
             'parent'      => $s->parent ? [
@@ -49,8 +58,17 @@ class AdminStudentController extends Controller
         $data = $request->validate([
             'full_name'   => ['required', 'string', 'max:255'],
             'parent_id'   => ['required', 'integer', 'exists:parents,id'],
+            'age'         => ['nullable', 'integer', 'min:2', 'max:25'],
             'grade'       => ['nullable', 'string', 'max:50'],
             'school_name' => ['nullable', 'string', 'max:255'],
+            'pickup_location' => ['nullable', 'string', 'max:255'],
+            'dropoff_location' => ['nullable', 'string', 'max:255'],
+            'pickup_time' => ['nullable', 'date_format:H:i'],
+            'dropoff_time' => ['nullable', 'date_format:H:i'],
+            'has_medical_condition' => ['sometimes', 'boolean'],
+            'medical_condition' => ['nullable', 'string', 'max:2000'],
+            'medication' => ['nullable', 'string', 'max:2000'],
+            'assignment_status' => ['nullable', 'string', 'in:pending,assigned'],
             'active'      => ['sometimes', 'boolean'],
         ]);
 
@@ -64,8 +82,17 @@ class AdminStudentController extends Controller
         $data = $request->validate([
             'full_name'   => ['sometimes', 'string', 'max:255'],
             'parent_id'   => ['sometimes', 'integer', 'exists:parents,id'],
+            'age'         => ['nullable', 'integer', 'min:2', 'max:25'],
             'grade'       => ['nullable', 'string', 'max:50'],
             'school_name' => ['nullable', 'string', 'max:255'],
+            'pickup_location' => ['nullable', 'string', 'max:255'],
+            'dropoff_location' => ['nullable', 'string', 'max:255'],
+            'pickup_time' => ['nullable', 'date_format:H:i'],
+            'dropoff_time' => ['nullable', 'date_format:H:i'],
+            'has_medical_condition' => ['sometimes', 'boolean'],
+            'medical_condition' => ['nullable', 'string', 'max:2000'],
+            'medication' => ['nullable', 'string', 'max:2000'],
+            'assignment_status' => ['nullable', 'string', 'in:pending,assigned'],
             'active'      => ['sometimes', 'boolean'],
         ]);
 

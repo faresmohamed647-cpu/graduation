@@ -44,6 +44,8 @@ class AdminDriverController extends Controller
             'car_model'        => $d->car_model,
             'car_plate'        => $d->car_plate,
             'address'          => $d->address,
+            'national_id_url'  => $d->national_id_url,
+            'criminal_record_url' => $d->criminal_record_url,
             'message'          => $d->message,
             'created_at'       => $d->created_at,
         ]);
@@ -166,7 +168,7 @@ class AdminDriverController extends Controller
 
     public function pending()
     {
-        $drivers = Driver::with('user')->whereIn('status', ['pending', 'interview_scheduled'])->get();
+        $drivers = Driver::with('user')->whereIn('status', ['pending', 'interview_scheduled', 'pending_approval'])->get();
         return response()->json(['success' => true, 'data' => $drivers]);
     }
 

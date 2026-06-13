@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AdminActivityLogController;
 use App\Http\Controllers\Api\AdminAttendanceController;
+use App\Http\Controllers\Api\AdminStudentAssignmentController;
 use App\Http\Controllers\Api\AdminSystemHealthController;
 use App\Http\Controllers\Api\AdminApplicationController;
 use App\Http\Controllers\Api\AdminBusController;
@@ -120,6 +121,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/students', [AdminStudentController::class, 'store']);
         Route::put('/students/{student}', [AdminStudentController::class, 'update']);
         Route::delete('/students/{student}', [AdminStudentController::class, 'destroy']);
+        Route::get('/student-assignments', [AdminStudentAssignmentController::class, 'index']);
+        Route::post('/student-assignments/assign', [AdminStudentAssignmentController::class, 'assign']);
 
         // Drivers CRUD
         Route::get('/drivers', [AdminDriverController::class, 'index']);
@@ -188,6 +191,8 @@ Route::middleware('auth:sanctum')->group(function () {
         // Misc (Schools, Financials, Maintenance)
         Route::get('/schools', [AdminMiscController::class, 'indexSchools']);
         Route::post('/schools', [AdminMiscController::class, 'storeSchool']);
+        Route::post('/schools/{school}/approve', [AdminMiscController::class, 'approveSchool']);
+        Route::post('/schools/{school}/reject', [AdminMiscController::class, 'rejectSchool']);
         Route::get('/financial-entries', [AdminMiscController::class, 'indexFinancialEntries']);
         Route::post('/financial-entries', [AdminMiscController::class, 'storeFinancialEntry']);
         Route::get('/maintenance-records', [AdminMiscController::class, 'indexMaintenanceRecords']);
@@ -211,6 +216,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ── Driver routes ──
     Route::prefix('driver')->middleware('role:driver')->group(function () {
+        Route::post('/details/submit', [DriverApiController::class, 'submitDetails']);
         Route::get('/dashboard', [DriverApiController::class, 'dashboard']);
         Route::get('/trips/today', [DriverApiController::class, 'todayTrips']);
         Route::post('/trips/{trip}/start', [DriverApiController::class, 'startTrip']);
@@ -229,6 +235,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ── School Admin routes ──
     Route::prefix('school-admin')->middleware('role:school_admin')->group(function () {
+        Route::post('/details/submit', [SchoolAdminDashboardController::class, 'submitDetails']);
         Route::get('/dashboard/stats', [SchoolAdminDashboardController::class, 'stats']);
         Route::get('/dashboard/attendance-summary', [SchoolAdminDashboardController::class, 'attendanceSummary']);
         Route::get('/dashboard/trips-overview', [SchoolAdminDashboardController::class, 'tripsOverview']);
@@ -302,6 +309,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('parent')->middleware('role:parent')->group(function () {
         Route::get('/dashboard', [ParentApiController::class, 'dashboard']);
         Route::get('/children', [ParentApiController::class, 'children']);
+        Route::post('/children/submit', [ParentApiController::class, 'submitChildren']);
         Route::get('/children/{student}', [ParentApiController::class, 'child']);
         Route::get('/children/{student}/attendance', [ParentApiController::class, 'childAttendance']);
         Route::get('/notifications', [ParentApiController::class, 'notifications']);

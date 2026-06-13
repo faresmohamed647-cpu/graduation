@@ -67,4 +67,16 @@ class AdminMiscController extends Controller
         $record = MaintenanceRecord::create($data);
         return response()->json(['success' => true, 'data' => $record, 'message' => 'Maintenance record created']);
     }
+
+    public function approveSchool(School $school)
+    {
+        $school->update(['active' => true, 'status' => 'active']);
+        return response()->json(['success' => true, 'message' => 'School approved']);
+    }
+
+    public function rejectSchool(School $school)
+    {
+        $school->update(['active' => false, 'status' => 'rejected']);
+        return response()->json(['success' => true, 'message' => 'School rejected']);
+    }
 }

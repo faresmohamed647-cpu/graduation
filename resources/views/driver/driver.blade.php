@@ -97,7 +97,25 @@
         var t = '{{ $apiToken ?? '' }}';
         window.__API_TOKEN = t;
         window.__INITIAL_PAGE = 'dashboard';
+        window.__DRIVER_DATA = {
+            isApproved: @json($isApproved),
+            appStatus: @json($appStatus),
+            hasBus: @json($assignedBus ? true : false)
+        };
         if(t){ localStorage.setItem('safestep_token', t); localStorage.setItem('token', t); }
+
+        // SPA Page Navigation Guard
+        document.addEventListener('spa:pageChanged', function(e) {
+            const pageId = e.detail.pageId;
+            if (pageId === 'dashboard' || pageId === 'notifications' || pageId === 'requests' || pageId === 'my-applications') {
+                return;
+            }
+            if (!window.__DRIVER_DATA.isApproved) {
+                alert('حسابك قيد المراجعة حالياً. سيتم تفعيل الأقسام بمجرد تفعيل الحساب.');
+                window.navigateTo('dashboard');
+                return;
+            }
+        });
     })();
     </script>
     <script src="{{ asset('js/api-service.js') }}"></script>
@@ -197,6 +215,163 @@
         <!-- Dashboard Page -->
         <div class="page active" id="dashboard">
             <div class="dashboard-grid">
+                
+                @if($appStatus === 'pending')
+                <!-- State A: Pending Approval -->
+                <div class="card status-pending-card" style="grid-column: 1/-1; padding: 60px 40px; text-align: center; background: #fff; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.02); margin: 20px 0;">
+                    <div style="width: 100px; height: 100px; border-radius: 50%; background: rgba(245, 158, 11, 0.1); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 24px; animation: pulse 2s infinite;">
+                        <i class="fas fa-clock" style="font-size: 44px; color: #f59e0b;"></i>
+                    </div>
+                    <h2 style="font-size: 26px; font-weight: 800; color: #1e293b; margin-bottom: 14px;">طلب التقديم قيد المراجعة</h2>
+                    <p style="font-size: 16px; color: #64748b; max-width: 580px; margin: 0 auto 28px; line-height: 1.6;">مرحباً بك كقائد حافلة في SafeStep. حسابك مسجل ولكن لم يتم اعتماده وتعيين ميعاد المقابلة بالكامل بعد من قبل الإدارة. سيتم تفعيل حسابك بمجرد الموافقة وتعديل الحالة.</p>
+                    <div style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: #64748b; background: #f8fafc; padding: 8px 16px; border-radius: 30px; border: 1px solid #e2e8f0;">
+                        <span>حالة الحساب:</span>
+                        <span class="status-badge pending" style="padding: 4px 12px; border-radius: 12px; font-weight: 700;">تحت المراجعة / المقابلة الشخصية</span>
+                    </div>
+                </div>
+
+                @elseif($appStatus === 'rejected')
+                <!-- State B: Rejected -->
+                <div class="card status-rejected-card" style="grid-column: 1/-1; padding: 60px 40px; text-align: center; background: #fff; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.02); margin: 20px 0;">
+                    <div style="width: 100px; height: 100px; border-radius: 50%; background: rgba(239, 68, 68, 0.1); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 24px;">
+                        <i class="fas fa-times-circle" style="font-size: 48px; color: #ef4444;"></i>
+                    </div>
+                    <h2 style="font-size: 26px; font-weight: 800; color: #1e293b; margin-bottom: 14px;">تم رفض طلب السائق</h2>
+                    <p style="font-size: 16px; color: #64748b; max-width: 580px; margin: 0 auto 28px; line-height: 1.6;">نعتذر منك، لقد تم رفض طلب تعيينك كقائد حافلة في SafeStep من قبل الإدارة. يرجى مراجعة البيانات أو التواصل مع الإدارة الفنية.</p>
+                    <div style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: #64748b; background: #f8fafc; padding: 8px 16px; border-radius: 30px; border: 1px solid #e2e8f0;">
+                        <span>حالة الطلب:</span>
+                        <span class="status-badge rejected" style="padding: 4px 12px; border-radius: 12px; font-weight: 700;">مرفوض</span>
+                    </div>
+                </div>
+
+                @elseif($appStatus === 'pending_details')
+                <!-- State C: Register Driver Details Form -->
+                <div class="card" id="driverOnboardingCard" style="grid-column:1/-1; border-radius: 20px; padding: 28px; border: 1px solid var(--border-color); background: var(--card-bg);">
+                    <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <i class="fas fa-id-card" style="font-size: 20px; color: var(--accent);"></i>
+                            <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--text-dark);">Register Driver Profile Details</h3>
+                        </div>
+                        <span style="font-size:12px;color:var(--text-light);background: var(--light-bg);padding: 4px 12px;border-radius: 12px;font-weight: 500;">Required step to activate driver account</span>
+                    </div>
+                    <form id="driverOnboardingForm" style="display:flex;flex-direction:column;gap:16px;">
+                        @csrf
+                        <div id="driverOnboardingMessage" style="display:none;padding:10px 12px;border-radius:8px;font-size:13px;"></div>
+                        <div style="border:1px solid var(--border-color);border-radius:14px;padding:20px;background:var(--light-bg);">
+                            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;">
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">Full Name</label>
+                                    <input name="full_name" required type="text" class="form-control" value="{{ auth()->user()->name }}" style="font-size: 13px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">Phone Number</label>
+                                    <input name="phone" required type="text" class="form-control" style="font-size: 13px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">Age</label>
+                                    <input name="age" required type="number" min="20" max="70" class="form-control" style="font-size: 13px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">Gender</label>
+                                    <select name="gender" required class="form-control" style="font-size: 13px;">
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">License Number</label>
+                                    <input name="license_number" required type="text" class="form-control" style="font-size: 13px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">Years of Experience</label>
+                                    <input name="years_experience" required type="number" min="0" max="40" class="form-control" style="font-size: 13px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">Bus/Car Type</label>
+                                    <input name="car_type" placeholder="e.g., Mini Bus, Coaster, Sedan" required type="text" class="form-control" style="font-size: 13px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">Bus/Car Model</label>
+                                    <input name="car_model" placeholder="e.g., Toyota Coaster 2022" required type="text" class="form-control" style="font-size: 13px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">Plate Number</label>
+                                    <input name="car_plate" placeholder="e.g., س ج ط 5432" required type="text" class="form-control" style="font-size: 13px;">
+                                </div>
+                                <div class="form-group" style="grid-column: 1/-1; margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">Home Address</label>
+                                    <input name="address" required type="text" class="form-control" style="font-size: 13px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">National ID Document</label>
+                                    <input name="national_id" required type="file" accept=".pdf,image/*" class="form-control" style="font-size: 13px; padding: 6px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">Criminal Record Document (Fish)</label>
+                                    <input name="criminal_record" required type="file" accept=".pdf,image/*" class="form-control" style="font-size: 13px; padding: 6px;">
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display:flex;justify-content:flex-end;">
+                            <button class="btn-primary" id="driverOnboardingSubmit" type="submit" style="padding: 12px 24px; font-weight: 700; border-radius: 10px;">
+                                <i class="fas fa-paper-plane"></i> Submit Details
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                @elseif($appStatus === 'pending_approval')
+                <!-- State D: Details submitted, waiting for Admin approval -->
+                <div class="card status-pending-card" style="grid-column: 1/-1; padding: 60px 40px; text-align: center; background: var(--card-bg); border-radius: 20px; border: 1px solid var(--border-color); margin: 20px 0;">
+                    <div style="width: 100px; height: 100px; border-radius: 50%; background: rgba(37,99,235,0.08); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 24px;">
+                        <i class="fas fa-user-clock" style="font-size: 44px; color: var(--accent);"></i>
+                    </div>
+                    <h2 style="font-size: 26px; font-weight: 800; color: var(--text-dark); margin-bottom: 14px;">Profile Details Submitted</h2>
+                    <p style="font-size: 16px; color: var(--text-light); max-width: 580px; margin: 0 auto 28px; line-height: 1.6;">Thank you for registering your profile details. The administration is currently reviewing your application, license information, and vehicle details. You will receive access to your driver dashboard once approved.</p>
+                    <div style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-light); background: var(--light-bg); padding: 8px 16px; border-radius: 30px; border: 1px solid var(--border-color);">
+                        <span>Status:</span>
+                        <span class="status-badge pending" style="padding: 4px 12px; border-radius: 12px; font-weight: 700;">Pending Approval</span>
+                    </div>
+                </div>
+
+                @elseif(! $assignedBus)
+                <!-- State C: Approved but No Bus/Route Assigned -->
+                <div class="card" style="grid-column: 1/-1; padding: 40px; background: #fff; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.01);">
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 28px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px; flex-wrap: wrap;">
+                        <div style="width: 56px; height: 56px; border-radius: 14px; background: rgba(37,99,235,0.08); display: flex; align-items: center; justify-content: center; color: #2563eb; font-size: 26px;">
+                            <i class="fas fa-bus"></i>
+                        </div>
+                        <div>
+                            <h3 style="margin: 0 0 6px; font-size: 20px; font-weight: 800; color: #1e293b;">بانتظار تعيين حافلة وخط سير</h3>
+                            <span style="font-size: 14px; color: #64748b; line-height: 1.5;">تهانينا! تم قبول طلبك كقائد حافلة معتمد في SafeStep. تقوم الإدارة حاليًا بتخصيص خط السير والحافلة المناسبة لك. ستظهر رحلتك اليومية هنا بمجرد التعيين.</span>
+                        </div>
+                    </div>
+                    
+                    <h4 style="margin: 0 0 16px; color: #1e293b; font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-id-card" style="color: #64748b;"></i> بيانات السائق المعتمدة:
+                    </h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                        <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; background: #f8fafc;">
+                            <span style="font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase;">الاسم الكامل</span>
+                            <div style="font-size: 15px; font-weight: 700; color: #1e293b; margin-top: 4px;">{{ auth()->user()->name }}</div>
+                        </div>
+                        <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; background: #f8fafc;">
+                            <span style="font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase;">رقم الهاتف</span>
+                            <div style="font-size: 15px; font-weight: 700; color: #1e293b; margin-top: 4px;">{{ auth()->user()->driverProfile?->phone ?? '—' }}</div>
+                        </div>
+                        <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; background: #f8fafc;">
+                            <span style="font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase;">رخصة القيادة</span>
+                            <div style="font-size: 15px; font-weight: 700; color: #1e293b; margin-top: 4px;">{{ auth()->user()->driverProfile?->license_number ?? '—' }}</div>
+                        </div>
+                        <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; background: #f8fafc;">
+                            <span style="font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase;">سنوات الخبرة</span>
+                            <div style="font-size: 15px; font-weight: 700; color: #1e293b; margin-top: 4px;">{{ auth()->user()->driverProfile?->years_experience ?? '—' }} سنوات خبرة</div>
+                        </div>
+                    </div>
+                </div>
+
+                @else
+                <!-- State D: Active Dashboard -->
                 <!-- Bus Status Card -->
                 <div class="card status-card ready">
                     <div class="status-icon">
@@ -337,6 +512,8 @@
                         </div>
                     </div>
                 </div>
+                @endif
+
             </div>
         </div>
 
@@ -635,7 +812,7 @@
                         </div>
                         <div class="profile-detail-item">
                             <span class="detail-label"><i class="fas fa-bus"></i> Bus Number</span>
-                            <span class="detail-value">{{ $todayTrip?->bus?->number ? 'Bus #'.$todayTrip->bus->number : '—' }}</span>
+                            <span class="detail-value">{{ $todayTrip?->bus?->bus_number ? 'Bus #'.$todayTrip->bus->bus_number : '—' }}</span>
                         </div>
                         <div class="profile-detail-item">
                             <span class="detail-label"><i class="fas fa-route"></i> Route</span>
@@ -1185,6 +1362,52 @@
     </script>
     <script src="{{ asset('js/ajax-forms.js') }}"></script>
     <script>
+    (function(){
+        const onboardingForm = document.getElementById('driverOnboardingForm');
+        if (onboardingForm) {
+            onboardingForm.addEventListener('submit', async event => {
+                event.preventDefault();
+
+                const message = document.getElementById('driverOnboardingMessage');
+                const submit = document.getElementById('driverOnboardingSubmit');
+                const formData = new FormData(onboardingForm);
+
+                message.style.display = 'none';
+                submit.disabled = true;
+                submit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+
+                try {
+                    const res = await fetch('/api/driver/details/submit', {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Authorization': 'Bearer {{ $apiToken ?? '' }}',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                        },
+                        body: formData
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok) throw new Error(data.message || 'Unable to submit details.');
+                    message.textContent = data.message || 'Driver profile details submitted successfully.';
+                    message.style.background = 'rgba(34,197,94,.12)';
+                    message.style.color = '#15803d';
+                    message.style.display = 'block';
+
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } catch (error) {
+                    message.textContent = error.message;
+                    message.style.background = 'rgba(239,68,68,.12)';
+                    message.style.color = '#b91c1c';
+                    message.style.display = 'block';
+                    submit.disabled = false;
+                    submit.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Details';
+                }
+            });
+        }
+    })();
+
     document.addEventListener('spa:pageChanged', (e) => {
         const pageId = e.detail.pageId;
         console.log('[Driver SPA] Page changed to:', pageId);

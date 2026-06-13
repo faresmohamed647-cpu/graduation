@@ -34,7 +34,17 @@ class SchoolAdminController extends Controller
 
         $school->loadCount(['students', 'drivers', 'buses']);
 
-        return view('school-admin.school-admin', compact('stats', 'initialPage', 'school', 'user'));
+        $isApproved = $school->status === 'active';
+        $appStatus = $school->status ?: 'pending_details';
+
+        return view('school-admin.school-admin', [
+            'stats' => $stats,
+            'initialPage' => $initialPage,
+            'school' => $school,
+            'user' => $user,
+            'isApproved' => $isApproved,
+            'appStatus' => $appStatus,
+        ]);
     }
 
     public function section(string $section)

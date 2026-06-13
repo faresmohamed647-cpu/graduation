@@ -23,6 +23,8 @@ class Driver extends Model
         'car_model',
         'car_plate',
         'address',
+        'national_id_path',
+        'criminal_record_path',
         'message',
         'status',
         'interview_date',
@@ -49,6 +51,21 @@ class Driver extends Model
     public function trips(): HasMany
     {
         return $this->hasMany(Trip::class);
+    }
+
+    protected $appends = [
+        'national_id_url',
+        'criminal_record_url',
+    ];
+
+    public function getNationalIdUrlAttribute()
+    {
+        return $this->national_id_path ? asset('storage/' . $this->national_id_path) : null;
+    }
+
+    public function getCriminalRecordUrlAttribute()
+    {
+        return $this->criminal_record_path ? asset('storage/' . $this->criminal_record_path) : null;
     }
 
     public function buses(): HasMany

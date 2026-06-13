@@ -2,6 +2,7 @@
 
 // Data arrays (Refactored)
 let applicationsData = [];
+let studentAssignmentsData = { groups: [], drivers: [], buses: [], routes: [] };
 const busRoutesData = [];
 
 const parentsData = [];
@@ -31,7 +32,15 @@ function mapDriverForDashboard(driver) {
         joinDate: safestepDate(driver.joinDate || driver.created_at),
         experience: driver.experience || `${driver.years_experience || driver.experience_years || 0} years`,
         bus: driver.bus || 'Assigned by trips',
-        status: normalizeDashboardStatus(driver.status, driver.active)
+        status: normalizeDashboardStatus(driver.status, driver.active),
+        age: driver.age || '',
+        gender: driver.gender || '',
+        car_type: driver.car_type || '',
+        car_model: driver.car_model || '',
+        car_plate: driver.car_plate || '',
+        address: driver.address || '',
+        national_id_url: driver.national_id_url || '',
+        criminal_record_url: driver.criminal_record_url || ''
     };
 }
 
@@ -1339,7 +1348,7 @@ function renderPendingDriverApplicantsForParents() {
     const tbody = document.querySelector('#parentsDriversApplicantsTable tbody');
     if (!tbody) return;
 
-    const pendingDrivers = driversData.filter(driver => driver.status === 'pending');
+    const pendingDrivers = driversData.filter(driver => driver.status === 'pending' || driver.status === 'pending_approval' || driver.status === 'pending_details');
     const pendingCount = document.getElementById('pendingDriversCount');
     if (pendingCount) {
         pendingCount.textContent = `${pendingDrivers.length} Pending`;
@@ -1349,6 +1358,28 @@ function renderPendingDriverApplicantsForParents() {
 
     pendingDrivers.forEach(driver => {
         const tr = document.createElement('tr');
+        let actions = '';
+        if (driver.status === 'pending_details') {
+            actions = `
+                <span class="status-badge pending" style="padding: 4px 8px; font-size: 11px;">Awaiting Details</span>
+                <div class="action-icon view" onclick="viewDriver(${driver.id})" title="View Details">
+                    <i class="fas fa-eye"></i>
+                </div>
+            `;
+        } else {
+            actions = `
+                <button class="btn btn-success" style="padding: 6px 12px; font-size: 12px;" onclick="approveDriver(${driver.id})">
+                    <i class="fas fa-check"></i> Approve
+                </button>
+                <button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;" onclick="rejectDriver(${driver.id})">
+                    <i class="fas fa-times"></i> Reject
+                </button>
+                <div class="action-icon view" onclick="viewDriver(${driver.id})" title="View Details">
+                    <i class="fas fa-eye"></i>
+                </div>
+            `;
+        }
+
         tr.innerHTML = `
             <td><strong>${driver.name}</strong></td>
             <td>${driver.license}</td>
@@ -1356,15 +1387,7 @@ function renderPendingDriverApplicantsForParents() {
             <td>${new Date(driver.applicationDate).toLocaleDateString()}</td>
             <td>
                 <div class="table-actions">
-                    <button class="btn btn-success" style="padding: 6px 12px; font-size: 12px;" onclick="approveDriver(${driver.id})">
-                        <i class="fas fa-check"></i> Approve
-                    </button>
-                    <button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;" onclick="rejectDriver(${driver.id})">
-                        <i class="fas fa-times"></i> Reject
-                    </button>
-                    <div class="action-icon view" onclick="viewDriver(${driver.id})" title="View Details">
-                        <i class="fas fa-eye"></i>
-                    </div>
+                    ${actions}
                 </div>
             </td>
         `;
@@ -1518,6 +1541,143 @@ async function loadApplicationsFromApi() {
     }
 }
 
+function renderStudentAssignments() {
+    const container = document.getElementById('studentAssignmentsList');
+    if (!container) return;
+
+    const groups = studentAssignmentsData.groups || [];
+    const drivers = studentAssignmentsData.drivers || [];
+    const buses = studentAssignmentsData.buses || [];
+    const routes = studentAssignmentsData.routes || [];
+
+    if (!groups.length) {
+        container.innerHTML = `
+            <div style="text-align:center;padding:36px;color:var(--text-secondary);">
+                <i class="fas fa-check-circle" style="font-size:28px;margin-bottom:10px;display:block;color:#22c55e;"></i>
+                No pending child assignment requests.
+            </div>`;
+        return;
+    }
+
+    const driverOptions = drivers.map(driver =>
+        `<option value="${driver.id}">${escapeSafeStepHtml(driver.name)}${driver.phone ? ' - ' + escapeSafeStepHtml(driver.phone) : ''}</option>`
+    ).join('');
+    const busOptions = buses.map(bus =>
+        `<option value="${bus.id}">${escapeSafeStepHtml(bus.bus_number)}${bus.capacity ? ' - ' + bus.capacity + ' seats' : ''}</option>`
+    ).join('');
+    const routeOptions = routes.map(route =>
+        `<option value="${route.id}">${escapeSafeStepHtml(route.name)}${route.type ? ' - ' + escapeSafeStepHtml(route.type) : ''}</option>`
+    ).join('');
+
+    container.innerHTML = groups.map(group => {
+        const studentIds = (group.students || []).map(student => student.id).join(',');
+        const studentRows = (group.students || []).map(student => `
+            <div style="border:1px solid var(--card-border,#e5e7eb);border-radius:10px;padding:12px;background:rgba(15,23,42,.02);">
+                <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+                    <strong style="color:var(--text-primary);">${escapeSafeStepHtml(student.full_name)}</strong>
+                    <span class="status-badge pending">${escapeSafeStepHtml(student.assignment_status || 'pending')}</span>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;font-size:13px;color:var(--text-secondary);">
+                    <span><strong>Age:</strong> ${escapeSafeStepHtml(student.age || '-')}</span>
+                    <span><strong>Grade:</strong> ${escapeSafeStepHtml(student.grade || '-')}</span>
+                    <span><strong>School:</strong> ${escapeSafeStepHtml(student.school_name || '-')}</span>
+                    <span><strong>From:</strong> ${escapeSafeStepHtml(student.pickup_location || '-')}</span>
+                    <span><strong>To:</strong> ${escapeSafeStepHtml(student.dropoff_location || '-')}</span>
+                    <span><strong>Time:</strong> ${escapeSafeStepHtml(student.pickup_time || '-')} / ${escapeSafeStepHtml(student.dropoff_time || '-')}</span>
+                    <span><strong>Medical:</strong> ${student.has_medical_condition ? escapeSafeStepHtml(student.medical_condition || 'Yes') : 'No'}</span>
+                    <span><strong>Medication:</strong> ${escapeSafeStepHtml(student.medication || '-')}</span>
+                </div>
+            </div>
+        `).join('');
+
+        return `
+            <div class="assignment-card" style="border:1px solid var(--card-border,#e5e7eb);border-radius:14px;padding:16px;background:var(--card-bg,#fff);box-shadow:var(--card-shadow,0 8px 20px rgba(15,23,42,.05));">
+                <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+                    <div>
+                        <h4 style="margin:0 0 4px;color:var(--text-primary);">${escapeSafeStepHtml(group.parent_name || 'Parent')}</h4>
+                        <div style="font-size:13px;color:var(--text-secondary);">${escapeSafeStepHtml(group.parent_phone || '-')} &bull; ${escapeSafeStepHtml(group.parent_email || '-')}</div>
+                    </div>
+                    <span class="status-badge pending">${(group.students || []).length} Children</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;">${studentRows}</div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end;">
+                    <label class="form-label">Driver
+                        <select class="form-control" id="assignmentDriver-${group.parent_id}">
+                            <option value="">Select driver</option>${driverOptions}
+                        </select>
+                    </label>
+                    <label class="form-label">Bus
+                        <select class="form-control" id="assignmentBus-${group.parent_id}">
+                            <option value="">Select bus</option>${busOptions}
+                        </select>
+                    </label>
+                    <label class="form-label">Route
+                        <select class="form-control" id="assignmentRoute-${group.parent_id}">
+                            <option value="">Auto / new route</option>${routeOptions}
+                        </select>
+                    </label>
+                    <label class="form-label">Shift
+                        <select class="form-control" id="assignmentShift-${group.parent_id}">
+                            <option value="morning">Morning</option>
+                            <option value="afternoon">Afternoon</option>
+                        </select>
+                    </label>
+                    <button class="btn-primary" type="button" onclick="assignStudentGroup(${group.parent_id}, '${studentIds}')">
+                        <i class="fas fa-user-check"></i> Assign
+                    </button>
+                </div>
+            </div>`;
+    }).join('');
+}
+
+async function loadStudentAssignmentsFromApi() {
+    try {
+        const response = await safestepApi('/api/admin/student-assignments');
+        studentAssignmentsData = response.data || { groups: [], drivers: [], buses: [], routes: [] };
+        renderStudentAssignments();
+    } catch (error) {
+        const container = document.getElementById('studentAssignmentsList');
+        if (container) {
+            container.innerHTML = '<div style="color:#ef4444;padding:16px;">Failed to load assignment requests.</div>';
+        }
+        console.warn('Failed to load student assignments:', error.message);
+    }
+}
+
+async function assignStudentGroup(parentId, studentIdsCsv) {
+    const studentIds = String(studentIdsCsv || '').split(',').filter(Boolean).map(Number);
+    const driverId = Number(document.getElementById(`assignmentDriver-${parentId}`)?.value || 0);
+    const busId = Number(document.getElementById(`assignmentBus-${parentId}`)?.value || 0);
+    const routeId = Number(document.getElementById(`assignmentRoute-${parentId}`)?.value || 0);
+    const shift = document.getElementById(`assignmentShift-${parentId}`)?.value || 'morning';
+
+    if (!studentIds.length || !driverId || !busId) {
+        showToast('Select children, driver, and bus first.', 'error');
+        return;
+    }
+
+    try {
+        await safestepApi('/api/admin/student-assignments/assign', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                student_ids: studentIds,
+                driver_id: driverId,
+                bus_id: busId,
+                bus_route_id: routeId || null,
+                shift
+            })
+        });
+        showToast('Students assigned successfully.', 'success');
+        await loadStudentAssignmentsFromApi();
+        if (typeof hydrateAdminDashboardFromApi === 'function') {
+            await hydrateAdminDashboardFromApi();
+        }
+    } catch (error) {
+        showToast(error.message || 'Assignment failed.', 'error');
+    }
+}
+
 async function loadParentsFromApi() {
     try {
         const response = await safestepApi('/api/admin/parents?per_page=all');
@@ -1655,13 +1815,21 @@ function renderDrivers() {
             <td><span class="status-badge ${driver.status}">${driver.status.charAt(0).toUpperCase() + driver.status.slice(1)}</span></td>
             <td>
                 <div class="table-actions">
-                    ${driver.status === 'pending' ? `
+                    ${(driver.status === 'pending' || driver.status === 'pending_approval') ? `
                         <button class="btn btn-success" style="padding: 6px 12px; font-size: 12px;" onclick="approveDriver(${driver.id})">
                             <i class="fas fa-check"></i> Approve
                         </button>
                         <button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;" onclick="rejectDriver(${driver.id})">
                             <i class="fas fa-times"></i> Reject
                         </button>
+                        <div class="action-icon view" onclick="viewDriver(${driver.id})" title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </div>
+                    ` : driver.status === 'pending_details' ? `
+                        <span class="status-badge pending" style="padding: 4px 8px; font-size: 11px;">Awaiting Details</span>
+                        <div class="action-icon view" onclick="viewDriver(${driver.id})" title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </div>
                     ` : `
                         <div class="action-icon view" onclick="viewDriver(${driver.id})" title="View Details">
                             <i class="fas fa-eye"></i>
@@ -3738,9 +3906,156 @@ async function rejectParent(id) {
 
 function viewDriver(id) {
     const driver = driversData.find(d => d.id === id);
-    if (driver) {
-        alert(`Driver Details:\nName: ${driver.name}\nLicense: ${driver.license}\nPhone: ${driver.phone}\nBus: ${driver.bus}`);
+    if (!driver) return;
+
+    const modal = document.createElement('div');
+    modal.style.position = 'fixed';
+    modal.style.top = '0';
+    modal.style.left = '0';
+    modal.style.width = '100%';
+    modal.style.height = '100%';
+    modal.style.backgroundColor = 'rgba(15, 23, 42, 0.6)';
+    modal.style.backdropFilter = 'blur(8px)';
+    modal.style.display = 'flex';
+    modal.style.alignItems = 'center';
+    modal.style.justifyContent = 'center';
+    modal.style.zIndex = '99999';
+    modal.style.padding = '20px';
+
+    const card = document.createElement('div');
+    card.style.backgroundColor = '#ffffff';
+    card.style.borderRadius = '16px';
+    card.style.width = '100%';
+    card.style.maxWidth = '500px';
+    card.style.padding = '24px';
+    card.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
+    card.style.position = 'relative';
+
+    const title = document.createElement('h3');
+    title.style.margin = '0 0 16px';
+    title.style.fontSize = '20px';
+    title.style.fontWeight = '700';
+    title.style.color = '#0f172a';
+    title.textContent = 'Driver Details';
+
+    const details = document.createElement('div');
+    details.style.display = 'grid';
+    details.style.gridTemplateColumns = '1fr 1fr';
+    details.style.gap = '12px';
+    details.style.fontSize = '14px';
+    details.style.color = '#334155';
+    details.style.marginBottom = '20px';
+
+    const addDetail = (label, val) => {
+        const item = document.createElement('div');
+        item.innerHTML = `<span style="font-weight:600;color:#64748b;display:block;font-size:11px;text-transform:uppercase;">${label}</span><strong>${val || '—'}</strong>`;
+        details.appendChild(item);
+    };
+
+    addDetail('Name', driver.name);
+    addDetail('Phone', driver.phone);
+    addDetail('Age', driver.age);
+    addDetail('Gender', driver.gender);
+    addDetail('Address', driver.address);
+    addDetail('License', driver.license);
+    addDetail('Experience', driver.experience || '—');
+    addDetail('Vehicle Type', driver.car_type);
+    addDetail('Vehicle Model', driver.car_model);
+    addDetail('Vehicle Plate', driver.car_plate);
+    addDetail('Status', driver.status);
+
+    card.appendChild(title);
+    card.appendChild(details);
+
+    if (driver.national_id_url || driver.criminal_record_url) {
+        const docsTitle = document.createElement('h4');
+        docsTitle.style.margin = '16px 0 12px';
+        docsTitle.style.fontSize = '14px';
+        docsTitle.style.fontWeight = '700';
+        docsTitle.style.color = '#0f172a';
+        docsTitle.style.borderTop = '1px solid #e2e8f0';
+        docsTitle.style.paddingTop = '12px';
+        docsTitle.textContent = 'Uploaded Documents';
+        card.appendChild(docsTitle);
+
+        const docsContainer = document.createElement('div');
+        docsContainer.style.display = 'flex';
+        docsContainer.style.gap = '12px';
+        docsContainer.style.marginBottom = '20px';
+
+        if (driver.national_id_url) {
+            const btn = document.createElement('a');
+            btn.href = driver.national_id_url;
+            btn.target = '_blank';
+            btn.className = 'btn btn-primary';
+            btn.style.flex = '1';
+            btn.style.textAlign = 'center';
+            btn.style.padding = '8px 12px';
+            btn.style.fontSize = '13px';
+            btn.style.display = 'inline-flex';
+            btn.style.alignItems = 'center';
+            btn.style.justifyContent = 'center';
+            btn.style.gap = '6px';
+            btn.innerHTML = '<i class="fas fa-id-card"></i> National ID';
+            docsContainer.appendChild(btn);
+        }
+
+        if (driver.criminal_record_url) {
+            const btn = document.createElement('a');
+            btn.href = driver.criminal_record_url;
+            btn.target = '_blank';
+            btn.className = 'btn btn-primary';
+            btn.style.flex = '1';
+            btn.style.textAlign = 'center';
+            btn.style.padding = '8px 12px';
+            btn.style.fontSize = '13px';
+            btn.style.display = 'inline-flex';
+            btn.style.alignItems = 'center';
+            btn.style.justifyContent = 'center';
+            btn.style.gap = '6px';
+            btn.innerHTML = '<i class="fas fa-shield-halved"></i> Criminal Record';
+            docsContainer.appendChild(btn);
+        }
+        card.appendChild(docsContainer);
     }
+
+    const actions = document.createElement('div');
+    actions.style.display = 'flex';
+    actions.style.justifyContent = 'flex-end';
+    actions.style.gap = '10px';
+
+    if (driver.status === 'pending_approval' || driver.status === 'pending') {
+        const appBtn = document.createElement('button');
+        appBtn.className = 'btn btn-success';
+        appBtn.style.padding = '8px 16px';
+        appBtn.innerHTML = '<i class="fas fa-check"></i> Approve';
+        appBtn.onclick = async () => {
+            modal.remove();
+            await approveDriver(driver.id);
+        };
+        actions.appendChild(appBtn);
+
+        const rejBtn = document.createElement('button');
+        rejBtn.className = 'btn btn-danger';
+        rejBtn.style.padding = '8px 16px';
+        rejBtn.innerHTML = '<i class="fas fa-times"></i> Reject';
+        rejBtn.onclick = async () => {
+            modal.remove();
+            await rejectDriver(driver.id);
+        };
+        actions.appendChild(rejBtn);
+    }
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'btn btn-secondary';
+    closeBtn.style.padding = '8px 16px';
+    closeBtn.textContent = 'Close';
+    closeBtn.onclick = () => modal.remove();
+    actions.appendChild(closeBtn);
+
+    card.appendChild(actions);
+    modal.appendChild(card);
+    document.body.appendChild(modal);
 }
 
 function editDriver(id) {
@@ -4838,18 +5153,179 @@ function addComplaint() {
 }
 
 // Schools Functions
+async function approveSchool(id) {
+    const school = schoolsData.find(s => s.id === id);
+    if (!school || !confirm(`Approve school ${school.name}?`)) return;
+    try {
+        await safestepApi(`/api/admin/schools/${id}/approve`, { method: 'POST' });
+        if (typeof hydrateAdminDashboardFromApi === 'function') {
+            await hydrateAdminDashboardFromApi();
+        } else {
+            school.status = 'active';
+            school.active = true;
+            renderSchools();
+        }
+        showToast('School approved.', 'success');
+    } catch (err) {
+        showToast('Failed to approve school.', 'error');
+    }
+}
+
+async function rejectSchool(id) {
+    const school = schoolsData.find(s => s.id === id);
+    if (!school || !confirm(`Reject school ${school.name}?`)) return;
+    try {
+        await safestepApi(`/api/admin/schools/${id}/reject`, { method: 'POST' });
+        if (typeof hydrateAdminDashboardFromApi === 'function') {
+            await hydrateAdminDashboardFromApi();
+        } else {
+            school.status = 'rejected';
+            school.active = false;
+            renderSchools();
+        }
+        showToast('School rejected.', 'success');
+    } catch (err) {
+        showToast('Failed to reject school.', 'error');
+    }
+}
+
 function viewSchool(id) {
     const school = schoolsData.find(s => s.id === id);
-    if (school) {
-        alert(`School Details:
-Name: ${school.name}
-Type: ${school.type}
-District: ${school.district}
-Address: ${school.address}
-Contact: ${school.contact}
-Students: ${school.students}
-Status: ${school.status}`);
+    if (!school) return;
+
+    const modal = document.createElement('div');
+    modal.style.position = 'fixed';
+    modal.style.top = '0';
+    modal.style.left = '0';
+    modal.style.width = '100%';
+    modal.style.height = '100%';
+    modal.style.backgroundColor = 'rgba(15, 23, 42, 0.6)';
+    modal.style.backdropFilter = 'blur(8px)';
+    modal.style.display = 'flex';
+    modal.style.alignItems = 'center';
+    modal.style.justifyContent = 'center';
+    modal.style.zIndex = '99999';
+    modal.style.padding = '20px';
+
+    const card = document.createElement('div');
+    card.style.backgroundColor = '#ffffff';
+    card.style.borderRadius = '16px';
+    card.style.width = '100%';
+    card.style.maxWidth = '500px';
+    card.style.padding = '24px';
+    card.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
+    card.style.position = 'relative';
+
+    const title = document.createElement('h3');
+    title.style.margin = '0 0 16px';
+    title.style.fontSize = '20px';
+    title.style.fontWeight = '700';
+    title.style.color = '#0f172a';
+    title.textContent = 'School Details';
+
+    const details = document.createElement('div');
+    details.style.display = 'grid';
+    details.style.gridTemplateColumns = '1fr 1fr';
+    details.style.gap = '12px';
+    details.style.fontSize = '14px';
+    details.style.color = '#334155';
+    details.style.marginBottom = '20px';
+
+    const addDetail = (label, val) => {
+        const item = document.createElement('div');
+        item.innerHTML = `<span style="font-weight:600;color:#64748b;display:block;font-size:11px;text-transform:uppercase;">${label}</span><strong>${val || '—'}</strong>`;
+        details.appendChild(item);
+    };
+
+    addDetail('Name', school.name);
+    addDetail('Contact', school.contact);
+    addDetail('District', school.district);
+    addDetail('Address', school.address);
+    addDetail('Status', school.status);
+    addDetail('License Number', school.license_number);
+    addDetail('License Expiry', school.license_expiry);
+
+    let fleetVal = '—';
+    if (school.fleet_type === 'own') {
+        fleetVal = 'Own Fleet';
+    } else if (school.fleet_type === 'provided') {
+        fleetVal = 'SafeStep Provided';
     }
+    addDetail('Fleet Type', fleetVal);
+
+    card.appendChild(title);
+    card.appendChild(details);
+
+    if (school.license_document_url) {
+        const docsTitle = document.createElement('h4');
+        docsTitle.style.margin = '16px 0 12px';
+        docsTitle.style.fontSize = '14px';
+        docsTitle.style.fontWeight = '700';
+        docsTitle.style.color = '#0f172a';
+        docsTitle.style.borderTop = '1px solid #e2e8f0';
+        docsTitle.style.paddingTop = '12px';
+        docsTitle.textContent = 'License Document';
+        card.appendChild(docsTitle);
+
+        const docsContainer = document.createElement('div');
+        docsContainer.style.display = 'flex';
+        docsContainer.style.gap = '12px';
+        docsContainer.style.marginBottom = '20px';
+
+        const btn = document.createElement('a');
+        btn.href = school.license_document_url;
+        btn.target = '_blank';
+        btn.className = 'btn btn-primary';
+        btn.style.flex = '1';
+        btn.style.textAlign = 'center';
+        btn.style.padding = '8px 12px';
+        btn.style.fontSize = '13px';
+        btn.style.display = 'inline-flex';
+        btn.style.alignItems = 'center';
+        btn.style.justifyContent = 'center';
+        btn.style.gap = '6px';
+        btn.innerHTML = '<i class="fas fa-file-contract"></i> View License Document';
+        docsContainer.appendChild(btn);
+        card.appendChild(docsContainer);
+    }
+
+    const actions = document.createElement('div');
+    actions.style.display = 'flex';
+    actions.style.justifyContent = 'flex-end';
+    actions.style.gap = '10px';
+
+    if (school.status === 'pending_approval') {
+        const appBtn = document.createElement('button');
+        appBtn.className = 'btn btn-success';
+        appBtn.style.padding = '8px 16px';
+        appBtn.innerHTML = '<i class="fas fa-check"></i> Approve';
+        appBtn.onclick = async () => {
+            modal.remove();
+            await approveSchool(school.id);
+        };
+        actions.appendChild(appBtn);
+
+        const rejBtn = document.createElement('button');
+        rejBtn.className = 'btn btn-danger';
+        rejBtn.style.padding = '8px 16px';
+        rejBtn.innerHTML = '<i class="fas fa-times"></i> Reject';
+        rejBtn.onclick = async () => {
+            modal.remove();
+            await rejectSchool(school.id);
+        };
+        actions.appendChild(rejBtn);
+    }
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'btn btn-secondary';
+    closeBtn.style.padding = '8px 16px';
+    closeBtn.textContent = 'Close';
+    closeBtn.onclick = () => modal.remove();
+    actions.appendChild(closeBtn);
+
+    card.appendChild(actions);
+    modal.appendChild(card);
+    document.body.appendChild(modal);
 }
 
 function editSchool(id) {
@@ -5098,6 +5574,7 @@ function navigateTo(pageId) {
         if (pageTitle) {
             const titles = {
                 'dashboard': 'Dashboard Overview',
+                'student-assignments': 'Student Assignments',
                 'parents': 'Parents Management',
                 'drivers': 'Drivers Management',
                 'buses': 'Bus Fleet Management',
@@ -5133,6 +5610,9 @@ function navigateTo(pageId) {
             if (pageId === 'applications') {
                 renderApplications();
                 loadApplicationsFromApi();
+            } else if (pageId === 'student-assignments') {
+                renderStudentAssignments();
+                loadStudentAssignmentsFromApi();
             } else if (pageId === 'parents') {
                 renderParents();
             } else if (pageId === 'drivers') {
@@ -5517,7 +5997,12 @@ async function hydrateAdminDashboardFromApi() {
             address: school.address || '',
             contact: school.phone || school.email || '',
             students: 0,
-            status: 'active'
+            status: school.status || (school.active ? 'active' : 'inactive'),
+            license_number: school.license_number || '',
+            license_expiry: school.license_expiry || '',
+            license_document_url: school.license_document_url || '',
+            fleet_type: school.fleet_type || '',
+            active: school.active ? true : false
         })));
 
         safestepReplaceArray(financialsData, (financials.data || []).map(entry => ({

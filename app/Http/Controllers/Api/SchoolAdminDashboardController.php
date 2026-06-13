@@ -230,4 +230,52 @@ class SchoolAdminDashboardController extends Controller
 
         return round(($onTime / $completed) * 100, 1);
     }
+
+    public function submitDetails(Request $request)
+    {
+        $user = $request->user();
+        $school = $user->school;
+
+        if (!$school) {
+            return response()->json([
+                'success' => false,
+                'message' => 'School profile not found.',
+            ], 404);
+        }
+
+        if ($school->status !== 'pending_details') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Profile details were already submitted or approved.',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'phone' => ['required', 'string', 'max:20'],
+            'address' => ['required', 'string', 'max:500'],
+            'license_number' => ['required', 'string', 'max:100'],
+            'license_expiry' => ['required', 'date'],
+            'license_document' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:4096'],
+            'fleet_type' => ['required', 'string', 'in:own,provided'],
+        ]);
+
+        $licenseDocPath = null;
+        if ($request->hasFile('license_document')) {
+            $licenseDocPath = $request->file('license_document')->store('schools/documents', 'public');
+        }
+
+        $updateData = array_diff_key($validated, array_flip(['license_document']));
+        $updateData['license_document_path'] = $licenseDocPath;
+        $updateData['status'] = 'pending_approval';
+        $updateData['active'] = false;
+
+        $school->update($updateData);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'School profile details submitted successfully.',
+            'data' => $school,
+        ]);
+    }
 }

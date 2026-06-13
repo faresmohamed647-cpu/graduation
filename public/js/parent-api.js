@@ -7,9 +7,9 @@ function safestepReplaceArray(target, items) {
 async function hydrateParentDashboardFromApi() {
     try {
         const [dashboard, children, userNotifications] = await Promise.all([
-            safestepApi('/api/parent/dashboard'),
-            safestepApi('/api/parent/children'),
-            safestepApi('/api/parent/notifications')
+            safestepApi('/parent/dashboard'),
+            safestepApi('/parent/children'),
+            safestepApi('/parent/notifications')
         ]);
 
         const childRows = children.data || dashboard.data?.children || [];
@@ -18,19 +18,24 @@ async function hydrateParentDashboardFromApi() {
             name: child.full_name || child.name || 'Student',
             grade: child.grade || '',
             avatar: `https://source.unsplash.com/300x300/?student,portrait&sig=${index + 50}`,
-            status: 'Registered',
-            statusClass: 'on-bus',
-            pickupLocation: 'Assigned route stop',
-            pickupTime: '--',
-            dropLocation: child.school_name || '',
-            dropTime: '--',
-            busNumber: dashboard.data?.latest_trip?.bus?.bus_number || 'Assigned bus',
-            driver: dashboard.data?.latest_trip?.driver?.user?.name || 'Assigned driver',
+            status: child.bus_id ? 'Assigned' : 'Pending Assignment',
+            statusClass: child.bus_id ? 'on-bus' : 'absent',
+            pickupLocation: child.pickup_location || 'Assigned route stop',
+            pickupTime: child.pickup_time || '--',
+            dropLocation: child.dropoff_location || child.school_name || '',
+            dropTime: child.dropoff_time || '--',
+            busNumber: child.bus?.bus_number || 'Assigned bus',
+            driver: child.bus?.driver?.user?.name || 'Assigned driver',
             attendance: [true, true, true, true, true, true, true]
         }));
 
+        const childNameOverlay = document.getElementById('childNameOverlay');
+        if (childNameOverlay && childRows.length) {
+            childNameOverlay.textContent = childRows[0].full_name || childRows[0].name || 'Student';
+        }
+
         const attendanceResponses = await Promise.allSettled(
-            childRows.map(child => safestepApi(`/api/parent/children/${child.id}/attendance`))
+            childRows.map(child => safestepApi(`/parent/children/${child.id}/attendance`))
         );
 
         const records = [];

@@ -142,6 +142,12 @@ async function hydrateDriverDashboardFromApi() {
                 stopDriverLocationTracking();
             }
         } else {
+            busInfo.number = 'No Bus Assigned';
+            busInfo.capacity = 0;
+            busInfo.route = 'No route assigned';
+            renderBusInfo();
+            const badge = document.getElementById('busStatusBadge');
+            if (badge) badge.textContent = 'Waiting Assignment';
             stopDriverLocationTracking();
         }
 

@@ -112,8 +112,8 @@ class AdminApplicationController extends Controller
                     Driver::updateOrCreate(
                         ['user_id' => $user->id],
                         array_filter([
-                            'active' => $active,
-                            'status' => $active ? 'approved' : 'rejected',
+                            'active' => false,
+                            'status' => $active ? 'pending_details' : 'rejected',
                             'full_name' => $application->full_name ?: ($meta['full_name'] ?? null),
                             'phone' => $application->phone ?: ($meta['phone'] ?? null),
                             'address' => $application->address ?: ($meta['address'] ?? null),

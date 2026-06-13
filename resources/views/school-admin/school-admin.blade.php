@@ -23,9 +23,24 @@
         window.__SCHOOL_ADMIN_DATA = {
             school: @json($school ?? null),
             user: @json(['name' => $user->name ?? 'School Admin', 'email' => $user->email ?? '']),
-            stats: @json($stats ?? [])
+            stats: @json($stats ?? []),
+            isApproved: @json($isApproved),
+            appStatus: @json($appStatus)
         };
         if(t){ localStorage.setItem('safestep_token', t); localStorage.setItem('token', t); }
+
+        // SPA Page Navigation Guard
+        document.addEventListener('spa:pageChanged', function(e) {
+            const pageId = e.detail.pageId;
+            if (pageId === 'dashboard') {
+                return;
+            }
+            if (!window.__SCHOOL_ADMIN_DATA.isApproved) {
+                alert('حساب المدرسة قيد المراجعة حالياً. سيتم تفعيل الأقسام بمجرد تفعيل الحساب.');
+                window.navigateTo('dashboard');
+                return;
+            }
+        });
     })();
     </script>
     <!-- Prevent dark-mode flash before body exists -->
@@ -124,6 +139,92 @@
         <div class="pages-container">
             <!-- Dashboard -->
             <div class="page active" id="dashboard">
+                
+                @if($appStatus === 'pending_details')
+                <!-- State A: School Details Onboarding Form -->
+                <div class="card" id="schoolOnboardingCard" style="grid-column:1/-1; border-radius: 20px; padding: 28px; border: 1px solid var(--border-color); background: var(--card-bg); margin: 20px 0;">
+                    <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <i class="fas fa-school" style="font-size: 20px; color: var(--accent);"></i>
+                            <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--text-dark);">Register School Profile & License Details</h3>
+                        </div>
+                        <span style="font-size:12px;color:var(--text-light);background: var(--light-bg);padding: 4px 12px;border-radius: 12px;font-weight: 500;">Required step to activate school dashboard</span>
+                    </div>
+                    <form id="schoolOnboardingForm" style="display:flex;flex-direction:column;gap:16px;">
+                        @csrf
+                        <div id="schoolOnboardingMessage" style="display:none;padding:10px 12px;border-radius:8px;font-size:13px;"></div>
+                        <div style="border:1px solid var(--border-color);border-radius:14px;padding:20px;background:var(--light-bg);">
+                            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;">
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">School Name</label>
+                                    <input name="name" required type="text" class="form-control" value="{{ $school->name ?? '' }}" style="font-size: 13px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">Phone Number</label>
+                                    <input name="phone" required type="text" class="form-control" value="{{ $school->phone ?? '' }}" style="font-size: 13px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">License Number</label>
+                                    <input name="license_number" required type="text" class="form-control" style="font-size: 13px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">License Expiry Date</label>
+                                    <input name="license_expiry" required type="date" class="form-control" style="font-size: 13px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0; grid-column: span 2;">
+                                    <label class="form-label" style="font-weight:600;">School Fleet Requirement</label>
+                                    <select name="fleet_type" required class="form-control" style="font-size: 13px;">
+                                        <option value="own">We have our own buses & drivers (لدينا حافلات وسائقين خاصين بنا)</option>
+                                        <option value="provided">We need SafeStep to provide buses & drivers (نحتاج من SafeStep توفير الحافلات والسائقين)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="margin-bottom:0; grid-column: 1/-1;">
+                                    <label class="form-label" style="font-weight:600;">License Document File</label>
+                                    <input name="license_document" required type="file" accept=".pdf,image/*" class="form-control" style="font-size: 13px; padding: 6px;">
+                                </div>
+                                <div class="form-group" style="grid-column: 1/-1; margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">School Address</label>
+                                    <input name="address" required type="text" class="form-control" value="{{ $school->address ?? '' }}" style="font-size: 13px;">
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display:flex;justify-content:flex-end;">
+                            <button class="btn-primary" id="schoolOnboardingSubmit" type="submit" style="padding: 12px 24px; font-weight: 700; border-radius: 10px;">
+                                <i class="fas fa-paper-plane"></i> Submit Details
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                @elseif($appStatus === 'pending_approval')
+                <!-- State B: School Waiting Approval -->
+                <div class="card status-pending-card" style="grid-column: 1/-1; padding: 60px 40px; text-align: center; background: var(--card-bg); border-radius: 20px; border: 1px solid var(--border-color); margin: 20px 0;">
+                    <div style="width: 100px; height: 100px; border-radius: 50%; background: rgba(37,99,235,0.08); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 24px;">
+                        <i class="fas fa-school" style="font-size: 44px; color: var(--accent);"></i>
+                    </div>
+                    <h2 style="font-size: 26px; font-weight: 800; color: var(--text-dark); margin-bottom: 14px;">School Profile & License Under Review</h2>
+                    <p style="font-size: 16px; color: var(--text-light); max-width: 580px; margin: 0 auto 28px; line-height: 1.6;">Thank you for submitting your school registration and license documents. The SafeStep administration is currently verifying your school credentials and fleet requirements. Your dashboard and administrator tabs will be unlocked once approved.</p>
+                    <div style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-light); background: var(--light-bg); padding: 8px 16px; border-radius: 30px; border: 1px solid var(--border-color);">
+                        <span>Status:</span>
+                        <span class="status-badge pending" style="padding: 4px 12px; border-radius: 12px; font-weight: 700;">Pending Approval</span>
+                    </div>
+                </div>
+
+                @elseif($appStatus === 'rejected')
+                <!-- State C: School Rejected -->
+                <div class="card status-rejected-card" style="grid-column: 1/-1; padding: 60px 40px; text-align: center; background: var(--card-bg); border-radius: 20px; border: 1px solid var(--border-color); margin: 20px 0;">
+                    <div style="width: 100px; height: 100px; border-radius: 50%; background: rgba(239, 68, 68, 0.08); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 24px;">
+                        <i class="fas fa-times-circle" style="font-size: 48px; color: #ef4444;"></i>
+                    </div>
+                    <h2 style="font-size: 26px; font-weight: 800; color: var(--text-dark); margin-bottom: 14px;">School Registration Rejected</h2>
+                    <p style="font-size: 16px; color: var(--text-light); max-width: 580px; margin: 0 auto 28px; line-height: 1.6;">We apologize, your school profile registration was rejected. Please review the submitted license information and documents or contact support.</p>
+                    <div style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-light); background: var(--light-bg); padding: 8px 16px; border-radius: 30px; border: 1px solid var(--border-color);">
+                        <span>Status:</span>
+                        <span class="status-badge rejected" style="padding: 4px 12px; border-radius: 12px; font-weight: 700; background: rgba(239, 68, 68, 0.08); color: var(--danger-color);">Rejected</span>
+                    </div>
+                </div>
+
+                @else
                 <div class="dashboard-grid">
                     <div class="card stat-card">
                         <div class="stat-icon blue"><i class="fas fa-user-graduate"></i></div>
@@ -215,6 +316,7 @@
                         </div>
                     </div>
                 </div>
+                @endif
             </div>
 
             <!-- Parents -->
@@ -479,6 +581,53 @@
         </div>
     </div>
 
+    <script>
+    (function(){
+        const onboardingForm = document.getElementById('schoolOnboardingForm');
+        if (onboardingForm) {
+            onboardingForm.addEventListener('submit', async event => {
+                event.preventDefault();
+
+                const message = document.getElementById('schoolOnboardingMessage');
+                const submit = document.getElementById('schoolOnboardingSubmit');
+                const formData = new FormData(onboardingForm);
+
+                message.style.display = 'none';
+                submit.disabled = true;
+                submit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+
+                try {
+                    const res = await fetch('/api/school-admin/details/submit', {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Authorization': 'Bearer ' + (window.__API_TOKEN || localStorage.getItem('safestep_token') || ''),
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                        },
+                        body: formData
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok) throw new Error(data.message || 'Unable to submit details.');
+                    message.textContent = data.message || 'School profile details submitted successfully.';
+                    message.style.background = 'rgba(34,197,94,.12)';
+                    message.style.color = '#15803d';
+                    message.style.display = 'block';
+
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } catch (error) {
+                    message.textContent = error.message;
+                    message.style.background = 'rgba(239,68,68,.12)';
+                    message.style.color = '#b91c1c';
+                    message.style.display = 'block';
+                    submit.disabled = false;
+                    submit.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Details';
+                }
+            });
+        }
+    })();
+    </script>
     <script src="{{ asset('js/dashboard-theme.js') }}"></script>
     <script src="{{ asset('js/i18n-school-admin.js') }}"></script>
     <script src="{{ asset('js/school-admin.js') }}"></script>

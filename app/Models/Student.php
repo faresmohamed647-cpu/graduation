@@ -12,18 +12,28 @@ class Student extends Model
         'parent_id',
         'school_id',
         'full_name',
+        'age',
         'grade',
         'school_name',
+        'pickup_location',
+        'dropoff_location',
+        'pickup_time',
+        'dropoff_time',
+        'has_medical_condition',
+        'medical_condition',
+        'medication',
         'photo',
         'qr_code',
         'rfid_tag',
         'bus_id',
         'bus_route_id',
         'active',
+        'assignment_status',
     ];
 
     protected $casts = [
         'active' => 'boolean',
+        'has_medical_condition' => 'boolean',
     ];
 
     public function parent(): BelongsTo

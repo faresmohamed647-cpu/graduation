@@ -290,4 +290,63 @@ class DriverApiController extends Controller
             ],
         ]);
     }
+
+    public function submitDetails(Request $request)
+    {
+        $user = $request->user();
+        $driver = $user?->driverProfile;
+
+        if (!$driver) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Driver profile not found.',
+            ], 404);
+        }
+
+        if ($driver->status !== 'pending_details') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Profile details were already submitted or approved.',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'full_name' => ['required', 'string', 'max:255'],
+            'phone' => ['required', 'string', 'max:20'],
+            'age' => ['required', 'integer', 'min:20', 'max:70'],
+            'gender' => ['required', 'string', 'in:male,female'],
+            'license_number' => ['required', 'string', 'max:50'],
+            'years_experience' => ['required', 'integer', 'min:0', 'max:40'],
+            'car_type' => ['required', 'string', 'max:100'],
+            'car_model' => ['required', 'string', 'max:100'],
+            'car_plate' => ['required', 'string', 'max:50'],
+            'address' => ['required', 'string', 'max:500'],
+            'national_id' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:4096'],
+            'criminal_record' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:4096'],
+        ]);
+
+        $nationalIdPath = null;
+        if ($request->hasFile('national_id')) {
+            $nationalIdPath = $request->file('national_id')->store('drivers/documents', 'public');
+        }
+
+        $criminalRecordPath = null;
+        if ($request->hasFile('criminal_record')) {
+            $criminalRecordPath = $request->file('criminal_record')->store('drivers/documents', 'public');
+        }
+
+        $updateData = array_diff_key($validated, array_flip(['national_id', 'criminal_record']));
+        $updateData['national_id_path'] = $nationalIdPath;
+        $updateData['criminal_record_path'] = $criminalRecordPath;
+        $updateData['status'] = 'pending_approval';
+        $updateData['active'] = false;
+
+        $driver->update($updateData);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Driver profile details submitted successfully.',
+            'data' => $driver,
+        ]);
+    }
 }

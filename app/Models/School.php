@@ -20,6 +20,11 @@ class School extends Model
         'logo',
         'principal_name',
         'status',
+        'license_number',
+        'license_expiry',
+        'license_document_path',
+        'fleet_type',
+        'active',
     ];
 
     public function administrators(): HasMany
@@ -55,6 +60,15 @@ class School extends Model
     public function activityLogs(): HasMany
     {
         return $this->hasMany(ActivityLog::class);
+    }
+
+    protected $appends = [
+        'license_document_url',
+    ];
+
+    public function getLicenseDocumentUrlAttribute()
+    {
+        return $this->license_document_path ? asset('storage/' . $this->license_document_path) : null;
     }
 
     public function emergencyAlerts(): HasMany

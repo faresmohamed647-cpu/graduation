@@ -243,6 +243,156 @@
         <!-- Dashboard Page -->
         <div class="page active" id="dashboard">
             <div class="dashboard-grid">
+                
+                @if($appStatus === 'pending')
+                <!-- State A: Pending Approval -->
+                <div class="card status-pending-card" style="grid-column: 1/-1; padding: 60px 40px; text-align: center; margin: 20px 0; border: 1px solid var(--border-color); background: var(--card-bg);">
+                    <div style="width: 100px; height: 100px; border-radius: 50%; background: rgba(245, 158, 11, 0.08); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 24px; animation: pulse 2s infinite;">
+                        <i class="fas fa-clock" style="font-size: 44px; color: #f59e0b;"></i>
+                    </div>
+                    <h2 style="font-size: 26px; font-weight: 800; color: var(--text-dark); margin-bottom: 14px;">Your application is under review</h2>
+                    <p style="font-size: 16px; color: var(--text-light); max-width: 580px; margin: 0 auto 28px; line-height: 1.6;">Welcome to SafeStep. Your account is registered but has not been approved yet. Your account will be activated and you will be notified upon approval.</p>
+                    <div style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-light); background: var(--light-bg); padding: 8px 16px; border-radius: 30px; border: 1px solid var(--border-color);">
+                        <span>Application Status:</span>
+                        <span class="status-badge pending" style="padding: 4px 12px; border-radius: 12px; font-weight: 700;">Pending</span>
+                    </div>
+                </div>
+
+                @elseif($appStatus === 'rejected')
+                <!-- State B: Rejected Application -->
+                <div class="card status-rejected-card" style="grid-column: 1/-1; padding: 60px 40px; text-align: center; margin: 20px 0; border: 1px solid var(--border-color); background: var(--card-bg);">
+                    <div style="width: 100px; height: 100px; border-radius: 50%; background: rgba(239, 68, 68, 0.08); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 24px;">
+                        <i class="fas fa-times-circle" style="font-size: 48px; color: #ef4444;"></i>
+                    </div>
+                    <h2 style="font-size: 26px; font-weight: 800; color: var(--text-dark); margin-bottom: 14px;">Application Rejected</h2>
+                    <p style="font-size: 16px; color: var(--text-light); max-width: 580px; margin: 0 auto 28px; line-height: 1.6;">We apologize, your application to join SafeStep has been rejected by the administration. Please review your details or contact support.</p>
+                    <div style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-light); background: var(--light-bg); padding: 8px 16px; border-radius: 30px; border: 1px solid var(--border-color);">
+                        <span>Application Status:</span>
+                        <span class="status-badge rejected" style="padding: 4px 12px; border-radius: 12px; font-weight: 700; background: rgba(239, 68, 68, 0.08); color: var(--danger-color);">Rejected</span>
+                    </div>
+                </div>
+
+                @elseif(($stats['children_count'] ?? 0) === 0)
+                <!-- State C: Onboarding Form (Needs Children Details) -->
+                <div class="card" id="childrenOnboardingCard" style="grid-column:1/-1; border-radius: 20px; padding: 28px; border: 1px solid var(--border-color); background: var(--card-bg);">
+                    <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <i class="fas fa-user-plus" style="font-size: 20px; color: var(--accent);"></i>
+                            <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--text-dark);">Register Children Details</h3>
+                        </div>
+                        <span style="font-size:12px;color:var(--text-light);background: var(--light-bg);padding: 4px 12px;border-radius: 12px;font-weight: 500;">Required step to activate account</span>
+                    </div>
+                    <form id="childrenOnboardingForm" style="display:flex;flex-direction:column;gap:16px;">
+                        @csrf
+                        <div id="childrenOnboardingMessage" style="display:none;padding:10px 12px;border-radius:8px;font-size:13px;"></div>
+                        @for($i = 0; $i < $childFormCount; $i++)
+                        <div style="border:1px solid var(--border-color);border-radius:14px;padding:20px;background:var(--light-bg);transition: all 0.3s ease;">
+                            <h4 style="margin:0 0 16px;color:var(--text-dark);font-size:15px;font-weight: 700;display: flex;align-items: center;gap:8px;">
+                                <i class="fas fa-child" style="color: var(--accent);"></i> Child {{ $i + 1 }}
+                            </h4>
+                            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;">
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">Full Name</label>
+                                    <input name="children[{{ $i }}][full_name]" required type="text" class="form-control" style="font-size: 13px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">Age</label>
+                                    <input name="children[{{ $i }}][age]" type="number" min="2" max="25" class="form-control" style="font-size: 13px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">Grade</label>
+                                    <input name="children[{{ $i }}][grade]" type="text" value="{{ $acceptedApplication?->metadata['student_degree'] ?? '' }}" class="form-control" style="font-size: 13px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">School</label>
+                                    <input name="children[{{ $i }}][school_name]" type="text" value="{{ $acceptedApplication?->metadata['school_name'] ?? '' }}" class="form-control" style="font-size: 13px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">Pickup Location (From)</label>
+                                    <input name="children[{{ $i }}][pickup_location]" type="text" value="{{ $acceptedApplication?->address ?? '' }}" class="form-control" style="font-size: 13px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">Drop-off Location (To)</label>
+                                    <input name="children[{{ $i }}][dropoff_location]" type="text" value="{{ $acceptedApplication?->metadata['school_address'] ?? $acceptedApplication?->metadata['school_name'] ?? '' }}" class="form-control" style="font-size: 13px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">Pickup Time</label>
+                                    <input name="children[{{ $i }}][pickup_time]" type="time" class="form-control" style="font-size: 13px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">Drop-off Time</label>
+                                    <input name="children[{{ $i }}][dropoff_time]" type="time" class="form-control" style="font-size: 13px;">
+                                </div>
+                            </div>
+                            <label style="display:inline-flex;align-items:center;gap:8px;margin-top:16px;color:var(--text-dark);font-size:13px;font-weight: 600;cursor: pointer;">
+                                <input type="checkbox" name="children[{{ $i }}][has_medical_condition]" value="1" data-medical-toggle="{{ $i }}" style="width: 16px; height: 16px;">
+                                Has any medical condition or health issue
+                            </label>
+                            <div data-medical-fields="{{ $i }}" style="display:none;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px;">
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">Medical condition details</label>
+                                    <textarea name="children[{{ $i }}][medical_condition]" rows="3" class="form-control" placeholder="Write details here..." style="font-size: 13px;"></textarea>
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">Medication / dosage details</label>
+                                    <textarea name="children[{{ $i }}][medication]" rows="3" class="form-control" placeholder="Write medication details..." style="font-size: 13px;"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        @endfor
+                        <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+                            <button class="btn-primary" id="childrenOnboardingSubmit" type="submit" style="padding: 12px 24px; font-weight: 700; border-radius: 10px;">
+                                <i class="fas fa-paper-plane"></i> Send to Admin
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                @elseif($assignedChildrenCount === 0)
+                <!-- State D: Waiting for Bus/Driver Assignment -->
+                <div class="card" style="grid-column: 1/-1; padding: 40px; border: 1px solid var(--border-color); background: var(--card-bg);">
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px; border-bottom: 1px solid var(--border-color); padding-bottom: 20px; flex-wrap: wrap;">
+                        <div style="width: 56px; height: 56px; border-radius: 14px; background: rgba(37,99,235,0.08); display: flex; align-items: center; justify-content: center; color: var(--accent); font-size: 26px;">
+                            <i class="fas fa-hourglass-half"></i>
+                        </div>
+                        <div>
+                            <h3 style="margin: 0 0 6px; font-size: 20px; font-weight: 800; color: var(--text-dark);">Route and Bus assignment pending</h3>
+                            <span style="font-size: 14px; color: var(--text-light); line-height: 1.5;">Children details submitted successfully. The school admin is assigning the proper bus and driver, we will activate live tracking as soon as it's completed.</span>
+                        </div>
+                    </div>
+                    
+                    <h4 style="margin: 0 0 16px; color: var(--text-dark); font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-children" style="color: var(--text-light);"></i> Registered Children in the System:
+                    </h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
+                        @foreach($children as $child)
+                        <div style="border: 1px solid var(--border-color); border-radius: 14px; padding: 18px; background: var(--light-bg); display: flex; flex-direction: column; gap: 12px; transition: all 0.2s ease;">
+                            <div style="display: flex; align-items: center; gap: 14px;">
+                                <div style="width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, #0ea5a4, #2563eb); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px;">{{ substr($child->full_name, 0, 2) }}</div>
+                                <div>
+                                    <strong style="color: var(--text-dark); font-size: 15px; font-weight: 700;">{{ $child->full_name }}</strong>
+                                    <div style="color: var(--text-light); font-size: 12px; font-weight: 500;">Age: {{ $child->age ?? '—' }} years &bull; Grade: {{ $child->grade ?? '—' }}</div>
+                                </div>
+                            </div>
+                            <div style="font-size: 13px; color: var(--text-light); display: flex; flex-direction: column; gap: 6px; border-top: 1px dashed var(--border-color); padding-top: 12px;">
+                                <div><i class="fas fa-school" style="width: 20px; color: var(--text-muted); text-align: center;"></i> <strong>School:</strong> {{ $child->school_name ?? '—' }}</div>
+                                <div><i class="fas fa-map-marker-alt" style="width: 20px; color: var(--text-muted); text-align: center;"></i> <strong>From:</strong> {{ $child->pickup_location ?? '—' }}</div>
+                                <div><i class="fas fa-map-marker-alt" style="width: 20px; color: var(--text-muted); text-align: center;"></i> <strong>To:</strong> {{ $child->dropoff_location ?? '—' }}</div>
+                                <div><i class="fas fa-clock" style="width: 20px; color: var(--text-muted); text-align: center;"></i> <strong>Suggested Time:</strong> {{ $child->pickup_time ? $child->pickup_time : '—' }} / {{ $child->dropoff_time ? $child->dropoff_time : '—' }}</div>
+                                @if($child->has_medical_condition)
+                                <div style="color: #b91c1c; background: rgba(239, 68, 68, 0.05); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.1); margin-top: 6px;">
+                                    <i class="fas fa-prescription-bottle-medical" style="margin-right: 4px;"></i> <strong>Special Health Condition:</strong> {{ $child->medical_condition }} <br>
+                                    <strong>Medication:</strong> {{ $child->medication ?? 'None' }}
+                                </div>
+                                @endif
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                @else
+                <!-- State E: Active Dashboard (Children Assigned to Bus/Driver) -->
                 <!-- Bus Status Card -->
                 <div class="card bus-status-card">
                     <div class="card-header">
@@ -273,66 +423,68 @@
                     </div>
                     <div class="driver-content">
                         <div class="driver-avatar">
-                            <img src="https://source.unsplash.com/200x200/?egyptian,driver,portrait&sig=12" alt="Driver" onerror="this.src='https://ui-avatars.com/api/?name={{ urlencode($latestTrip?->driver?->user?->name ?? 'Driver') }}&background=764ba2&color=fff'">
+                            <img src="https://source.unsplash.com/200x200/?egyptian,driver,portrait&sig=12" alt="Driver" onerror="this.src='https://ui-avatars.com/api/?name={{ urlencode($latestTrip?->driver?->user?->name ?? $assignedDriver?->user?->name ?? $assignedDriver?->full_name ?? 'Driver') }}&background=764ba2&color=fff'">
                         </div>
                         <div class="driver-details">
-                            <h4>{{ $latestTrip?->driver?->user?->name ?? 'No Driver Assigned' }}</h4>
-                            <p><i class="fas fa-phone"></i> {{ $latestTrip?->driver?->phone ?? '—' }}</p>
-                            <p><i class="fas fa-bus"></i> {{ $latestTrip?->bus?->number ? 'Bus #'.$latestTrip->bus->number : '—' }}</p>
-                            <p><i class="fas fa-route"></i> {{ $latestTrip?->route?->name ?? '—' }}</p>
+                            <h4>{{ $latestTrip?->driver?->user?->name ?? $assignedDriver?->user?->name ?? $assignedDriver?->full_name ?? 'No Driver Assigned' }}</h4>
+                            <p><i class="fas fa-phone"></i> {{ $latestTrip?->driver?->phone ?? $assignedDriver?->phone ?? '—' }}</p>
+                            <p><i class="fas fa-bus"></i> {{ ($latestTrip?->bus?->bus_number ?? $assignedBus?->bus_number) ? 'Bus #'.($latestTrip?->bus?->bus_number ?? $assignedBus?->bus_number) : '—' }}</p>
+                            <p><i class="fas fa-route"></i> {{ $latestTrip?->route?->name ?? $assignedRoute?->name ?? '—' }}</p>
                         </div>
-                        @if($latestTrip?->driver?->phone)
-                        <button class="btn-call" type="button" onclick="window.location.href='tel:{{ $latestTrip->driver->phone }}'">
+                        @php
+                            $driverPhone = $latestTrip?->driver?->phone ?? $assignedDriver?->phone;
+                        @endphp
+                        @if($driverPhone)
+                        <button class="btn-call" type="button" onclick="window.location.href='tel:{{ $driverPhone }}'">
                             <i class="fas fa-phone-alt"></i> Call Driver
                         </button>
                         @endif
                     </div>
                 </div>
+
                 <!-- Quick Stats -->
-<div class="stats-container">
-    <div class="card stat-card">
-        <div class="stat-icon blue">
-            <i class="fas fa-children"></i>
-        </div>
-        <div class="stat-details">
-            <h3>{{ $stats['children_count'] ?? 0 }}</h3>
-            <p>Total Children</p>
-        </div>
-    </div>
+                <div class="stats-container">
+                    <div class="card stat-card">
+                        <div class="stat-icon blue">
+                            <i class="fas fa-children"></i>
+                        </div>
+                        <div class="stat-details">
+                            <h3>{{ $stats['children_count'] ?? 0 }}</h3>
+                            <p>Total Children</p>
+                        </div>
+                    </div>
 
-    <div class="card stat-card">
-        <div class="stat-icon green">
-            <i class="fas fa-check-circle"></i>
-        </div>
-        <div class="stat-details">
-            <h3>{{ ($stats['children_count'] ?? 0) > 0 ? round((($stats['attendance_present'] ?? 0) / (($stats['attendance_present'] ?? 0) + ($stats['attendance_absent'] ?? 0) + 0.001)) * 100) : 0 }}%</h3>
-            <p>Today Attendance</p>
-        </div>
-    </div>
+                    <div class="card stat-card">
+                        <div class="stat-icon green">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stat-details">
+                            <h3>{{ ($stats['children_count'] ?? 0) > 0 ? round((($stats['attendance_present'] ?? 0) / (($stats['attendance_present'] ?? 0) + ($stats['attendance_absent'] ?? 0) + 0.001)) * 100) : 0 }}%</h3>
+                            <p>Today Attendance</p>
+                        </div>
+                    </div>
 
-    <div class="card stat-card">
-        <div class="stat-icon orange">
-            <i class="fas fa-tachometer-alt"></i>
-        </div>
-        <div class="stat-details">
-            <h3 id="busSpeed">45</h3>
-            <p>Bus Speed (km/h)</p>
-        </div>
-    </div>
+                    <div class="card stat-card">
+                        <div class="stat-icon orange">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </div>
+                        <div class="stat-details">
+                            <h3 id="busSpeed">{{ $latestTrip?->bus?->current_speed ?? $assignedBus?->current_speed ?? 0 }}</h3>
+                            <p>Bus Speed (km/h)</p>
+                        </div>
+                    </div>
 
-    <div class="card stat-card">
-        <div class="stat-icon purple">
-            <i class="fas fa-route"></i>
-        </div>
-        <div class="stat-details">
-            <h3>5.8 km</h3>
-            <p>Total Distance</p>
-        </div>
-    </div>
-</div>
+                    <div class="card stat-card">
+                        <div class="stat-icon purple">
+                            <i class="fas fa-route"></i>
+                        </div>
+                        <div class="stat-details">
+                            <h3>{{ $latestTrip?->route?->distance_km ?? $assignedRoute?->distance_km ?? '0' }} km</h3>
+                            <p>Total Distance</p>
+                        </div>
+                    </div>
+                </div>
 
-
-                
                 <!-- Recent Activity -->
                 <div class="card activity-card">
                     <div class="card-header">
@@ -340,35 +492,56 @@
                         <i class="fas fa-history"></i>
                     </div>
                     <div class="activity-list">
+                        @forelse($attendanceRecords as $record)
                         <div class="activity-item">
+                            @if($record->status === 'present' || $record->status === 'picked_up' || $record->status === 'dropped_off')
                             <div class="activity-icon green">
                                 <i class="fas fa-check"></i>
                             </div>
-                            <div class="activity-content">
-                                <p><strong>Omer mohamed</strong> picked up</p>
-                                <span>Today at 7:45 AM</span>
+                            @elseif($record->status === 'absent')
+                            <div class="activity-icon orange">
+                                <i class="fas fa-user-times"></i>
                             </div>
-                        </div>
-                        <div class="activity-item">
-                            <div class="activity-icon green">
-                                <i class="fas fa-check"></i>
-                            </div>
-                            <div class="activity-content">
-                                <p><strong>Ahmed fawzy</strong> picked up</p>
-                                <span>Today at 7:45 AM</span>
-                            </div>
-                        </div>
-                        <div class="activity-item">
+                            @else
                             <div class="activity-icon blue">
                                 <i class="fas fa-info"></i>
                             </div>
+                            @endif
                             <div class="activity-content">
-                                <p>Bus departed from terminal</p>
-                                <span>Today at 7:30 AM</span>
+                                <p>
+                                    <strong>{{ $record->student?->full_name }}</strong> 
+                                    @if($record->status === 'picked_up')
+                                        picked up
+                                    @elseif($record->status === 'dropped_off')
+                                        dropped off
+                                    @elseif($record->status === 'present')
+                                        marked present
+                                    @elseif($record->status === 'absent')
+                                        marked absent
+                                    @else
+                                        status: {{ $record->status }}
+                                    @endif
+                                </p>
+                                <span>
+                                    @if($record->picked_up_at && ($record->status === 'picked_up' || $record->status === 'present'))
+                                        {{ $record->picked_up_at->format('Y-m-d h:i A') }}
+                                    @elseif($record->dropped_off_at && $record->status === 'dropped_off')
+                                        {{ $record->dropped_off_at->format('Y-m-d h:i A') }}
+                                    @else
+                                        {{ $record->created_at->format('Y-m-d h:i A') }}
+                                    @endif
+                                </span>
                             </div>
                         </div>
+                        @empty
+                        <div style="padding: 16px; text-align: center; color: var(--text-light);">
+                            No recent activity found.
+                        </div>
+                        @endforelse
                     </div>
                 </div>
+                @endif
+
             </div>
         </div>
         
@@ -1051,8 +1224,47 @@
         children: @json($children),
         attendance: @json($attendanceRecords),
         applications: @json($applications),
-        stats: @json($stats)
+        childFormCount: @json($childFormCount ?? 1),
+        stats: @json($stats),
+        assignedChildrenCount: @json($assignedChildrenCount ?? 0),
+        isApproved: @json($isApproved),
+        appStatus: @json($appStatus)
     };
+
+    // SPA Page Navigation Guard
+    document.addEventListener('spa:pageChanged', function(e) {
+        const pageId = e.detail.pageId;
+        if (pageId === 'dashboard' || pageId === 'profile-settings' || pageId === 'support' || pageId === 'requests' || pageId === 'my-applications') {
+            return;
+        }
+        const isAr = (localStorage.getItem('lang_parent') || 'en') === 'ar';
+        if (!window.__PARENT_DATA.isApproved) {
+            const msg = isAr
+                ? 'حسابك قيد المراجعة حالياً. سيتم تفعيل الأقسام بمجرد تفعيل الحساب.'
+                : 'Your account is currently under review. Sections will be activated once your account is approved.';
+            alert(msg);
+            window.navigateTo('dashboard');
+            return;
+        }
+        if (window.__PARENT_DATA.children.length === 0) {
+            const msg = isAr
+                ? 'يرجى ملء استمارة بيانات الأطفال أولاً لتفعيل بقية الأقسام.'
+                : 'Please fill out the children details form first to activate the rest of the sections.';
+            alert(msg);
+            window.navigateTo('dashboard');
+            return;
+        }
+        if (window.__PARENT_DATA.assignedChildrenCount === 0) {
+            if (pageId === 'tracking' || pageId === 'attendance' || pageId === 'trip-history' || pageId === 'emergency-alerts') {
+                const msg = isAr
+                    ? 'هذا القسم سيصبح نشطاً بمجرد قيام الإدارة بتعيين حافلة وسائق لأطفالك.'
+                    : 'This section will become active once the school administration assigns a bus and driver to your children.';
+                alert(msg);
+                window.navigateTo('dashboard');
+            }
+        }
+    });
+
     (function(){
         const container = document.getElementById('childrenSectionsContainer');
         if(container && window.__PARENT_DATA.children.length){
@@ -1089,6 +1301,73 @@
             }).join('');
         } else if(tbody) {
             tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:#94a3b8;">No attendance records found.</td></tr>';
+        }
+
+        document.querySelectorAll('[data-medical-toggle]').forEach(toggle => {
+            toggle.addEventListener('change', () => {
+                const fields = document.querySelector(`[data-medical-fields="${toggle.dataset.medicalToggle}"]`);
+                if (fields) fields.style.display = toggle.checked ? 'grid' : 'none';
+            });
+        });
+
+        const onboardingForm = document.getElementById('childrenOnboardingForm');
+        if (onboardingForm) {
+            onboardingForm.addEventListener('submit', async event => {
+                event.preventDefault();
+
+                const message = document.getElementById('childrenOnboardingMessage');
+                const submit = document.getElementById('childrenOnboardingSubmit');
+                const formData = new FormData(onboardingForm);
+                const count = Number(window.__PARENT_DATA.childFormCount || 1);
+                const children = [];
+
+                for (let i = 0; i < count; i += 1) {
+                    children.push({
+                        full_name: formData.get(`children[${i}][full_name]`) || '',
+                        age: formData.get(`children[${i}][age]`) || null,
+                        grade: formData.get(`children[${i}][grade]`) || '',
+                        school_name: formData.get(`children[${i}][school_name]`) || '',
+                        pickup_location: formData.get(`children[${i}][pickup_location]`) || '',
+                        dropoff_location: formData.get(`children[${i}][dropoff_location]`) || '',
+                        pickup_time: formData.get(`children[${i}][pickup_time]`) || null,
+                        dropoff_time: formData.get(`children[${i}][dropoff_time]`) || null,
+                        has_medical_condition: formData.has(`children[${i}][has_medical_condition]`),
+                        medical_condition: formData.get(`children[${i}][medical_condition]`) || '',
+                        medication: formData.get(`children[${i}][medication]`) || ''
+                    });
+                }
+
+                message.style.display = 'none';
+                submit.disabled = true;
+                submit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+
+                try {
+                    const res = await fetch('/api/parent/children/submit', {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer {{ $apiToken ?? '' }}',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                        },
+                        body: JSON.stringify({ children })
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok) throw new Error(data.message || 'Unable to submit children details.');
+                    message.textContent = data.message || 'Children details submitted.';
+                    message.style.background = 'rgba(34,197,94,.12)';
+                    message.style.color = '#15803d';
+                    message.style.display = 'block';
+                    onboardingForm.querySelectorAll('input, textarea, button').forEach(el => el.disabled = true);
+                } catch (error) {
+                    message.textContent = error.message || 'Submission failed.';
+                    message.style.background = 'rgba(239,68,68,.12)';
+                    message.style.color = '#b91c1c';
+                    message.style.display = 'block';
+                    submit.disabled = false;
+                    submit.innerHTML = '<i class="fas fa-paper-plane"></i> Send to Admin';
+                }
+            });
         }
     })();
     </script>
