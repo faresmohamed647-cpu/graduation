@@ -4,7 +4,7 @@
 (function () {
     'use strict';
 
-    const API = '/api/school-admin';
+    const API = '/school-admin';
     const ALEX_CENTER = [31.2001, 29.9187];
     let charts = {};
     let trackingMap = null;
@@ -201,7 +201,81 @@
         }
     }
 
+    function isSchoolDashboardReady() {
+        const data = window.__SCHOOL_ADMIN_DATA || {};
+        return data.isDashboardUnlocked === true || data.appStatus === 'active';
+    }
+
+    function getPageLockMessage() {
+        const data = window.__SCHOOL_ADMIN_DATA || {};
+        if (data.appStatus === 'pending_details' || data.needsOnboarding) {
+            return {
+                title: 'أكمل ملف المدرسة',
+                body: 'يرجى إكمال نموذج تفاصيل المدرسة من لوحة التحكم لتفعيل هذا القسم.',
+                showDashboardBtn: true,
+            };
+        }
+        if (data.appStatus === 'pending_approval' || data.awaitingProfileApproval) {
+            return {
+                title: 'الملف قيد المراجعة',
+                body: 'تم إرسال ملف المدرسة. سيتم تفعيل جميع الأقسام بعد موافقة إدارة SafeStep.',
+                showDashboardBtn: false,
+            };
+        }
+        if (data.appStatus === 'rejected') {
+            return {
+                title: 'تم رفض الملف',
+                body: 'تم رفض ملف المدرسة. راجع البيانات أو تواصل مع الدعم.',
+                showDashboardBtn: true,
+            };
+        }
+        return null;
+    }
+
+    function clearPageLock(pageEl) {
+        if (!pageEl) return;
+        const lock = pageEl.querySelector('.school-page-lock');
+        if (lock) lock.remove();
+    }
+
+    function showPageLock(pageEl) {
+        if (!pageEl) return;
+        const msg = getPageLockMessage();
+        if (!msg) {
+            clearPageLock(pageEl);
+            return;
+        }
+
+        let lock = pageEl.querySelector('.school-page-lock');
+        if (!lock) {
+            lock = document.createElement('div');
+            lock.className = 'school-page-lock';
+            pageEl.appendChild(lock);
+        }
+
+        const dashboardBtn = msg.showDashboardBtn
+            ? '<button type="button" class="btn-primary" onclick="SchoolAdmin.navigate(\'dashboard\')"><i class="fas fa-chart-line"></i> الذهاب للوحة التحكم</button>'
+            : '';
+
+        lock.innerHTML = `
+            <div class="school-page-lock-card">
+                <div style="width:72px;height:72px;border-radius:50%;background:rgba(37,99,235,.1);display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px;">
+                    <i class="fas fa-lock" style="font-size:28px;color:var(--accent);"></i>
+                </div>
+                <h3>${msg.title}</h3>
+                <p>${msg.body}</p>
+                ${dashboardBtn}
+            </div>`;
+    }
+
     async function loadPage(page) {
+        const target = el(page);
+        if (!isSchoolDashboardReady() && page !== 'dashboard') {
+            showPageLock(target);
+            return;
+        }
+
+        clearPageLock(target);
         const loaders = {
             dashboard: loadDashboard,
             parents: loadParents,
@@ -221,6 +295,10 @@
     }
 
     async function loadDashboard() {
+        if (!isSchoolDashboardReady()) {
+            return;
+        }
+
         try {
             let s, tripsData, trendsData, fleetData, safetyData;
             try {
@@ -261,7 +339,7 @@
             loadKpis();
             loadRiskStudents();
         } catch (e) {
-            toast(e.message, 'error');
+            console.warn('[SchoolAdmin] dashboard load:', e);
         }
     }
 
@@ -1459,8 +1537,16 @@
     }
 
     async function showNotifications(showModalFlag = false) {
-        const res = await api('/notifications');
-        const list = res.data || [];
+        let list = [];
+        try {
+            const res = await api('/notifications');
+            list = res.data || [];
+        } catch (_) {
+            if (showModalFlag) {
+                toast('تعذر تحميل الإشعارات حالياً.', 'warning');
+            }
+            return;
+        }
         const badge = el('notifBadge');
         if (badge) badge.textContent = list.length;
 
@@ -1600,7 +1686,9 @@
         prefillFromServerData();
         const initial = window.__INITIAL_PAGE || 'dashboard';
         navigate(initial);
-        showNotifications();
+        if (isSchoolDashboardReady()) {
+            showNotifications();
+        }
     }
 
     // Connect to global SPA Navigation event

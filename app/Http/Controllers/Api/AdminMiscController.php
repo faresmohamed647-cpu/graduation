@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\School;
 use App\Models\FinancialEntry;
 use App\Models\MaintenanceRecord;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 
 class AdminMiscController extends Controller
@@ -13,6 +14,28 @@ class AdminMiscController extends Controller
     public function indexSchools()
     {
         return response()->json(['success' => true, 'data' => School::latest()->get()]);
+    }
+
+    public function pendingProfiles()
+    {
+        $schools = School::with(['administrators' => function ($query) {
+            $query->select('id', 'name', 'email', 'school_id');
+        }])
+            ->where('status', 'pending_approval')
+            ->orderByDesc('profile_submitted_at')
+            ->orderByDesc('updated_at')
+            ->get();
+
+        return response()->json(['success' => true, 'data' => $schools]);
+    }
+
+    public function showSchoolProfile(School $school)
+    {
+        $school->load(['administrators' => function ($query) {
+            $query->select('id', 'name', 'email', 'school_id');
+        }]);
+
+        return response()->json(['success' => true, 'data' => $school]);
     }
 
     public function indexFinancialEntries()
@@ -68,15 +91,39 @@ class AdminMiscController extends Controller
         return response()->json(['success' => true, 'data' => $record, 'message' => 'Maintenance record created']);
     }
 
-    public function approveSchool(School $school)
+    public function approveSchool(School $school, Request $request, ActivityLogService $logger)
     {
+        if ($school->status !== 'pending_approval') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only schools awaiting profile approval can be approved.',
+            ], 422);
+        }
+
         $school->update(['active' => true, 'status' => 'active']);
-        return response()->json(['success' => true, 'message' => 'School approved']);
+
+        $logger->log($request, 'school_profile_approved', $school, [
+            'school_name' => $school->name,
+        ]);
+
+        return response()->json(['success' => true, 'message' => 'School profile approved and dashboard unlocked.']);
     }
 
-    public function rejectSchool(School $school)
+    public function rejectSchool(School $school, Request $request, ActivityLogService $logger)
     {
+        if (! in_array($school->status, ['pending_approval', 'pending_details'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This school cannot be rejected in its current state.',
+            ], 422);
+        }
+
         $school->update(['active' => false, 'status' => 'rejected']);
-        return response()->json(['success' => true, 'message' => 'School rejected']);
+
+        $logger->log($request, 'school_profile_rejected', $school, [
+            'school_name' => $school->name,
+        ]);
+
+        return response()->json(['success' => true, 'message' => 'School profile rejected.']);
     }
 }

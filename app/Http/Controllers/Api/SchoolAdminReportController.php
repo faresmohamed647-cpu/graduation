@@ -11,6 +11,7 @@ use App\Models\EmergencyAlert;
 use App\Models\Student;
 use App\Models\Trip;
 use App\Services\ReportExportService;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 
 class SchoolAdminReportController extends Controller
@@ -73,15 +74,22 @@ class SchoolAdminReportController extends Controller
 
     private function monthlyReport(int $schoolId): array
     {
+        $from = now()->subMonths(12);
+
         return Attendance::query()
-            ->selectRaw("DATE_FORMAT(trips.trip_date, '%Y-%m') as month, attendance.status, COUNT(*) as count")
-            ->join('trips', 'attendance.trip_id', '=', 'trips.id')
-            ->where('trips.school_id', $schoolId)
-            ->where('trips.trip_date', '>=', now()->subMonths(12))
-            ->groupBy('month', 'attendance.status')
-            ->orderBy('month')
+            ->with('trip:id,trip_date')
+            ->whereHas('trip', fn ($q) => $q->where('school_id', $schoolId)->where('trip_date', '>=', $from))
             ->get()
-            ->map(fn ($row) => (array) $row)
+            ->groupBy(fn (Attendance $row) => CarbonImmutable::parse($row->trip?->trip_date)->format('Y-m'))
+            ->flatMap(function ($items, $month) {
+                return $items->groupBy('status')->map(fn ($group, $status) => [
+                    'month' => $month,
+                    'status' => $status,
+                    'count' => $group->count(),
+                ]);
+            })
+            ->sortBy('month')
+            ->values()
             ->all();
     }
 

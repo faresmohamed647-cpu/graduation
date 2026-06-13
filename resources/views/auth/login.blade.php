@@ -1067,6 +1067,21 @@
         clearAuthState();
 
         // ════════════ ERROR/SUCCESS DISPLAY ════════════
+        function firstValidationMessage(data, fallback) {
+            if (!data) return fallback;
+            if (data.errors && typeof data.errors === 'object') {
+                for (const value of Object.values(data.errors)) {
+                    const text = Array.isArray(value) ? value[0] : value;
+                    if (text) return text;
+                }
+            }
+            const message = data.message;
+            if (message && message !== 'Validation failed' && message !== 'Validation failed.') {
+                return message;
+            }
+            return fallback;
+        }
+
         function showError(msg) {
             const box = document.getElementById('errorMsg');
             box.querySelector('.msg-text').textContent = msg;
@@ -1128,9 +1143,7 @@
             })
             .then(function(result) {
                 if (!result.ok || !result.data.success) {
-                    let msg = t.err_invalid;
-                    if (result.data.message) msg = result.data.message;
-                    showError(msg);
+                    showError(firstValidationMessage(result.data, t.err_invalid));
                     resetButton();
                     clearAuthState();
                     return;
@@ -1145,7 +1158,8 @@
                     const labels = {
                         admin: currentLang === 'ar' ? 'الأدمن' : 'Admin',
                         parent: currentLang === 'ar' ? 'ولي الأمر' : 'Parent',
-                        driver: currentLang === 'ar' ? 'السائق' : 'Driver'
+                        driver: currentLang === 'ar' ? 'السائق' : 'Driver',
+                        school_admin: currentLang === 'ar' ? 'المدرسة' : 'School',
                     };
                     const article = selectedRole === 'admin' ? 'an' : 'a';
                     showError(
@@ -1178,19 +1192,28 @@
                     headers: { 'Accept': 'application/json' }
                 })
                 .then(function(sessionRes) {
-                    return sessionRes.json().catch(function() { return {}; });
+                    return sessionRes.json().then(function(data) {
+                        return { ok: sessionRes.ok, status: sessionRes.status, data: data };
+                    }).catch(function() {
+                        return { ok: sessionRes.ok, status: sessionRes.status, data: {} };
+                    });
                 })
-                .then(function(sessionData) {
-                    // Use server redirect or role-based path
-                    const dest = (sessionData && sessionData.redirect)
-                        ? sessionData.redirect
+                .then(function(sessionResult) {
+                    if (!sessionResult.ok) {
+                        showError(firstValidationMessage(sessionResult.data, t.err_unexpected));
+                        resetButton();
+                        clearAuthState();
+                        return;
+                    }
+
+                    const dest = (sessionResult.data && sessionResult.data.redirect)
+                        ? sessionResult.data.redirect
                         : (roleConfig[role] ? roleConfig[role].dashboardPath : '/');
                     window.location.href = dest;
                 })
                 .catch(function() {
-                    // Session creation failed — use token-based redirect
-                    const dest = roleConfig[role] ? roleConfig[role].dashboardPath : '/';
-                    window.location.href = dest;
+                    showError(t.err_network);
+                    resetButton();
                 });
             })
             .catch(function(err) {
@@ -1204,8 +1227,13 @@
         // Check URL for role hint
         const urlParams = new URLSearchParams(window.location.search);
         const roleHint = urlParams.get('role');
-        if (roleHint && roleConfig[roleHint]) {
-            selectRole(roleHint);
+        const roleHintAliases = {
+            school: 'school_admin',
+            school_admin: 'school_admin',
+        };
+        const normalizedRoleHint = roleHintAliases[roleHint] || roleHint;
+        if (normalizedRoleHint && roleConfig[normalizedRoleHint]) {
+            selectRole(normalizedRoleHint);
         }
 
         if (initialServerError) {

@@ -19,8 +19,10 @@ class AdminStudentAssignmentController extends Controller
     public function index()
     {
         $students = Student::with(['parent.user', 'bus', 'route'])
-            ->where('assignment_status', 'pending')
-            ->orWhereNull('bus_id')
+            ->where(function ($query) {
+                $query->where('assignment_status', 'pending')
+                    ->orWhereNull('bus_id');
+            })
             ->latest('id')
             ->get()
             ->groupBy('parent_id')

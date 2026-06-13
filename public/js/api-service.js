@@ -8,6 +8,21 @@
 
     if (window.ApiService) return;
 
+    function firstValidationMessage(data, fallback) {
+        if (!data) return fallback;
+        if (data.errors && typeof data.errors === 'object') {
+            for (const value of Object.values(data.errors)) {
+                const text = Array.isArray(value) ? value[0] : value;
+                if (text) return text;
+            }
+        }
+        const message = data.message;
+        if (message && message !== 'Validation failed' && message !== 'Validation failed.') {
+            return message;
+        }
+        return fallback;
+    }
+
     const ApiService = {
         getBaseUrl() {
             return window.location.origin + '/api';
@@ -29,8 +44,19 @@
             return headers;
         },
 
+        resolveUrl(endpoint) {
+            if (endpoint.startsWith('http')) {
+                return endpoint;
+            }
+            // Endpoints already include /api/... — do not prepend /api again.
+            if (endpoint.startsWith('/api/')) {
+                return window.location.origin + endpoint;
+            }
+            return `${this.getBaseUrl()}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+        },
+
         async request(endpoint, options = {}) {
-            const url = endpoint.startsWith('http') ? endpoint : `${this.getBaseUrl()}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+            const url = this.resolveUrl(endpoint);
             
             const config = {
                 method: options.method || 'GET',
@@ -67,7 +93,10 @@
 
                 if (!response.ok) {
                     console.error(`[API] ${config.method} ${endpoint} failed:`, response.status, data);
-                    throw new Error(data.message || `API ${response.status}: ${url}`);
+                    const fallback = response.status === 422
+                        ? 'Please check the form and try again.'
+                        : `API ${response.status}: ${url}`;
+                    throw new Error(firstValidationMessage(data, fallback));
                 }
 
                 return data;

@@ -190,6 +190,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Misc (Schools, Financials, Maintenance)
         Route::get('/schools', [AdminMiscController::class, 'indexSchools']);
+        Route::get('/schools/pending-profiles', [AdminMiscController::class, 'pendingProfiles']);
+        Route::get('/schools/{school}/profile', [AdminMiscController::class, 'showSchoolProfile']);
         Route::post('/schools', [AdminMiscController::class, 'storeSchool']);
         Route::post('/schools/{school}/approve', [AdminMiscController::class, 'approveSchool']);
         Route::post('/schools/{school}/reject', [AdminMiscController::class, 'rejectSchool']);
@@ -236,6 +238,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // ── School Admin routes ──
     Route::prefix('school-admin')->middleware('role:school_admin')->group(function () {
         Route::post('/details/submit', [SchoolAdminDashboardController::class, 'submitDetails']);
+        Route::get('/settings', [SchoolAdminSettingsController::class, 'show']);
+
+        Route::middleware('school.active')->group(function () {
         Route::get('/dashboard/stats', [SchoolAdminDashboardController::class, 'stats']);
         Route::get('/dashboard/attendance-summary', [SchoolAdminDashboardController::class, 'attendanceSummary']);
         Route::get('/dashboard/trips-overview', [SchoolAdminDashboardController::class, 'tripsOverview']);
@@ -299,10 +304,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/reports', [SchoolAdminReportController::class, 'index']);
         Route::get('/reports/export', [SchoolAdminReportController::class, 'export']);
 
-        Route::get('/settings', [SchoolAdminSettingsController::class, 'show']);
         Route::put('/settings/school', [SchoolAdminSettingsController::class, 'updateSchool']);
         Route::put('/settings/profile', [SchoolAdminSettingsController::class, 'updateProfile']);
         Route::get('/activity-logs', [SchoolAdminSettingsController::class, 'activityLogs']);
+        });
     });
 
     // ── Parent routes ──

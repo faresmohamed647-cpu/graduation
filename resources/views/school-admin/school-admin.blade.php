@@ -25,22 +25,12 @@
             user: @json(['name' => $user->name ?? 'School Admin', 'email' => $user->email ?? '']),
             stats: @json($stats ?? []),
             isApproved: @json($isApproved),
+            isDashboardUnlocked: @json($isDashboardUnlocked),
+            needsOnboarding: @json($needsOnboarding),
+            awaitingProfileApproval: @json($awaitingProfileApproval),
             appStatus: @json($appStatus)
         };
         if(t){ localStorage.setItem('safestep_token', t); localStorage.setItem('token', t); }
-
-        // SPA Page Navigation Guard
-        document.addEventListener('spa:pageChanged', function(e) {
-            const pageId = e.detail.pageId;
-            if (pageId === 'dashboard') {
-                return;
-            }
-            if (!window.__SCHOOL_ADMIN_DATA.isApproved) {
-                alert('حساب المدرسة قيد المراجعة حالياً. سيتم تفعيل الأقسام بمجرد تفعيل الحساب.');
-                window.navigateTo('dashboard');
-                return;
-            }
-        });
     })();
     </script>
     <!-- Prevent dark-mode flash before body exists -->
@@ -71,6 +61,31 @@
             letter-spacing: .06em;
             text-transform: uppercase;
         }
+        .school-page-lock {
+            position: absolute;
+            inset: 0;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 32px;
+            background: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(6px);
+            border-radius: 16px;
+        }
+        .school-page-lock-card {
+            max-width: 480px;
+            width: 100%;
+            text-align: center;
+            padding: 36px 28px;
+            border-radius: 18px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15);
+        }
+        .school-page-lock-card h3 { margin: 0 0 12px; font-size: 22px; font-weight: 800; color: var(--text-dark); }
+        .school-page-lock-card p { margin: 0 0 20px; color: var(--text-light); line-height: 1.6; font-size: 15px; }
+        .page { position: relative; min-height: 200px; }
     </style>
 </head>
 <body>
@@ -143,54 +158,109 @@
                 @if($appStatus === 'pending_details')
                 <!-- State A: School Details Onboarding Form -->
                 <div class="card" id="schoolOnboardingCard" style="grid-column:1/-1; border-radius: 20px; padding: 28px; border: 1px solid var(--border-color); background: var(--card-bg); margin: 20px 0;">
-                    <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between;">
+                    <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <i class="fas fa-school" style="font-size: 20px; color: var(--accent);"></i>
-                            <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--text-dark);">Register School Profile & License Details</h3>
+                            <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--text-dark);">إكمال ملف المدرسة | Complete School Profile</h3>
                         </div>
-                        <span style="font-size:12px;color:var(--text-light);background: var(--light-bg);padding: 4px 12px;border-radius: 12px;font-weight: 500;">Required step to activate school dashboard</span>
+                        <span style="font-size:12px;color:var(--text-light);background: var(--light-bg);padding: 4px 12px;border-radius: 12px;font-weight: 500;">الخطوة المطلوبة لتفعيل جميع الأقسام</span>
                     </div>
-                    <form id="schoolOnboardingForm" style="display:flex;flex-direction:column;gap:16px;">
+                    <form id="schoolOnboardingForm" style="display:flex;flex-direction:column;gap:16px;" enctype="multipart/form-data">
                         @csrf
                         <div id="schoolOnboardingMessage" style="display:none;padding:10px 12px;border-radius:8px;font-size:13px;"></div>
+
                         <div style="border:1px solid var(--border-color);border-radius:14px;padding:20px;background:var(--light-bg);">
+                            <h4 style="margin:0 0 16px;font-size:15px;font-weight:700;color:var(--text-dark);"><i class="fas fa-building"></i> بيانات المدرسة الأساسية</h4>
                             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;">
                                 <div class="form-group" style="margin-bottom:0;">
-                                    <label class="form-label" style="font-weight:600;">School Name</label>
+                                    <label class="form-label" style="font-weight:600;">اسم المدرسة | School Name</label>
                                     <input name="name" required type="text" class="form-control" value="{{ $school->name ?? '' }}" style="font-size: 13px;">
                                 </div>
                                 <div class="form-group" style="margin-bottom:0;">
-                                    <label class="form-label" style="font-weight:600;">Phone Number</label>
+                                    <label class="form-label" style="font-weight:600;">اسم المدير | Principal Name</label>
+                                    <input name="principal_name" required type="text" class="form-control" value="{{ $school->principal_name ?? $user->name ?? '' }}" style="font-size: 13px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">البريد الإلكتروني | Email</label>
+                                    <input name="email" required type="email" class="form-control" value="{{ $school->email ?? $user->email ?? '' }}" style="font-size: 13px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">رقم الهاتف | Phone</label>
                                     <input name="phone" required type="text" class="form-control" value="{{ $school->phone ?? '' }}" style="font-size: 13px;">
                                 </div>
-                                <div class="form-group" style="margin-bottom:0;">
-                                    <label class="form-label" style="font-weight:600;">License Number</label>
-                                    <input name="license_number" required type="text" class="form-control" style="font-size: 13px;">
-                                </div>
-                                <div class="form-group" style="margin-bottom:0;">
-                                    <label class="form-label" style="font-weight:600;">License Expiry Date</label>
-                                    <input name="license_expiry" required type="date" class="form-control" style="font-size: 13px;">
-                                </div>
-                                <div class="form-group" style="margin-bottom:0; grid-column: span 2;">
-                                    <label class="form-label" style="font-weight:600;">School Fleet Requirement</label>
-                                    <select name="fleet_type" required class="form-control" style="font-size: 13px;">
-                                        <option value="own">We have our own buses & drivers (لدينا حافلات وسائقين خاصين بنا)</option>
-                                        <option value="provided">We need SafeStep to provide buses & drivers (نحتاج من SafeStep توفير الحافلات والسائقين)</option>
-                                    </select>
-                                </div>
                                 <div class="form-group" style="margin-bottom:0; grid-column: 1/-1;">
-                                    <label class="form-label" style="font-weight:600;">License Document File</label>
-                                    <input name="license_document" required type="file" accept=".pdf,image/*" class="form-control" style="font-size: 13px; padding: 6px;">
-                                </div>
-                                <div class="form-group" style="grid-column: 1/-1; margin-bottom:0;">
-                                    <label class="form-label" style="font-weight:600;">School Address</label>
+                                    <label class="form-label" style="font-weight:600;">عنوان المدرسة | Address</label>
                                     <input name="address" required type="text" class="form-control" value="{{ $school->address ?? '' }}" style="font-size: 13px;">
                                 </div>
                             </div>
                         </div>
+
+                        <div style="border:1px solid var(--border-color);border-radius:14px;padding:20px;background:var(--light-bg);">
+                            <h4 style="margin:0 0 16px;font-size:15px;font-weight:700;color:var(--text-dark);"><i class="fas fa-users"></i> الطلاب والأسطول</h4>
+                            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;">
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">عدد الطلاب | Student Count</label>
+                                    <input name="student_count" required type="number" min="1" class="form-control" value="{{ $school->student_count ?? '' }}" style="font-size: 13px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">عدد الحافلات المطلوبة | Bus Count</label>
+                                    <input name="bus_count" required type="number" min="0" class="form-control" value="{{ $school->bus_count ?? '' }}" style="font-size: 13px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">بداية الدوام | Start Time</label>
+                                    <input name="operating_hours_start" required type="time" class="form-control" value="{{ $school->operating_hours_start ?? '07:00' }}" style="font-size: 13px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">نهاية الدوام | End Time</label>
+                                    <input name="operating_hours_end" required type="time" class="form-control" value="{{ $school->operating_hours_end ?? '14:00' }}" style="font-size: 13px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0; grid-column: 1/-1;">
+                                    <label class="form-label" style="font-weight:600;">متطلبات الأسطول | Fleet Requirement</label>
+                                    <select name="fleet_type" required class="form-control" style="font-size: 13px;">
+                                        <option value="own" @selected(($school->fleet_type ?? '') === 'own')>لدينا حافلات وسائقين خاصين | Own fleet & drivers</option>
+                                        <option value="provided" @selected(($school->fleet_type ?? '') === 'provided')>نحتاج SafeStep لتوفير الحافلات والسائقين | SafeStep-provided fleet</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="border:1px solid var(--border-color);border-radius:14px;padding:20px;background:var(--light-bg);">
+                            <h4 style="margin:0 0 16px;font-size:15px;font-weight:700;color:var(--text-dark);"><i class="fas fa-file-contract"></i> التراخيص والمستندات</h4>
+                            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;">
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">السجل التجاري | Commercial Register</label>
+                                    <input name="commercial_register" required type="text" class="form-control" value="{{ $school->commercial_register ?? '' }}" style="font-size: 13px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">رقم الترخيص | License Number</label>
+                                    <input name="license_number" required type="text" class="form-control" value="{{ $school->license_number ?? '' }}" style="font-size: 13px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">تاريخ انتهاء الترخيص | License Expiry</label>
+                                    <input name="license_expiry" required type="date" class="form-control" value="{{ $school->license_expiry ? $school->license_expiry->format('Y-m-d') : '' }}" style="font-size: 13px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">ملف الترخيص | License Document</label>
+                                    <input name="license_document" required type="file" accept=".pdf,image/*" class="form-control" style="font-size: 13px; padding: 6px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">وثيقة التأمين | Insurance Document</label>
+                                    <input name="insurance_document" required type="file" accept=".pdf,image/*" class="form-control" style="font-size: 13px; padding: 6px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-weight:600;">شعار المدرسة | School Logo (optional)</label>
+                                    <input name="school_logo" type="file" accept="image/*" class="form-control" style="font-size: 13px; padding: 6px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0; grid-column: 1/-1;">
+                                    <label class="form-label" style="font-weight:600;">ملاحظات إضافية | Additional Notes</label>
+                                    <textarea name="notes" class="form-control" rows="3" style="font-size: 13px;">{{ $school->notes ?? '' }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+
                         <div style="display:flex;justify-content:flex-end;">
                             <button class="btn-primary" id="schoolOnboardingSubmit" type="submit" style="padding: 12px 24px; font-weight: 700; border-radius: 10px;">
-                                <i class="fas fa-paper-plane"></i> Submit Details
+                                <i class="fas fa-paper-plane"></i> إرسال الملف للمراجعة | Submit for Review
                             </button>
                         </div>
                     </form>
@@ -607,7 +677,39 @@
                         body: formData
                     });
                     const data = await res.json().catch(() => ({}));
-                    if (!res.ok) throw new Error(data.message || 'Unable to submit details.');
+                    if (!res.ok) {
+                        let errorText = 'Unable to submit details.';
+                        if (data.errors) {
+                            const labels = {
+                                name: 'اسم المدرسة',
+                                principal_name: 'اسم المدير',
+                                email: 'البريد الإلكتروني',
+                                phone: 'رقم الهاتف',
+                                address: 'العنوان',
+                                student_count: 'عدد الطلاب',
+                                bus_count: 'عدد الحافلات',
+                                operating_hours_start: 'بداية الدوام',
+                                operating_hours_end: 'نهاية الدوام',
+                                commercial_register: 'السجل التجاري',
+                                license_number: 'رقم الترخيص',
+                                license_expiry: 'تاريخ انتهاء الترخيص',
+                                license_document: 'ملف الترخيص',
+                                insurance_document: 'وثيقة التأمين',
+                                school_logo: 'شعار المدرسة',
+                                fleet_type: 'نوع الأسطول',
+                                notes: 'ملاحظات',
+                            };
+                            const lines = Object.entries(data.errors).map(([field, msgs]) => {
+                                const label = labels[field] || field;
+                                const text = Array.isArray(msgs) ? msgs[0] : msgs;
+                                return `${label}: ${text}`;
+                            });
+                            if (lines.length) errorText = lines.join(' | ');
+                        } else if (data.message && data.message !== 'Validation failed' && data.message !== 'Validation failed.') {
+                            errorText = data.message;
+                        }
+                        throw new Error(errorText);
+                    }
                     message.textContent = data.message || 'School profile details submitted successfully.';
                     message.style.background = 'rgba(34,197,94,.12)';
                     message.style.color = '#15803d';

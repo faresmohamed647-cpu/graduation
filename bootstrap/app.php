@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\EnsureApplicationApiToken;
+use App\Http\Middleware\EnsureSchoolProfileActive;
 use App\Http\Middleware\ForceApiJsonResponse;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Validation\ValidationException;
@@ -26,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => EnsureRole::class,
             'application.token' => EnsureApplicationApiToken::class,
+            'school.active' => EnsureSchoolProfileActive::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
@@ -47,10 +49,13 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(function (ValidationException $e, Request $request) {
             if ($request->is('api/*')) {
+                $errors = $e->errors();
+                $firstMessage = collect($errors)->flatten()->filter()->first();
+
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Validation failed',
-                    'errors' => $e->errors(),
+                    'message' => $firstMessage ?: 'Validation failed',
+                    'errors' => $errors,
                 ], 422);
             }
 

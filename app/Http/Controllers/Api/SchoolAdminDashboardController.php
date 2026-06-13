@@ -13,6 +13,7 @@ use App\Models\Student;
 use App\Models\Trip;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
+use App\Services\ActivityLogService;
 use Illuminate\Support\Facades\Cache;
 
 class SchoolAdminDashboardController extends Controller
@@ -137,10 +138,17 @@ class SchoolAdminDashboardController extends Controller
 
         $alerts = EmergencyAlert::where('school_id', $schoolId)
             ->where('created_at', '>=', $from)
-            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, type, COUNT(*) as count")
-            ->groupBy('month', 'type')
-            ->orderBy('month')
-            ->get();
+            ->get()
+            ->groupBy(fn (EmergencyAlert $alert) => $alert->created_at->format('Y-m'))
+            ->flatMap(function ($items, $month) {
+                return $items->groupBy('type')->map(fn ($group, $type) => [
+                    'month' => $month,
+                    'type' => $type,
+                    'count' => $group->count(),
+                ]);
+            })
+            ->sortBy('month')
+            ->values();
 
         return response()->json(['success' => true, 'data' => $alerts]);
     }
@@ -231,7 +239,7 @@ class SchoolAdminDashboardController extends Controller
         return round(($onTime / $completed) * 100, 1);
     }
 
-    public function submitDetails(Request $request)
+    public function submitDetails(Request $request, ActivityLogService $logger)
     {
         $user = $request->user();
         $school = $user->school;
@@ -252,30 +260,50 @@ class SchoolAdminDashboardController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'principal_name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255'],
             'phone' => ['required', 'string', 'max:20'],
             'address' => ['required', 'string', 'max:500'],
+            'student_count' => ['required', 'integer', 'min:1'],
+            'bus_count' => ['required', 'integer', 'min:0'],
+            'operating_hours_start' => ['required', 'string', 'max:10'],
+            'operating_hours_end' => ['required', 'string', 'max:10'],
+            'commercial_register' => ['required', 'string', 'max:100'],
             'license_number' => ['required', 'string', 'max:100'],
             'license_expiry' => ['required', 'date'],
             'license_document' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:4096'],
+            'insurance_document' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:4096'],
+            'school_logo' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'fleet_type' => ['required', 'string', 'in:own,provided'],
+            'notes' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        $licenseDocPath = null;
-        if ($request->hasFile('license_document')) {
-            $licenseDocPath = $request->file('license_document')->store('schools/documents', 'public');
-        }
+        $licenseDocPath = $request->file('license_document')->store('schools/documents', 'public');
+        $insuranceDocPath = $request->file('insurance_document')->store('schools/documents', 'public');
 
-        $updateData = array_diff_key($validated, array_flip(['license_document']));
+        $updateData = array_diff_key($validated, array_flip(['license_document', 'insurance_document', 'school_logo']));
         $updateData['license_document_path'] = $licenseDocPath;
+        $updateData['insurance_document_path'] = $insuranceDocPath;
         $updateData['status'] = 'pending_approval';
         $updateData['active'] = false;
+        $updateData['profile_submitted_at'] = now();
+
+        if ($request->hasFile('school_logo')) {
+            $updateData['logo'] = $request->file('school_logo')->store('schools/logos', 'public');
+        }
 
         $school->update($updateData);
 
+        $logger->log($request, 'school_profile_submitted', $school, [
+            'fleet_type' => $school->fleet_type,
+            'student_count' => $school->student_count,
+            'bus_count' => $school->bus_count,
+        ]);
+
         return response()->json([
             'success' => true,
-            'message' => 'School profile details submitted successfully.',
-            'data' => $school,
+            'message' => 'School profile submitted successfully. Awaiting admin approval.',
+            'data' => $school->fresh(),
         ]);
     }
 }

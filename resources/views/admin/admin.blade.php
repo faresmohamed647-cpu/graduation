@@ -69,6 +69,10 @@
                 <i class="fas fa-user-check"></i>
                 <span>Student Assignments</span>
             </a>
+            <a href="#" class="nav-link" data-page="school-profiles">
+                <i class="fas fa-clipboard-check"></i>
+                <span>School Profiles</span>
+            </a>
             <a href="#" class="nav-link" data-page="parents">
                 <i class="fas fa-users"></i>
                 <span>Parents</span>
@@ -482,6 +486,21 @@
                 </div>
                 <div id="studentAssignmentsList" style="padding:20px;display:flex;flex-direction:column;gap:16px;">
                     <div style="color:var(--text-secondary);">Loading assignment requests...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- School Profile Approvals Page -->
+        <div class="page" id="school-profiles">
+            <div class="card">
+                <div class="card-header">
+                    <h3>School Profile Approvals</h3>
+                    <button class="btn-secondary btn-compact" type="button" onclick="loadSchoolProfilesFromApi()">
+                        <i class="fas fa-rotate"></i> Refresh
+                    </button>
+                </div>
+                <div id="schoolProfilesList" style="padding:20px;display:flex;flex-direction:column;gap:16px;">
+                    <div style="color:var(--text-secondary);">Loading pending school profiles...</div>
                 </div>
             </div>
         </div>
@@ -3116,6 +3135,9 @@
         } else if (pageId === 'student-assignments' && typeof renderStudentAssignments === 'function') {
             renderStudentAssignments();
             if (typeof loadStudentAssignmentsFromApi === 'function') loadStudentAssignmentsFromApi();
+        } else if (pageId === 'school-profiles' && typeof renderSchoolProfiles === 'function') {
+            renderSchoolProfiles();
+            if (typeof loadSchoolProfilesFromApi === 'function') loadSchoolProfilesFromApi();
         } else if (pageId === 'parents' && typeof renderParents === 'function') {
             renderParents();
             if (typeof loadParentsFromApi === 'function') loadParentsFromApi();

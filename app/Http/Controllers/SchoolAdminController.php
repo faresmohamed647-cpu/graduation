@@ -34,15 +34,18 @@ class SchoolAdminController extends Controller
 
         $school->loadCount(['students', 'drivers', 'buses']);
 
-        $isApproved = $school->status === 'active';
         $appStatus = $school->status ?: 'pending_details';
+        $isDashboardUnlocked = $appStatus === 'active';
 
         return view('school-admin.school-admin', [
             'stats' => $stats,
             'initialPage' => $initialPage,
             'school' => $school,
             'user' => $user,
-            'isApproved' => $isApproved,
+            'isApproved' => $isDashboardUnlocked,
+            'isDashboardUnlocked' => $isDashboardUnlocked,
+            'needsOnboarding' => $appStatus === 'pending_details',
+            'awaitingProfileApproval' => $appStatus === 'pending_approval',
             'appStatus' => $appStatus,
         ]);
     }

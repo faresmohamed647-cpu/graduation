@@ -85,6 +85,7 @@ Route::prefix('admin')->middleware(['auth', 'role:admin'])->group(function () {
 
     // Original admin dashboard sections
     Route::get('/applications', [AdminController::class, 'section'])->defaults('section', 'applications');
+    Route::get('/student-assignments', [AdminController::class, 'section'])->defaults('section', 'student-assignments');
     Route::get('/parents', [AdminController::class, 'section'])->defaults('section', 'parents');
     Route::get('/drivers', [AdminController::class, 'section'])->defaults('section', 'drivers');
     Route::get('/buses', [AdminController::class, 'section'])->defaults('section', 'buses');

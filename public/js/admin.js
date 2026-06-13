@@ -3,6 +3,7 @@
 // Data arrays (Refactored)
 let applicationsData = [];
 let studentAssignmentsData = { groups: [], drivers: [], buses: [], routes: [] };
+let schoolProfilesData = [];
 const busRoutesData = [];
 
 const parentsData = [];
@@ -1677,6 +1678,92 @@ async function assignStudentGroup(parentId, studentIdsCsv) {
         showToast(error.message || 'Assignment failed.', 'error');
     }
 }
+
+function renderSchoolProfiles() {
+    const container = document.getElementById('schoolProfilesList');
+    if (!container) return;
+
+    const profiles = schoolProfilesData || [];
+    if (!profiles.length) {
+        container.innerHTML = `
+            <div style="text-align:center;padding:36px;color:var(--text-secondary);">
+                <i class="fas fa-check-circle" style="font-size:28px;margin-bottom:10px;display:block;color:#22c55e;"></i>
+                No pending school profile approvals.
+            </div>`;
+        return;
+    }
+
+    container.innerHTML = profiles.map(school => {
+        const admin = (school.administrators || [])[0] || {};
+        const fleetLabel = school.fleet_type === 'provided'
+            ? 'SafeStep-provided fleet'
+            : (school.fleet_type === 'own' ? 'Own fleet' : '—');
+        const submittedAt = school.profile_submitted_at
+            ? new Date(school.profile_submitted_at).toLocaleString()
+            : '—';
+
+        return `
+            <div class="profile-card" style="border:1px solid var(--card-border,#e5e7eb);border-radius:14px;padding:16px;background:var(--card-bg,#fff);box-shadow:var(--card-shadow,0 8px 20px rgba(15,23,42,.05));">
+                <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+                    <div>
+                        <h4 style="margin:0 0 4px;color:var(--text-primary);">${escapeSafeStepHtml(school.name || 'School')}</h4>
+                        <div style="font-size:13px;color:var(--text-secondary);">
+                            ${escapeSafeStepHtml(admin.name || 'School Admin')} &bull; ${escapeSafeStepHtml(admin.email || school.email || '-')}
+                        </div>
+                    </div>
+                    <span class="status-badge pending">Pending Approval</span>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;font-size:13px;color:var(--text-secondary);margin-bottom:14px;">
+                    <span><strong>Students:</strong> ${escapeSafeStepHtml(String(school.student_count ?? '-'))}</span>
+                    <span><strong>Buses:</strong> ${escapeSafeStepHtml(String(school.bus_count ?? '-'))}</span>
+                    <span><strong>Fleet:</strong> ${escapeSafeStepHtml(fleetLabel)}</span>
+                    <span><strong>Hours:</strong> ${escapeSafeStepHtml(school.operating_hours_start || '-')} - ${escapeSafeStepHtml(school.operating_hours_end || '-')}</span>
+                    <span><strong>License:</strong> ${escapeSafeStepHtml(school.license_number || '-')}</span>
+                    <span><strong>Submitted:</strong> ${escapeSafeStepHtml(submittedAt)}</span>
+                </div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                    <button class="btn-secondary btn-compact" type="button" onclick="viewSchoolProfile(${school.id})">
+                        <i class="fas fa-eye"></i> View Full Profile
+                    </button>
+                    <button class="btn-primary btn-compact" type="button" onclick="approveSchool(${school.id})">
+                        <i class="fas fa-check"></i> Approve
+                    </button>
+                    <button class="btn-danger btn-compact" type="button" onclick="rejectSchool(${school.id})">
+                        <i class="fas fa-times"></i> Reject
+                    </button>
+                </div>
+            </div>`;
+    }).join('');
+}
+
+async function loadSchoolProfilesFromApi() {
+    try {
+        const response = await safestepApi('/api/admin/schools/pending-profiles');
+        schoolProfilesData = response.data || [];
+        renderSchoolProfiles();
+    } catch (error) {
+        const container = document.getElementById('schoolProfilesList');
+        if (container) {
+            container.innerHTML = '<div style="color:#ef4444;padding:16px;">Failed to load school profile approvals.</div>';
+        }
+        console.warn('Failed to load school profiles:', error.message);
+    }
+}
+
+async function viewSchoolProfile(id) {
+    try {
+        const response = await safestepApi(`/api/admin/schools/${id}/profile`);
+        const school = response.data;
+        if (!school) return;
+        viewSchool(school);
+    } catch (error) {
+        showToast(error.message || 'Failed to load school profile.', 'error');
+    }
+}
+
+window.renderSchoolProfiles = renderSchoolProfiles;
+window.loadSchoolProfilesFromApi = loadSchoolProfilesFromApi;
+window.viewSchoolProfile = viewSchoolProfile;
 
 async function loadParentsFromApi() {
     try {
@@ -5154,7 +5241,7 @@ function addComplaint() {
 
 // Schools Functions
 async function approveSchool(id) {
-    const school = schoolsData.find(s => s.id === id);
+    const school = schoolsData.find(s => s.id === id) || schoolProfilesData.find(s => s.id === id);
     if (!school || !confirm(`Approve school ${school.name}?`)) return;
     try {
         await safestepApi(`/api/admin/schools/${id}/approve`, { method: 'POST' });
@@ -5165,14 +5252,17 @@ async function approveSchool(id) {
             school.active = true;
             renderSchools();
         }
-        showToast('School approved.', 'success');
+        if (typeof loadSchoolProfilesFromApi === 'function') {
+            await loadSchoolProfilesFromApi();
+        }
+        showToast('School profile approved.', 'success');
     } catch (err) {
-        showToast('Failed to approve school.', 'error');
+        showToast(err.message || 'Failed to approve school.', 'error');
     }
 }
 
 async function rejectSchool(id) {
-    const school = schoolsData.find(s => s.id === id);
+    const school = schoolsData.find(s => s.id === id) || schoolProfilesData.find(s => s.id === id);
     if (!school || !confirm(`Reject school ${school.name}?`)) return;
     try {
         await safestepApi(`/api/admin/schools/${id}/reject`, { method: 'POST' });
@@ -5183,14 +5273,19 @@ async function rejectSchool(id) {
             school.active = false;
             renderSchools();
         }
-        showToast('School rejected.', 'success');
+        if (typeof loadSchoolProfilesFromApi === 'function') {
+            await loadSchoolProfilesFromApi();
+        }
+        showToast('School profile rejected.', 'success');
     } catch (err) {
-        showToast('Failed to reject school.', 'error');
+        showToast(err.message || 'Failed to reject school.', 'error');
     }
 }
 
-function viewSchool(id) {
-    const school = schoolsData.find(s => s.id === id);
+function viewSchool(idOrSchool) {
+    const school = typeof idOrSchool === 'object'
+        ? idOrSchool
+        : schoolsData.find(s => s.id === idOrSchool);
     if (!school) return;
 
     const modal = document.createElement('div');
@@ -5238,9 +5333,17 @@ function viewSchool(id) {
     };
 
     addDetail('Name', school.name);
-    addDetail('Contact', school.contact);
+    addDetail('Principal', school.principal_name);
+    addDetail('Email', school.email);
+    addDetail('Phone', school.phone || school.contact);
     addDetail('District', school.district);
     addDetail('Address', school.address);
+    addDetail('Students', school.student_count);
+    addDetail('Buses', school.bus_count);
+    addDetail('Hours', school.operating_hours_start && school.operating_hours_end
+        ? `${school.operating_hours_start} - ${school.operating_hours_end}`
+        : null);
+    addDetail('Commercial Register', school.commercial_register);
     addDetail('Status', school.status);
     addDetail('License Number', school.license_number);
     addDetail('License Expiry', school.license_expiry);
@@ -5264,28 +5367,41 @@ function viewSchool(id) {
         docsTitle.style.color = '#0f172a';
         docsTitle.style.borderTop = '1px solid #e2e8f0';
         docsTitle.style.paddingTop = '12px';
-        docsTitle.textContent = 'License Document';
+        docsTitle.textContent = 'Documents';
         card.appendChild(docsTitle);
 
         const docsContainer = document.createElement('div');
         docsContainer.style.display = 'flex';
         docsContainer.style.gap = '12px';
+        docsContainer.style.flexWrap = 'wrap';
         docsContainer.style.marginBottom = '20px';
 
-        const btn = document.createElement('a');
-        btn.href = school.license_document_url;
-        btn.target = '_blank';
-        btn.className = 'btn btn-primary';
-        btn.style.flex = '1';
-        btn.style.textAlign = 'center';
-        btn.style.padding = '8px 12px';
-        btn.style.fontSize = '13px';
-        btn.style.display = 'inline-flex';
-        btn.style.alignItems = 'center';
-        btn.style.justifyContent = 'center';
-        btn.style.gap = '6px';
-        btn.innerHTML = '<i class="fas fa-file-contract"></i> View License Document';
-        docsContainer.appendChild(btn);
+        const licenseBtn = document.createElement('a');
+        licenseBtn.href = school.license_document_url;
+        licenseBtn.target = '_blank';
+        licenseBtn.className = 'btn btn-primary';
+        licenseBtn.style.flex = '1';
+        licenseBtn.style.minWidth = '180px';
+        licenseBtn.style.textAlign = 'center';
+        licenseBtn.style.padding = '8px 12px';
+        licenseBtn.style.fontSize = '13px';
+        licenseBtn.innerHTML = '<i class="fas fa-file-contract"></i> License';
+        docsContainer.appendChild(licenseBtn);
+
+        if (school.insurance_document_url) {
+            const insuranceBtn = document.createElement('a');
+            insuranceBtn.href = school.insurance_document_url;
+            insuranceBtn.target = '_blank';
+            insuranceBtn.className = 'btn btn-secondary';
+            insuranceBtn.style.flex = '1';
+            insuranceBtn.style.minWidth = '180px';
+            insuranceBtn.style.textAlign = 'center';
+            insuranceBtn.style.padding = '8px 12px';
+            insuranceBtn.style.fontSize = '13px';
+            insuranceBtn.innerHTML = '<i class="fas fa-shield-alt"></i> Insurance';
+            docsContainer.appendChild(insuranceBtn);
+        }
+
         card.appendChild(docsContainer);
     }
 

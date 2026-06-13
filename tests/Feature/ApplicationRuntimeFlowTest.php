@@ -364,15 +364,25 @@ class ApplicationRuntimeFlowTest extends TestCase
         Sanctum::actingAs($schoolAdmin);
 
         $licenseDoc = \Illuminate\Http\UploadedFile::fake()->create('school_license.pdf', 150);
+        $insuranceDoc = \Illuminate\Http\UploadedFile::fake()->create('school_insurance.pdf', 150);
 
         $payload = [
             'name' => 'Approved School Name',
+            'principal_name' => 'Principal Ahmed',
+            'email' => 'principal@school.test',
             'phone' => '0123456789',
             'address' => 'Cairo, Egypt',
+            'student_count' => 250,
+            'bus_count' => 5,
+            'operating_hours_start' => '07:30',
+            'operating_hours_end' => '14:30',
+            'commercial_register' => 'CR-998877',
             'license_number' => 'SCHOOL-LIC-123',
             'license_expiry' => '2027-06-30',
             'license_document' => $licenseDoc,
+            'insurance_document' => $insuranceDoc,
             'fleet_type' => 'own',
+            'notes' => 'Test school profile submission.',
         ];
 
         // Submit school details
@@ -384,11 +394,15 @@ class ApplicationRuntimeFlowTest extends TestCase
             'status' => 'pending_approval',
             'name' => 'Approved School Name',
             'fleet_type' => 'own',
+            'student_count' => 250,
+            'bus_count' => 5,
             'active' => false,
         ]);
 
         $freshSchool = $school->fresh();
         $this->assertNotNull($freshSchool->license_document_path);
+        $this->assertNotNull($freshSchool->insurance_document_path);
+        $this->assertNotNull($freshSchool->profile_submitted_at);
 
         // Admin approves school
         $admin = User::factory()->create(['role' => 'admin']);

@@ -30,12 +30,18 @@ class AuthController extends Controller
         $selectedRole = strtolower((string) $request->input('role', ''));
 
         if ($selectedRole !== '' && $selectedRole !== strtolower((string) $user->role)) {
+        // توحيد مسميات الأدوار لمنع الخطأ (مثلاً: تحويل school إلى school_admin)
+        $userRole = strtolower((string) $user->role);
+        $targetRole = ($selectedRole === 'school') ? 'school_admin' : $selectedRole;
+
+        if ($targetRole !== '' && $targetRole !== $userRole) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
             throw ValidationException::withMessages([
                 'email' => ['This account is registered as ' . $user->role . '. Please choose the correct login tab.'],
+                'email' => ['هذا الحساب مسجل كـ ' . ($user->role ?? 'مستخدم') . '. يرجى اختيار التبويب الصحيح للدخول.'],
             ]);
         }
 

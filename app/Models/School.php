@@ -23,8 +23,21 @@ class School extends Model
         'license_number',
         'license_expiry',
         'license_document_path',
+        'insurance_document_path',
         'fleet_type',
+        'student_count',
+        'bus_count',
+        'operating_hours_start',
+        'operating_hours_end',
+        'commercial_register',
+        'profile_submitted_at',
         'active',
+    ];
+
+    protected $casts = [
+        'active' => 'boolean',
+        'license_expiry' => 'date',
+        'profile_submitted_at' => 'datetime',
     ];
 
     public function administrators(): HasMany
@@ -64,11 +77,23 @@ class School extends Model
 
     protected $appends = [
         'license_document_url',
+        'insurance_document_url',
+        'logo_url',
     ];
 
     public function getLicenseDocumentUrlAttribute()
     {
         return $this->license_document_path ? asset('storage/' . $this->license_document_path) : null;
+    }
+
+    public function getInsuranceDocumentUrlAttribute()
+    {
+        return $this->insurance_document_path ? asset('storage/' . $this->insurance_document_path) : null;
+    }
+
+    public function getLogoUrlAttribute()
+    {
+        return $this->logo ? asset('storage/' . $this->logo) : null;
     }
 
     public function emergencyAlerts(): HasMany

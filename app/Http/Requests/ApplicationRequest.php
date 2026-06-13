@@ -102,10 +102,12 @@ class ApplicationRequest extends FormRequest
             'errors' => $validator->errors()->toArray(),
         ]);
 
+        $errors = $validator->errors();
+
         throw new HttpResponseException(response()->json([
             'status' => 'error',
-            'message' => 'Validation failed',
-            'errors' => $validator->errors(),
+            'message' => $errors->first() ?: 'Validation failed',
+            'errors' => $errors,
         ], 422));
     }
 }

@@ -76,6 +76,7 @@ class AdminController extends Controller
     {
         $allowed = [
             'applications',
+            'student-assignments',
             'parents',
             'drivers',
             'buses',

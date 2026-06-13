@@ -1358,7 +1358,7 @@
                     message.style.background = 'rgba(34,197,94,.12)';
                     message.style.color = '#15803d';
                     message.style.display = 'block';
-                    onboardingForm.querySelectorAll('input, textarea, button').forEach(el => el.disabled = true);
+                    setTimeout(() => window.location.reload(), 900);
                 } catch (error) {
                     message.textContent = error.message || 'Submission failed.';
                     message.style.background = 'rgba(239,68,68,.12)';

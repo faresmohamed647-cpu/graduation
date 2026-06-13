@@ -120,8 +120,8 @@ class ApplicationSubmissionTest extends TestCase
         $response
             ->assertStatus(422)
             ->assertJsonPath('status', 'error')
-            ->assertJsonPath('message', 'Validation failed')
-            ->assertJsonStructure(['status', 'message', 'errors']);
+            ->assertJsonStructure(['status', 'message', 'errors'])
+            ->assertJson(fn ($json) => $json->where('message', fn ($message) => is_string($message) && $message !== '')->etc());
     }
 
     // ── Test: Valid submission creates database row ──

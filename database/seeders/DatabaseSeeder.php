@@ -215,7 +215,7 @@ class DatabaseSeeder extends Seeder
 
         return collect($data)->map(fn (array $school) => School::updateOrCreate(
             ['name' => $school['name']],
-            $school
+            $school + ['active' => true]
         ))->values();
     }
 
