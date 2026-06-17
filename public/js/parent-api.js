@@ -63,6 +63,14 @@ async function hydrateParentDashboardFromApi() {
             time: notification.created_at ? new Date(notification.created_at).toLocaleString() : ''
         }));
 
+        const unreadCount = dashboard.data?.unread_notifications
+            ?? notifications.filter(n => n.type === 'success').length;
+        const badge = document.querySelector('.notification-icon .badge, #notificationBadge');
+        if (badge) {
+            badge.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
+            badge.style.display = unreadCount > 0 ? '' : 'none';
+        }
+
         renderChildrenSections();
         renderNotifications();
         renderAttendanceTable();

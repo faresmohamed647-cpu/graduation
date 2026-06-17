@@ -31,6 +31,8 @@
 
     <!-- Template Stylesheet -->
     <link href="{{ asset('css/style.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/public-theme.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/website-responsive.css') }}" rel="stylesheet">
 
     <!-- RTL Support Stylesheet -->
     <link href="{{ asset('css/rtl.css') }}" rel="stylesheet">

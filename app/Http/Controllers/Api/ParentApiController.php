@@ -45,7 +45,14 @@ class ParentApiController extends Controller
 
         $latestTrip = Trip::whereHas('attendance', fn ($q) => $q->whereIn('student_id', $children->pluck('id')))
             ->latest('id')->first();
-        return response()->json(['success' => true, 'data' => ['children' => $children, 'latest_trip' => $latestTrip]]);
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'children' => $children,
+                'latest_trip' => $latestTrip,
+                'unread_notifications' => $request->user()->unreadNotifications()->count(),
+            ],
+        ]);
     }
 
     public function children(Request $request)

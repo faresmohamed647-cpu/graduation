@@ -29,6 +29,7 @@
 
     <!-- Template Stylesheet -->
     <link href="{{ asset('css/style.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/website-responsive.css') }}" rel="stylesheet">
     <link href="{{ asset('css/price.css') }}" rel="stylesheet">
     <style>
         /* ===== BASE STYLES — Pricing Calculator ===== */

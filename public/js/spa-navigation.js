@@ -69,11 +69,18 @@
 
         // 4. Mobile: Auto-close sidebar
         if (window.innerWidth <= CONFIG.mobileBreakpoint) {
-            const sidebar = document.querySelector('.sidebar');
-            const overlay = document.querySelector('.sidebar-overlay');
-            if (sidebar) sidebar.classList.remove('active');
-            if (overlay) overlay.classList.remove('active');
-            document.body.classList.remove('sidebar-open');
+            if (window.DashboardMobile) {
+                window.DashboardMobile.setOpen(false);
+            } else {
+                const sidebar = document.querySelector('.sidebar');
+                const overlay = document.querySelector('.sidebar-overlay');
+                if (sidebar) {
+                    sidebar.classList.remove('active');
+                    sidebar.classList.add('hidden');
+                }
+                if (overlay) overlay.classList.remove('active');
+                document.body.classList.remove('sidebar-open');
+            }
         }
 
         // 5. Trigger custom event for page-specific initialization ONCE

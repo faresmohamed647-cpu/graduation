@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>School Dashboard - SafeStep Bus</title>
     <link rel="icon" href="{{ asset('img/icon.jpg') }}" type="image/jpeg">
@@ -42,6 +42,7 @@
     </script>
     <script src="{{ asset('js/api-service.js') }}"></script>
     <script src="{{ asset('js/spa-navigation.js') }}"></script>
+    <script src="{{ asset('js/dashboard-mobile.js') }}"></script>
     <style>
         .topbar-school-meta { display: flex; flex-direction: column; gap: 2px; }
         .topbar-school-meta .school-label {
@@ -88,7 +89,7 @@
         .page { position: relative; min-height: 200px; }
     </style>
 </head>
-<body>
+<body class="dashboard-body">
     <div class="sidebar">
         <div class="logo" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 16px; min-height: 90px; justify-content: center;">
             <div style="display: flex; align-items: center; gap: 12px; width: 100%;">

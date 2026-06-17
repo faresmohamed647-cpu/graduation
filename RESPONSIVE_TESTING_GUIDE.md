@@ -240,4 +240,4 @@ For RTL support verification:
 - `/public/css/responsive.css` - All media queries
 
 ## Version
-**v6** - Enhanced 4-column responsive dashboard
+**v7** - Unified mobile sidebar, safe-area support, website responsive layer

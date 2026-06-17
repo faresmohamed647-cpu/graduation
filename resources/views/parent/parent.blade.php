@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Parent Dashboard - School Bus Tracking</title>
     <link rel="icon" href="{{ asset('img/icon.jpg') }}" type="image/jpeg">
@@ -139,8 +139,9 @@
     </script>
     <script src="{{ asset('js/api-service.js') }}"></script>
     <script src="{{ asset('js/spa-navigation.js') }}"></script>
+    <script src="{{ asset('js/dashboard-mobile.js') }}"></script>
 </head>
-<body>
+<body class="dashboard-body">
     <a href="#dashboard" class="sr-only skip-link">Skip to content</a>
     <!-- Sidebar -->
     <aside class="sidebar" role="navigation" aria-label="Main navigation">
