@@ -28,6 +28,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => EnsureRole::class,
             'application.token' => EnsureApplicationApiToken::class,
             'school.active' => EnsureSchoolProfileActive::class,
+            'driver.active' => \App\Http\Middleware\EnsureDriverProfileActive::class,
+            'parent.active' => \App\Http\Middleware\EnsureParentProfileActive::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

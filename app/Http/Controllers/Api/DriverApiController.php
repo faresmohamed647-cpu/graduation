@@ -303,7 +303,7 @@ class DriverApiController extends Controller
             ], 404);
         }
 
-        if ($driver->status !== 'pending_details') {
+        if (! in_array($driver->status, ['pending_details', 'rejected'], true)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Profile details were already submitted or approved.',
@@ -347,6 +347,20 @@ class DriverApiController extends Controller
             'success' => true,
             'message' => 'Driver profile details submitted successfully.',
             'data' => $driver,
+        ]);
+    }
+
+    public function profileStatus(Request $request)
+    {
+        $driver = $request->user()?->driverProfile;
+        $status = $driver?->status ?? 'pending';
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'status' => $status,
+                'is_dashboard_unlocked' => $status === 'approved',
+            ],
         ]);
     }
 }

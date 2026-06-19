@@ -23,10 +23,50 @@ function mapParentForDashboard(parent) {
     };
 }
 
+function mapUserForDashboard(user) {
+    const role = user.role || (Array.isArray(user.roles) ? user.roles[0] : 'parent');
+    const departmentMap = {
+        admin: 'Administration',
+        school_admin: 'School Admin',
+        driver: 'Transportation',
+        parent: 'Parent Portal',
+    };
+
+    return {
+        id: user.id,
+        name: user.name || 'User',
+        email: user.email || '',
+        phone: user.phone || '—',
+        role,
+        school: user.school_name || '—',
+        school_id: user.school_id || null,
+        department: departmentMap[role] || role,
+        password_plain: user.password_plain || '—',
+        profile_details: user.profile_details || {},
+        children_count: user.children_count ?? 0,
+        lastLogin: user.updated_at ? new Date(user.updated_at).toLocaleString() : 'Never',
+        registeredAt: user.created_at ? new Date(user.created_at).toLocaleString() : '—',
+        status: user.status || 'active',
+        raw: user,
+    };
+}
+
+async function loadUsersFromApi() {
+    try {
+        const response = await safestepApi('/api/admin/users');
+        safestepReplaceArray(usersData, (response.data || []).map(mapUserForDashboard));
+        renderUsers();
+    } catch (error) {
+        console.warn('Failed to load admin users:', error.message);
+        renderUsers();
+    }
+}
+
 function mapDriverForDashboard(driver) {
     return {
         id: driver.id,
         name: driver.name || driver.user?.name || driver.full_name || 'Driver',
+        email: driver.email || driver.user?.email || '',
         license: driver.license || driver.license_number || '',
         phone: driver.phone || '',
         applicationDate: safestepDate(driver.applicationDate || driver.created_at),
@@ -34,6 +74,8 @@ function mapDriverForDashboard(driver) {
         experience: driver.experience || `${driver.years_experience || driver.experience_years || 0} years`,
         bus: driver.bus || 'Assigned by trips',
         status: normalizeDashboardStatus(driver.status, driver.active),
+        rawStatus: driver.status || '',
+        active: !!driver.active,
         age: driver.age || '',
         gender: driver.gender || '',
         car_type: driver.car_type || '',
@@ -41,7 +83,7 @@ function mapDriverForDashboard(driver) {
         car_plate: driver.car_plate || '',
         address: driver.address || '',
         national_id_url: driver.national_id_url || '',
-        criminal_record_url: driver.criminal_record_url || ''
+        criminal_record_url: driver.criminal_record_url || '',
     };
 }
 
@@ -57,78 +99,23 @@ function applyInitialAdminData() {
 
 applyInitialAdminData();
 
-const financialsData = [
-    { id: 1, date: '2024-01-15', type: 'income', description: 'Monthly bus fares', amount: 25000, enteredBy: 'Admin User' },
-    { id: 2, date: '2024-01-20', type: 'expense', description: 'Fuel costs', amount: -8500, enteredBy: 'Admin User' },
-    { id: 3, date: '2024-01-25', type: 'income', description: 'Special route fees', amount: 5200, enteredBy: 'Manager' },
-    { id: 4, date: '2024-02-01', type: 'expense', description: 'Maintenance parts', amount: -3200, enteredBy: 'Admin User' },
-    { id: 5, date: '2024-02-10', type: 'profit', description: 'January profit', amount: 16500, enteredBy: 'System' },
-    { id: 6, date: '2024-02-15', type: 'income', description: 'Monthly bus fares', amount: 26800, enteredBy: 'Admin User' },
-    { id: 7, date: '2024-02-20', type: 'expense', description: 'Driver salaries', amount: -15200, enteredBy: 'HR Manager' },
-    { id: 8, date: '2024-02-25', type: 'loss', description: 'Equipment damage', amount: -4800, enteredBy: 'Admin User' }
-];
+const financialsData = [];
 
-const maintenanceData = [
-    { id: 1, busNumber: 'Bus #42', plateNumber: 'ABC-123', type: 'repair', description: 'Engine oil change and filter replacement', date: '2024-01-10', cost: 1200, technician: 'Ahmed Tech' },
-    { id: 2, busNumber: 'Bus #15', plateNumber: 'DEF-456', type: 'maintenance', description: 'Brake system inspection and adjustment', date: '2024-01-15', cost: 800, technician: 'Mohamed Auto' },
-    { id: 3, busNumber: 'Bus #28', plateNumber: 'GHI-789', type: 'repair', description: 'Tire replacement (4 tires)', date: '2024-01-22', cost: 2400, technician: 'Karim Tires' },
-    { id: 4, busNumber: 'Bus #33', plateNumber: 'JKL-012', type: 'inspection', description: 'Annual safety inspection', date: '2024-02-01', cost: 500, technician: 'Safety Inspector' },
-    { id: 5, busNumber: 'Bus #07', plateNumber: 'MNO-345', type: 'repair', description: 'Air conditioning system repair', date: '2024-02-08', cost: 1800, technician: 'Cool Air Co.' },
-    { id: 6, busNumber: 'Bus #19', plateNumber: 'PQR-678', type: 'maintenance', description: 'Battery replacement', date: '2024-02-12', cost: 600, technician: 'Ahmed Tech' },
-    { id: 7, busNumber: 'Bus #51', plateNumber: 'STU-901', type: 'repair', description: 'Transmission fluid change', date: '2024-02-18', cost: 950, technician: 'Mohamed Auto' },
-    { id: 8, busNumber: 'Bus #12', plateNumber: 'VWX-234', type: 'inspection', description: 'Emergency brake check', date: '2024-02-20', cost: 300, technician: 'Safety Inspector' }
-];
+const maintenanceData = [];
 
 const ALEXANDRIA_MAP_CENTER = [31.2001, 29.9187];
 let liveTrackingApiData = [];
 let liveTrackingPollTimer = null;
 
-const studentsData = [
-    { id: 1, studentId: 'STU001', name: 'Ahmed Mohamed', grade: 'Grade 5', school: 'Al-Azhar School', parent: 'Mohamed Hassan', pickupLocation: '12 El-Horreya Rd, Raml Station, Alexandria', dropoffLocation: 'Al-Azhar School', status: 'active' },
-    { id: 2, studentId: 'STU002', name: 'Fatima Ali', grade: 'Grade 3', school: 'Alexandria International School', parent: 'Ali Mahmoud', pickupLocation: '25 Fouad St, El-Mansheya, Alexandria', dropoffLocation: 'Alexandria International School', status: 'active' },
-    { id: 3, studentId: 'STU003', name: 'Omar Khaled', grade: 'Grade 7', school: 'British School Alexandria', parent: 'Khaled Ahmed', pickupLocation: '33 Abu Qir St, Sidi Gaber, Alexandria', dropoffLocation: 'British School Alexandria', status: 'active' },
-    { id: 4, studentId: 'STU004', name: 'Aya Samir', grade: 'Grade 2', school: 'Al-Azhar School', parent: 'Samir Hassan', pickupLocation: '18 Safeya Zaghloul St, Roushdy, Alexandria', dropoffLocation: 'Al-Azhar School', status: 'inactive' },
-    { id: 5, studentId: 'STU005', name: 'Mohamed Tamer', grade: 'Grade 9', school: 'Alexandria International School', parent: 'Tamer Mostafa', pickupLocation: '41 Victor Emmanuel Sq, Smouha, Alexandria', dropoffLocation: 'Alexandria International School', status: 'active' },
-    { id: 6, studentId: 'STU006', name: 'Sara Ahmed', grade: 'Grade 4', school: 'British School Alexandria', parent: 'Ahmed Youssef', pickupLocation: '60 Port Said St, Cleopatra, Alexandria', dropoffLocation: 'British School Alexandria', status: 'active' },
-    { id: 7, studentId: 'STU007', name: 'Karim Hassan', grade: 'Grade 6', school: 'Al-Azhar School', parent: 'Hassan Ali', pickupLocation: '27 El-Gaish Rd, Sporting, Alexandria', dropoffLocation: 'Al-Azhar School', status: 'active' },
-    { id: 8, studentId: 'STU008', name: 'Nour Mostafa', grade: 'Grade 1', school: 'Alexandria International School', parent: 'Mostafa Karim', pickupLocation: '9 Khaled Ibn El-Walid St, Sidi Bishr, Alexandria', dropoffLocation: 'Alexandria International School', status: 'active' }
-];
+const studentsData = [];
 
-const tripsData = [
-    { id: 1, tripId: 'TRP001', routeName: 'Morning Route A', bus: 'Bus #42', driver: 'Ahmed Khaled', startTime: '07:00', endTime: '08:30', students: 25, status: 'completed', date: '2024-02-19' },
-    { id: 2, tripId: 'TRP002', routeName: 'Morning Route B', bus: 'Bus #15', driver: 'Mohamed Ali', startTime: '07:15', endTime: '08:45', students: 22, status: 'completed', date: '2024-02-19' },
-    { id: 3, tripId: 'TRP003', routeName: 'Afternoon Route A', bus: 'Bus #28', driver: 'Youssef Hassan', startTime: '14:00', endTime: '15:30', students: 28, status: 'in-progress', date: '2024-02-19' },
-    { id: 4, tripId: 'TRP004', routeName: 'Afternoon Route C', bus: 'Bus #33', driver: 'Omar Samir', startTime: '14:30', endTime: '16:00', students: 20, status: 'scheduled', date: '2024-02-20' },
-    { id: 5, tripId: 'TRP005', routeName: 'Evening Route B', bus: 'Bus #07', driver: 'Ramy Mostafa', startTime: '16:00', endTime: '17:30', students: 18, status: 'scheduled', date: '2024-02-20' },
-    { id: 6, tripId: 'TRP006', routeName: 'Morning Route D', bus: 'Bus #19', driver: 'Karim Mahmoud', startTime: '07:30', endTime: '09:00', students: 30, status: 'cancelled', date: '2024-02-18' }
-];
+const tripsData = [];
 
-const routeStopsData = [
-    { id: 1, tripId: 'TRP001', order: 1, name: 'Raml Station', location: '31.2001, 29.9187', expectedArrival: '07:05' },
-    { id: 2, tripId: 'TRP001', order: 2, name: 'Sidi Gaber', location: '31.2140, 29.9420', expectedArrival: '07:18' },
-    { id: 3, tripId: 'TRP001', order: 3, name: 'Al-Azhar School', location: '31.2212, 29.9521', expectedArrival: '08:05' },
-    { id: 4, tripId: 'TRP002', order: 1, name: 'El-Mansheya', location: '31.1974, 29.8931', expectedArrival: '07:20' },
-    { id: 5, tripId: 'TRP002', order: 2, name: 'Smouha Gate', location: '31.2149, 29.9602', expectedArrival: '07:45' },
-    { id: 6, tripId: 'TRP003', order: 1, name: 'School Main Gate', location: '31.2301, 29.9470', expectedArrival: '14:00' },
-    { id: 7, tripId: 'TRP003', order: 2, name: 'Sporting Club', location: '31.2222, 29.9342', expectedArrival: '14:25' }
-];
+const routeStopsData = [];
 
-const tripHistoryData = [
-    { id: 1, tripId: 'TRP001', completedAt: '2024-02-19 08:31', distanceKm: 18.4, averageSpeed: '31 km/h', points: ['31.2001, 29.9187', '31.2140, 29.9420', '31.2212, 29.9521'] },
-    { id: 2, tripId: 'TRP002', completedAt: '2024-02-19 08:49', distanceKm: 15.8, averageSpeed: '28 km/h', points: ['31.1974, 29.8931', '31.2149, 29.9602', '31.2280, 29.9690'] },
-    { id: 3, tripId: 'TRP006', completedAt: '2024-02-18 09:04', distanceKm: 21.2, averageSpeed: '33 km/h', points: ['31.2322, 29.9510', '31.2250, 29.9682', '31.2190, 29.9820'] }
-];
+const tripHistoryData = [];
 
-const notificationsData = [
-    { id: 1, title: 'Bus Delay Notice', type: 'delay', recipients: 'Parents of Route A', sentDate: '2024-02-19 08:00:00', status: 'sent' },
-    { id: 2, title: 'Route Change Alert', type: 'route-change', recipients: 'All Parents', sentDate: '2024-02-18 16:30:00', status: 'sent' },
-    { id: 3, title: 'Emergency: Bus Breakdown', type: 'emergency', recipients: 'Parents of Bus #15', sentDate: '2024-02-18 10:15:00', status: 'sent' },
-    { id: 4, title: 'Monthly Fee Reminder', type: 'general', recipients: 'All Parents', sentDate: '2024-02-17 09:00:00', status: 'sent' },
-    { id: 5, title: 'Weather Delay Notice', type: 'delay', recipients: 'Parents of Route C', sentDate: '2024-02-16 06:45:00', status: 'sent' },
-    { id: 6, title: 'New Safety Guidelines', type: 'general', recipients: 'All Users', sentDate: '2024-02-15 14:20:00', status: 'pending' },
-    { id: 7, title: 'Parent Message: Pickup Question', type: 'message', recipients: 'Admin Support', sentDate: '2024-02-19 11:05:00', status: 'sent', replyable: true, incomingMessage: 'Can my child be picked up 10 minutes later today?' },
-    { id: 8, title: 'Driver Message: Route Note', type: 'message', recipients: 'Admin Support', sentDate: '2024-02-19 11:22:00', status: 'sent', replyable: true, incomingMessage: 'Stop 3 is blocked due to roadwork. Please advise.' }
-];
+const notificationsData = [];
 
 const notificationTemplatesData = [
     { id: 'bus-started', title: 'Bus Started', type: 'general', recipients: 'Parents', message: 'Bus {bus} has started {route}. Expected arrival window is {time}.' },
@@ -137,144 +124,30 @@ const notificationTemplatesData = [
     { id: 'delay-alert', title: 'Delay Alert', type: 'delay', recipients: 'Parents', message: '{route} is delayed by {minutes} minutes due to traffic.' }
 ];
 
-const attendanceData = [
-    { id: 1, studentName: 'Ahmed Mohamed', tripId: 'TRP001', busNumber: 'Bus #42', pickupStatus: 'picked', dropoffStatus: 'dropped', time: '07:40 AM' },
-    { id: 2, studentName: 'Fatima Ali', tripId: 'TRP002', busNumber: 'Bus #15', pickupStatus: 'pending', dropoffStatus: 'pending', time: '07:48 AM' },
-    { id: 3, studentName: 'Omar Khaled', tripId: 'TRP003', busNumber: 'Bus #28', pickupStatus: 'picked', dropoffStatus: 'pending', time: '07:52 AM' },
-    { id: 4, studentName: 'Aya Samir', tripId: 'TRP004', busNumber: 'Bus #33', pickupStatus: 'missed', dropoffStatus: 'missed', time: '07:55 AM' },
-    { id: 5, studentName: 'Nour Mostafa', tripId: 'TRP005', busNumber: 'Bus #07', pickupStatus: 'picked', dropoffStatus: 'dropped', time: '08:05 AM' }
-];
+const attendanceData = [];
 
-const paymentsData = [
-    { id: 1, parentName: 'Mohamed Hassan', student: 'Ahmed Mohamed', amount: 1200, status: 'paid', date: '2024-02-18' },
-    { id: 2, parentName: 'Fatima Ali', student: 'Nour Mostafa', amount: 900, status: 'pending', date: '2024-02-19' },
-    { id: 3, parentName: 'Sarah Ahmed', student: 'Aya Samir', amount: 1100, status: 'overdue', date: '2024-02-10' },
-    { id: 4, parentName: 'Hana Mostafa', student: 'Karim Hassan', amount: 950, status: 'paid', date: '2024-02-17' }
-];
+const paymentsData = [];
 
-const busOccupancyData = [
-    { busNumber: 'Bus #42', currentStudents: 38 },
-    { busNumber: 'Bus #15', currentStudents: 40 },
-    { busNumber: 'Bus #28', currentStudents: 42 },
-    { busNumber: 'Bus #33', currentStudents: 48 },
-    { busNumber: 'Bus #07', currentStudents: 36 },
-    { busNumber: 'Bus #19', currentStudents: 44 },
-    { busNumber: 'Bus #51', currentStudents: 28 },
-    { busNumber: 'Bus #12', currentStudents: 41 },
-    { busNumber: 'Bus #44', currentStudents: 50 },
-    { busNumber: 'Bus #23', currentStudents: 39 }
-];
+const busOccupancyData = [];
 
-const emergencyAlertsData = [
-    { id: 1, type: 'breakdown', busNumber: 'Bus #15', driver: 'Mohamed Ali', location: 'Fleming St, Alexandria', time: '08:12 AM' },
-    { id: 2, type: 'delay', busNumber: 'Bus #42', driver: 'Ahmed Khaled', location: 'Sidi Gaber, Alexandria', time: '08:20 AM' },
-    { id: 3, type: 'medical', busNumber: 'Bus #33', driver: 'Omar Samir', location: 'Roushdy, Alexandria', time: '08:32 AM' },
-    { id: 4, type: 'accident', busNumber: 'Bus #28', driver: 'Youssef Hassan', location: 'Stanley Bridge', time: '08:45 AM' }
-];
+const emergencyAlertsData = [];
 
-const emergencyLogsData = [
-    { id: 1, bus: 'Bus #15', driver: 'Mohamed Ali', location: 'Fleming St, Alexandria', type: 'breakdown', time: '2024-02-19 08:12:00', notes: 'Engine overheating, awaiting support.' },
-    { id: 2, bus: 'Bus #42', driver: 'Ahmed Khaled', location: 'Sidi Gaber, Alexandria', type: 'delay', time: '2024-02-19 08:20:00', notes: 'Traffic congestion near bridge.' },
-    { id: 3, bus: 'Bus #33', driver: 'Omar Samir', location: 'Roushdy, Alexandria', type: 'medical', time: '2024-02-19 08:32:00', notes: 'Student felt dizzy, requested nurse.' },
-    { id: 4, bus: 'Bus #28', driver: 'Youssef Hassan', location: 'Stanley Bridge', type: 'accident', time: '2024-02-19 08:45:00', notes: 'Minor collision, no injuries.' }
-];
+const emergencyLogsData = [];
 
-const smartAlertsData = [
-    { id: 1, title: 'Bus stopped too long', bus: 'Bus #15', tripId: 'TRP002', severity: 'high', detectedAt: '2024-02-19 08:24', status: 'open' },
-    { id: 2, title: 'Possible route deviation', bus: 'Bus #42', tripId: 'TRP001', severity: 'medium', detectedAt: '2024-02-19 08:12', status: 'open' }
-];
+const smartAlertsData = [];
 
 const ATTENDANCE_STORAGE_KEY = 'driver_attendance_events';
 const attendanceEventsData = [];
 
-const complaintsData = [
-    { id: 1, complaintId: 'CMP001', submittedBy: 'Sarah Ahmed', type: 'service', subject: 'Late bus pickup', priority: 'medium', status: 'resolved', date: '2024-02-18' },
-    { id: 2, complaintId: 'CMP002', submittedBy: 'Mohamed Hassan', type: 'driver', subject: 'Driver behavior concern', priority: 'high', status: 'in-progress', date: '2024-02-17' },
-    { id: 3, complaintId: 'CMP003', submittedBy: 'Mariam Ali', type: 'bus', subject: 'Bus cleanliness issue', priority: 'low', status: 'open', date: '2024-02-16' },
-    { id: 4, complaintId: 'CMP004', submittedBy: 'Omar Khaled', type: 'safety', subject: 'Seatbelt not working', priority: 'high', status: 'resolved', date: '2024-02-15' },
-    { id: 5, complaintId: 'CMP005', submittedBy: 'Hana Mostafa', type: 'service', subject: 'Incorrect drop-off location', priority: 'medium', status: 'closed', date: '2024-02-14' },
-    { id: 6, complaintId: 'CMP006', submittedBy: 'Yassin Samir', type: 'other', subject: 'Lost item on bus', priority: 'low', status: 'open', date: '2024-02-13' }
-];
+const complaintsData = [];
 
-const schoolsData = [
-    { id: 1, name: 'Al-Azhar School', type: 'public', district: 'Sidi Gaber', address: '15 El-Horreya Rd, Sidi Gaber, Alexandria', contact: '+20 111 123 4567', students: 450, status: 'active' },
-    { id: 2, name: 'Alexandria International School', type: 'international', district: 'Smouha', address: '22 Ahmed Shawky St, Smouha, Alexandria', contact: '+20 111 234 5678', students: 320, status: 'active' },
-    { id: 3, name: 'British School Alexandria', type: 'international', district: 'Stanley', address: '789 Learning Blvd, Stanley', contact: '+20 111 345 6789', students: 280, status: 'active' },
-    { id: 4, name: 'Modern Egyptian School', type: 'private', district: 'Roushdy', address: '30 Syria St, Roushdy, Alexandria', contact: '+20 111 456 7890', students: 380, status: 'active' },
-    { id: 5, name: 'Future Leaders Academy', type: 'private', district: 'Gleem', address: '654 Progress Ave, Gleem', contact: '+20 111 567 8901', students: 250, status: 'active' }
-];
+const schoolsData = [];
 
-const usersData = [
-    { id: 1, name: 'Admin User', email: 'admin@safestep.com', role: 'admin', department: 'IT', lastLogin: '2024-02-19 09:00:00', status: 'active' },
-    { id: 2, name: 'Sarah Manager', email: 'sarah.manager@safestep.com', role: 'manager', department: 'Operations', lastLogin: '2024-02-19 08:30:00', status: 'active' },
-    { id: 3, name: 'Ahmed Khaled', email: 'ahmed.khaled@safestep.com', role: 'driver', department: 'Transportation', lastLogin: '2024-02-19 07:00:00', status: 'active' },
-    { id: 4, name: 'Mohamed Hassan', email: 'mohamed.hassan@email.com', role: 'parent', department: 'N/A', lastLogin: '2024-02-18 20:00:00', status: 'active' },
-    { id: 5, name: 'Fatima Ali', email: 'fatima.ali@email.com', role: 'parent', department: 'N/A', lastLogin: '2024-02-18 19:30:00', status: 'active' },
-    { id: 6, name: 'John Support', email: 'john.support@safestep.com', role: 'staff', department: 'Customer Service', lastLogin: '2024-02-19 08:00:00', status: 'active' },
-    { id: 7, name: 'Omar Tech', email: 'omar.tech@safestep.com', role: 'staff', department: 'IT', lastLogin: '2024-02-18 17:00:00', status: 'inactive' }
-];
+const usersData = [];
 
-let accountRecoveryData = [
-    {
-        id: 1,
-        requester: 'Mohamed Hassan',
-        role: 'parent',
-        issue: 'password',
-        currentEmail: 'mohamed.hassan@email.com',
-        requestedChange: 'Reset password and send temporary login code',
-        phone: '+20 111 234 5678',
-        verifiedBy: 'Student ID + registered phone',
-        status: 'pending',
-        requestedAt: '2026-04-29 09:20'
-    },
-    {
-        id: 2,
-        requester: 'Ahmed Khaled',
-        role: 'driver',
-        issue: 'email',
-        currentEmail: 'ahmed.khaled@safestep.com',
-        requestedChange: 'Change email to ahmed.driver@safestep.com',
-        phone: '+20 111 111 2222',
-        verifiedBy: 'License number + admin call',
-        status: 'reviewing',
-        requestedAt: '2026-04-29 13:45'
-    },
-    {
-        id: 3,
-        requester: 'Sarah Manager',
-        role: 'staff',
-        issue: 'both',
-        currentEmail: 'sarah.manager@safestep.com',
-        requestedChange: 'Update email and generate temporary password',
-        phone: '+20 111 765 4321',
-        verifiedBy: 'Employee ID + manager approval',
-        status: 'completed',
-        requestedAt: '2026-04-28 16:10'
-    },
-    {
-        id: 4,
-        requester: 'Fatima Ali',
-        role: 'parent',
-        issue: 'email',
-        currentEmail: 'fatima.ali@email.com',
-        requestedChange: 'Change email to fatima.parent@email.com',
-        phone: '+20 111 876 5432',
-        verifiedBy: 'Registered phone pending confirmation',
-        status: 'pending',
-        requestedAt: '2026-04-30 10:05'
-    }
-];
+let accountRecoveryData = [];
 
-const activityLogsData = [
-    { id: 1, timestamp: '2024-02-19 09:15:00', user: 'Admin User', action: 'login', module: 'Authentication', description: 'User logged into admin dashboard', ipAddress: '192.168.1.100' },
-    { id: 2, timestamp: '2024-02-19 09:10:00', user: 'Sarah Manager', action: 'update', module: 'Trips', description: 'Updated trip TRP003 schedule', ipAddress: '192.168.1.101' },
-    { id: 3, timestamp: '2024-02-19 09:05:00', user: 'Ahmed Khaled', action: 'view', module: 'Live Tracking', description: 'Viewed live tracking dashboard', ipAddress: '192.168.1.102' },
-    { id: 4, timestamp: '2024-02-19 08:55:00', user: 'Mohamed Hassan', action: 'create', module: 'Complaints', description: 'Submitted new complaint CMP002', ipAddress: '10.0.0.50' },
-    { id: 5, timestamp: '2024-02-19 08:50:00', user: 'Admin User', action: 'delete', module: 'Users', description: 'Removed inactive user account', ipAddress: '192.168.1.100' },
-    { id: 6, timestamp: '2024-02-19 08:45:00', user: 'John Support', action: 'update', module: 'Notifications', description: 'Sent emergency notification', ipAddress: '192.168.1.103' },
-    { id: 7, timestamp: '2024-02-19 08:30:00', user: 'Fatima Ali', action: 'view', module: 'Students', description: 'Viewed student information', ipAddress: '10.0.0.51' },
-    { id: 8, timestamp: '2024-02-18 17:45:00', user: 'Omar Tech', action: 'update', module: 'Settings', description: 'Modified system settings', ipAddress: '192.168.1.104' }
-];
+const activityLogsData = [];
 
 const navLinks = document.querySelectorAll('.nav-link:not(.logout)');
 const pages = document.querySelectorAll('.page');
@@ -305,7 +178,12 @@ function setMenuToggleIcon(isOpen) {
 }
 
 function applyTheme(theme) {
+    if (window.SafeStepTheme) {
+        window.SafeStepTheme.applyTheme(theme);
+        return;
+    }
     const isDark = theme === 'dark';
+    document.documentElement.classList.toggle('dark-mode', isDark);
     document.body.classList.toggle('dark-mode', isDark);
     if (!themeToggleBtn) return;
     themeToggleBtn.innerHTML = isDark
@@ -314,6 +192,7 @@ function applyTheme(theme) {
 }
 
 function initThemeToggle() {
+    if (window.SafeStepTheme) return;
     const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'light';
     applyTheme(savedTheme);
     if (!themeToggleBtn) return;
@@ -1160,6 +1039,8 @@ navLinks.forEach(link => {
             renderParents();
         } else if (pageId === 'drivers') {
             renderDrivers();
+        } else if (pageId === 'driver-access') {
+            renderDriverAccess();
         } else if (pageId === 'buses') {
             renderBuses();
         } else if (pageId === 'requests') {
@@ -1194,7 +1075,7 @@ navLinks.forEach(link => {
         } else if (pageId === 'schools') {
             renderSchools();
         } else if (pageId === 'users') {
-            renderUsers();
+            loadUsersFromApi();
         } else if (pageId === 'settings') {
             // Settings page doesn't need initial rendering
         } else if (pageId === 'activity-logs') {
@@ -1319,17 +1200,31 @@ function renderParents() {
             <td><span class="status-badge ${parent.status}">${parent.status.charAt(0).toUpperCase() + parent.status.slice(1)}</span></td>
             <td>
                 <div class="table-actions">
-                    ${parent.status === 'pending' || parent.status === 'inactive' ? `
+                    ${parent.status === 'pending_details' ? `
+                        <span class="status-badge pending" style="padding: 4px 8px; font-size: 11px;">Awaiting Details</span>
+                        <div class="action-icon view" onclick="viewParent(${parent.id})" title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </div>
+                    ` : parent.status === 'pending_approval' ? `
                         <button class="btn btn-success" style="padding: 6px 12px; font-size: 12px;" onclick="approveParent(${parent.id})">
-                            <i class="fas fa-check"></i> Approve
+                            <i class="fas fa-check"></i> Approve Profile
                         </button>
                         <button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;" onclick="rejectParent(${parent.id})">
                             <i class="fas fa-times"></i> Reject
                         </button>
-                    ` : ''}
-                    <div class="action-icon view" onclick="viewParent(${parent.id})" title="View Details">
-                        <i class="fas fa-eye"></i>
-                    </div>
+                        <div class="action-icon view" onclick="viewParent(${parent.id})" title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </div>
+                    ` : (parent.status === 'pending' || parent.status === 'inactive') ? `
+                        <span class="status-badge pending" style="padding: 4px 8px; font-size: 11px;">Awaiting Children Form</span>
+                        <div class="action-icon view" onclick="viewParent(${parent.id})" title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </div>
+                    ` : `
+                        <div class="action-icon view" onclick="viewParent(${parent.id})" title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </div>
+                    `}
                     <div class="action-icon edit" onclick="editParent(${parent.id})" title="Edit">
                         <i class="fas fa-edit"></i>
                     </div>
@@ -3457,23 +3352,28 @@ function renderUsers() {
         .filter(user => statusFilter === 'all' || user.status === statusFilter);
 
     tbody.innerHTML = '';
+
+    if (!filteredData.length) {
+        renderEmptyRow(tbody, 9, 'No users found.');
+        return;
+    }
+
     filteredData.forEach(user => {
         const tr = document.createElement('tr');
+        const roleLabel = user.role === 'school_admin' ? 'School Admin' : user.role.charAt(0).toUpperCase() + user.role.slice(1);
         tr.innerHTML = `
-            <td><strong>${user.name}</strong></td>
-            <td>${user.email}</td>
-            <td><span class="status-badge ${user.role}">${user.role.charAt(0).toUpperCase() + user.role.slice(1)}</span></td>
-            <td>${user.department}</td>
-            <td>${user.lastLogin}</td>
-            <td><span class="status-badge ${user.status}">${user.status.charAt(0).toUpperCase() + user.status.slice(1)}</span></td>
+            <td><strong>${escapeSafeStepHtml(user.name)}</strong></td>
+            <td>${escapeSafeStepHtml(user.email)}</td>
+            <td>${escapeSafeStepHtml(user.phone)}</td>
+            <td><span class="status-badge ${escapeSafeStepHtml(user.role)}">${escapeSafeStepHtml(roleLabel)}</span></td>
+            <td>${escapeSafeStepHtml(user.school)}</td>
+            <td>${escapeSafeStepHtml(user.registeredAt)}</td>
+            <td><span class="status-badge ${escapeSafeStepHtml(user.status)}">${escapeSafeStepHtml(user.status.charAt(0).toUpperCase() + user.status.slice(1))}</span></td>
             <td>
                 <div class="table-actions">
-                    <div class="action-icon view" onclick="viewUser(${user.id})" title="View Details">
+                    <button class="btn btn-info" style="padding:6px 10px;font-size:12px;background:#2563eb;color:#fff;border:none;" onclick="viewUser(${user.id})" title="View Details">
                         <i class="fas fa-eye"></i>
-                    </div>
-                    <div class="action-icon edit" onclick="editUser(${user.id})" title="Edit">
-                        <i class="fas fa-edit"></i>
-                    </div>
+                    </button>
                     <div class="action-icon delete" onclick="deleteUser(${user.id})" title="Delete">
                         <i class="fas fa-trash"></i>
                     </div>
@@ -3841,36 +3741,43 @@ function generateStudentQr() {
     const student = studentsData.find(item => String(item.id) === studentId);
     if (!student || !qrContainer || !qrImage || !payloadPreview) return;
 
-    const payloadObject = {
-        studentId: student.studentId,
-        name: student.name,
-        grade: student.grade,
-        parent: student.parent,
-        school: student.school,
-        zone: zone,
-        tripType,
-        note,
-        generatedAt: new Date().toISOString()
-    };
+    safestepApi(`/api/admin/students/${studentId}/generate-qr`, {
+        method: 'POST',
+        body: JSON.stringify({ zone, trip_type: tripType, note }),
+    }).then((response) => {
+        const data = response.data || {};
+        const payloadObject = data.payload || {
+            studentId: student.studentId,
+            name: student.name,
+            grade: student.grade,
+            parent: student.parent,
+            school: student.school,
+            zone,
+            tripType,
+            note,
+            generatedAt: new Date().toISOString(),
+        };
 
-    currentStudentQrPayload = JSON.stringify(payloadObject);
-    currentStudentQrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(currentStudentQrPayload)}`;
-    currentStudentQrFilename = `student-qr-${student.studentId}-${zone}-${tripType}.png`;
+        currentStudentQrPayload = JSON.stringify(payloadObject);
+        currentStudentQrImageUrl = data.image_url || `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(currentStudentQrPayload)}`;
+        currentStudentQrFilename = `student-qr-${student.studentId}-${zone}-${tripType}.png`;
 
-    qrImage.src = currentStudentQrImageUrl;
-    qrImage.alt = `QR code for ${student.name} - Zone: ${zone}`;
-    qrContainer.classList.add('has-qr');
-    payloadPreview.textContent = currentStudentQrPayload;
+        qrImage.src = currentStudentQrImageUrl;
+        qrImage.alt = `QR code for ${student.name} - Zone: ${zone}`;
+        qrContainer.classList.add('has-qr');
+        payloadPreview.textContent = currentStudentQrPayload;
 
-    // Persist for QR.html student card
-    try {
-        localStorage.setItem('student_qr_last_payload', currentStudentQrPayload);
-        localStorage.setItem('student_qr_last_image_url', currentStudentQrImageUrl);
-    } catch { /* ignore */ }
+        try {
+            localStorage.setItem('student_qr_last_payload', currentStudentQrPayload);
+            localStorage.setItem('student_qr_last_image_url', currentStudentQrImageUrl);
+        } catch { /* ignore */ }
 
-    appendActivityLog('create', 'Student QR', `Generated QR for ${student.name} (Zone: ${zone}, ${tripType})`);
-    renderActivityLogs();
-    showToast(`Student QR generated successfully for ${zone}.`, 'success');
+        appendActivityLog('create', 'Student QR', `Generated QR for ${student.name} (Zone: ${zone}, ${tripType}) — sent to parent dashboard`);
+        renderActivityLogs();
+        showToast(`Student QR generated and linked to parent dashboard for ${zone}.`, 'success');
+    }).catch((error) => {
+        showToast(error?.message || 'Failed to generate QR code.', 'error');
+    });
 }
 
 function downloadStudentQr() {
@@ -3931,7 +3838,7 @@ async function approveDriver(id) {
         if (typeof hydrateAdminDashboardFromApi === 'function') {
             await hydrateAdminDashboardFromApi();
         } else {
-            driver.status = 'active';
+            driver.status = 'approved';
             driver.active = true;
             renderDrivers();
             renderPendingDriverApplicantsForParents();
@@ -3958,6 +3865,38 @@ async function rejectDriver(id) {
     }
 }
 
+async function approveDriverFromAccess(id) {
+    const driver = driversData.find(d => d.id === id);
+    if (!driver || !confirm(`Approve driver ${driver.name}?`)) return;
+    try {
+        await safestepApi(`/api/admin/drivers/${id}/approve`, { method: 'POST' });
+        if (typeof hydrateAdminDashboardFromApi === 'function') {
+            await hydrateAdminDashboardFromApi();
+        }
+        showToast('Driver approved.', 'success');
+        renderDriverAccess();
+        await selectDriverAccess(id);
+    } catch (err) {
+        showToast('Failed to approve driver.', 'error');
+    }
+}
+
+async function rejectDriverFromAccess(id) {
+    const driver = driversData.find(d => d.id === id);
+    if (!driver || !confirm(`Reject driver ${driver.name}?`)) return;
+    try {
+        await safestepApi(`/api/admin/drivers/${id}/reject`, { method: 'POST' });
+        if (typeof hydrateAdminDashboardFromApi === 'function') {
+            await hydrateAdminDashboardFromApi();
+        }
+        showToast('Driver rejected.', 'success');
+        renderDriverAccess();
+        await selectDriverAccess(id);
+    } catch (err) {
+        showToast('Failed to reject driver.', 'error');
+    }
+}
+
 async function approveParent(id) {
     const parent = parentsData.find(p => p.id === id);
     if (!parent || !confirm(`Approve parent ${parent.name}?`)) return;
@@ -3966,12 +3905,12 @@ async function approveParent(id) {
         if (typeof hydrateAdminDashboardFromApi === 'function') {
             await hydrateAdminDashboardFromApi();
         } else {
-            parent.status = 'active';
+            parent.status = 'approved';
             parent.active = true;
             renderParents();
         }
         if (typeof navigateTo === 'function') navigateTo('parents');
-        showToast('Parent approved — ظهر في قائمة الأهالي', 'success');
+        showToast('Parent profile approved — الداشبورد اتفتح لولي الأمر', 'success');
     } catch (err) {
         showToast('Failed to approve parent.', 'error');
     }
@@ -4172,18 +4111,7 @@ async function deleteDriver(id) {
 }
 
 // Buses Data
-const busesData = [
-     { id: 1, busNumber: 'Bus #42', plate: 'ALX-1234', driver: 'Ahmed Khaled', route: 'Route A', capacity: 45, status: 'active' },
-    { id: 2, busNumber: 'Bus #15', plate: 'ALX-5678', driver: 'Mohamed Ali', route: 'Route B', capacity: 40, status: 'maintenance' },
-    { id: 3, busNumber: 'Bus #28', plate: 'ALX-9012', driver: 'Youssef Hassan', route: 'Route C', capacity: 45, status: 'active' },
-    { id: 4, busNumber: 'Bus #33', plate: 'ALX-3456', driver: 'Omar Samir', route: 'Route D', capacity: 50, status: 'active' },
-    { id: 5, busNumber: 'Bus #07', plate: 'ALX-7890', driver: 'Ramy Mostafa', route: 'Route E', capacity: 40, status: 'active' },
-    { id: 6, busNumber: 'Bus #19', plate: 'ALX-2345', driver: 'Karim Mahmoud', route: 'Route F', capacity: 45, status: 'active' },
-    { id: 7, busNumber: 'Bus #51', plate: 'ALX-6789', driver: 'Hassan Ahmed', route: 'Route G', capacity: 40, status: 'inactive' },
-    { id: 8, busNumber: 'Bus #12', plate: 'ALX-0123', driver: 'Mahmoud Fathy', route: 'Route H', capacity: 45, status: 'active' },
-    { id: 9, busNumber: 'Bus #44', plate: 'ALX-4567', driver: 'Amr Abdelrahman', route: 'Route I', capacity: 50, status: 'active' },
-    { id: 10, busNumber: 'Bus #23', plate: 'ALX-8901', driver: 'Unassigned', route: 'Unassigned', capacity: 45, status: 'maintenance' }
-];
+const busesData = [];
 
 function renderBuses() {
     const tbody = document.querySelector('#busesTable tbody');
@@ -4244,21 +4172,9 @@ function deleteBus(id) {
     }
 }
 
-renderBuses();
 
 // Requests Data (from parents and drivers)
-let requestsData = [
-    { id: 1, from: 'Sarah Ahmed', role: 'parent', subject: 'Bus delay on Route A', priority: 'high', status: 'new', createdAt: '2024-06-01 08:15' },
-    { id: 2, from: 'Mohamed Ali', role: 'driver', subject: 'Request for leave on June 10th', priority: 'medium', status: 'in_progress', createdAt: '2024-06-02 14:30' },
-    { id: 3, from: 'Youssef Hassan', role: 'driver', subject: 'Bus #28 maintenance issue', priority: 'high', status: 'new', createdAt: '2024-06-03 09:45' },
-    { id: 4, from: 'Omar Samir', role: 'driver', subject: 'Route change request for Route D', priority: 'low', status: 'resolved', createdAt: '2024-06-04 11:20' },
-    { id: 5, from: 'Ramy Mostafa', role: 'driver', subject: 'Request for additional training', priority: 'medium', status: 'in_progress', createdAt: '2024-06-05 16:00' },
-    { id: 6, from: 'Karim Mahmoud', role: 'driver', subject: 'Issue with bus assignment', priority: 'high', status: 'new', createdAt: '2024-06-06 10:30' },
-    { id: 7, from: 'Hassan Ahmed', role: 'driver', subject: 'Request for schedule change', priority: 'low', status: 'resolved', createdAt: '2024-06-07 13:45' },
-    { id: 8, from: 'Tamer Said', role: 'driver', subject: 'Report of traffic congestion on Route F', priority: 'medium', status: 'new', createdAt: '2024-06-08 09:00' },
-    { id: 9, from: 'Mahmoud Fathy', role: 'driver', subject: 'Request for bus replacement', priority: 'high', status: 'in_progress', createdAt: '2024-06-09 15:30' },
-    { id: 10, from: 'Amr Abdelrahman', role: 'driver', subject: 'Feedback on new route assignment', priority: 'low', status: 'resolved', createdAt: '2024-06-10 12:00' }
-];
+let requestsData = [];
 
 function normalizeRequest(request, fallbackId) {
     const rawRole = request.role || request.user_role || (request.user?.role) || 'parent';
@@ -4709,29 +4625,9 @@ if (periodSelector) {
 }
 
 // ===== REPORTS DATA =====
-const routePerformanceData = [
-    { route: 'Route A', trips: 145, onTimeRate: 96, avgPassengers: 38, incidents: 0, driver: 'Ahmed Khaled' },
-    { route: 'Route B', trips: 132, onTimeRate: 92, avgPassengers: 35, incidents: 1, driver: 'Mohamed Ali' },
-    { route: 'Route C', trips: 138, onTimeRate: 94, avgPassengers: 39, incidents: 0, driver: 'Youssef Hassan' },
-    { route: 'Route D', trips: 125, onTimeRate: 88, avgPassengers: 42, incidents: 2, driver: 'Omar Samir' },
-    { route: 'Route E', trips: 140, onTimeRate: 95, avgPassengers: 36, incidents: 0, driver: 'Ramy Mostafa' },
-    { route: 'Route F', trips: 128, onTimeRate: 91, avgPassengers: 40, incidents: 1, driver: 'Karim Mahmoud' },
-    { route: 'Route G', trips: 135, onTimeRate: 93, avgPassengers: 37, incidents: 0, driver: 'Hassan Ahmed' },
-    { route: 'Route H', trips: 142, onTimeRate: 97, avgPassengers: 43, incidents: 0, driver: 'Mahmoud Fathy' },
-    { route: 'Route I', trips: 148, onTimeRate: 98, avgPassengers: 44, incidents: 0, driver: 'Amr Abdelrahman' }
-];
+const routePerformanceData = [];
 
-const driverPerformanceData = [
-    { name: 'Amr Abdelrahman', score: 98, trips: 148, onTime: 98, safety: 100 },
-    { name: 'Mahmoud Fathy', score: 97, trips: 142, onTime: 97, safety: 100 },
-    { name: 'Ahmed Khaled', score: 96, trips: 145, onTime: 96, safety: 98 },
-    { name: 'Ramy Mostafa', score: 95, trips: 140, onTime: 95, safety: 99 },
-    { name: 'Route C Driver', score: 94, trips: 138, onTime: 94, safety: 98 },
-    { name: 'Hassan Ahmed', score: 93, trips: 135, onTime: 93, safety: 97 },
-    { name: 'Mohamed Ali', score: 92, trips: 132, onTime: 92, safety: 96 },
-    { name: 'Karim Mahmoud', score: 91, trips: 128, onTime: 91, safety: 95 },
-    { name: 'Omar Samir', score: 88, trips: 125, onTime: 88, safety: 92 }
-];
+const driverPerformanceData = [];
 
 const incidentData = {
     minor: 8,
@@ -5460,25 +5356,89 @@ function addSchool() {
 
 // Users Functions
 function viewUser(id) {
-    const user = usersData.find(u => u.id === id);
-    if (user) {
-        alert(`User Details:
-Name: ${user.name}
-Email: ${user.email}
-Role: ${user.role}
-Department: ${user.department}
-Last Login: ${user.lastLogin}
-Status: ${user.status}`);
+    const user = usersData.find(u => Number(u.id) === Number(id));
+    if (!user) return;
+
+    document.getElementById('modalUserName').textContent = user.name || '—';
+    document.getElementById('modalUserEmail').textContent = user.email || '—';
+    document.getElementById('modalUserPhone').textContent = user.phone || '—';
+    document.getElementById('modalUserSchool').textContent = user.school || '—';
+    document.getElementById('modalUserPassword').textContent = user.password_plain || '—';
+    document.getElementById('modalUserRegistered').textContent = user.registeredAt || '—';
+    document.getElementById('modalUserLastLogin').textContent = user.lastLogin || '—';
+
+    const roleSpan = document.getElementById('modalUserRole');
+    const roleLabel = user.role === 'school_admin' ? 'School Admin' : (user.role || '—');
+    roleSpan.textContent = roleLabel;
+    roleSpan.className = 'status-badge ' + (user.role || 'pending');
+
+    const statusSpan = document.getElementById('modalUserStatus');
+    statusSpan.textContent = user.status || '—';
+    statusSpan.className = 'status-badge ' + (user.status || 'pending');
+
+    const grid = document.getElementById('modalUserDetailsGrid');
+    grid.innerHTML = '';
+    const details = { ...(user.profile_details || {}) };
+    if (user.children_count > 0) {
+        details.children_count = user.children_count;
+    }
+
+    const keys = Object.keys(details);
+    if (!keys.length) {
+        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);font-size:13px;padding:12px;">No extra profile details.</div>';
+    } else {
+        keys.forEach(key => {
+            const val = details[key];
+            const div = document.createElement('div');
+            div.style.cssText = 'background:rgba(0,0,0,0.02);border:1px solid var(--input-border,#e5e7eb);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;';
+            const label = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+            const display = Array.isArray(val)
+                ? val.map(item => typeof item === 'object' ? (item.name || JSON.stringify(item)) : item).join(', ')
+                : (typeof val === 'object' ? JSON.stringify(val) : val);
+            div.innerHTML = `
+                <span style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;">${escapeSafeStepHtml(label)}</span>
+                <span style="font-size:13px;font-weight:700;color:var(--text-secondary);word-break:break-word;">${escapeSafeStepHtml(String(display ?? '—'))}</span>`;
+            grid.appendChild(div);
+        });
+    }
+
+    const modal = document.getElementById('userDetailsModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        modal.offsetHeight;
+        modal.style.opacity = '1';
+        modal.querySelector('.safestep-modal-content').style.transform = 'scale(1)';
     }
 }
 
-function editUser(id) {
-    alert('Edit User form would open here.');
+function closeUserDetailsModal() {
+    const modal = document.getElementById('userDetailsModal');
+    if (!modal) return;
+    modal.style.opacity = '0';
+    modal.querySelector('.safestep-modal-content').style.transform = 'scale(0.95)';
+    setTimeout(() => { modal.style.display = 'none'; }, 300);
 }
 
-function deleteUser(id) {
-    if (confirm('Are you sure you want to delete this user?')) {
-        alert('User deleted.');
+window.viewUser = viewUser;
+window.closeUserDetailsModal = closeUserDetailsModal;
+window.loadUsersFromApi = loadUsersFromApi;
+
+function editUser(id) {
+    viewUser(id);
+}
+
+async function deleteUser(id) {
+    const user = usersData.find(u => Number(u.id) === Number(id));
+    if (!user || !confirm(`Delete user "${user.name}"?`)) return;
+    try {
+        await safestepApi(`/api/admin/users/${id}`, { method: 'DELETE' });
+        showToast('User deleted successfully.', 'success');
+        await loadUsersFromApi();
+        if (typeof hydrateAdminDashboardFromApi === 'function') {
+            await hydrateAdminDashboardFromApi();
+        }
+    } catch (err) {
+        showToast(err.message || 'Failed to delete user.', 'error');
     }
 }
 
@@ -5921,15 +5881,26 @@ function safestepValidationMessage(data, fallback) {
 async function safestepApi(url, options = {}) {
     const token = localStorage.getItem('token') || localStorage.getItem('safestep_token');
     const { headers: customHeaders, ...restOptions } = options;
+    const headers = {
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Authorization': token ? `Bearer ${token}` : '',
+        ...(customHeaders || {})
+    };
+
+    if (
+        restOptions.body
+        && typeof restOptions.body === 'string'
+        && !headers['Content-Type']
+        && !headers['content-type']
+    ) {
+        headers['Content-Type'] = 'application/json';
+    }
+
     const response = await fetch(url, {
         credentials: 'same-origin',
         ...restOptions,
-        headers: {
-            'Accept': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-            'Authorization': token ? `Bearer ${token}` : '',
-            ...(customHeaders || {})
-        }
+        headers
     });
 
     if (response.status === 401) {
@@ -5960,6 +5931,278 @@ function normalizeDashboardStatus(value, active) {
     if (status === 'rejected') return 'inactive';
     if (status) return status;
     return active ? 'active' : 'inactive';
+}
+
+const DRIVER_SECTION_LABELS = {
+    dashboard: 'Dashboard',
+    'today-trip': "Today's Trip",
+    students: 'Students',
+    route: 'Route / GPS',
+    trip: 'Trip Management',
+    notifications: 'Notifications',
+    'trip-history': 'Trip History',
+};
+
+let driverAccessState = { driverId: null, sections: {}, profile: null };
+
+function driverAccessStatusKey(driver) {
+    return driver.rawStatus || driver.status || 'pending';
+}
+
+function renderDriverAccessStats() {
+    const container = document.getElementById('driverAccessStats');
+    if (!container) return;
+
+    const total = driversData.length;
+    const approved = driversData.filter(d => ['approved', 'active'].includes(driverAccessStatusKey(d))).length;
+    const pending = driversData.filter(d => ['pending', 'pending_approval', 'pending_details'].includes(driverAccessStatusKey(d))).length;
+    const rejected = driversData.filter(d => driverAccessStatusKey(d) === 'rejected').length;
+
+    container.innerHTML = `
+        <div class="stat-card"><div class="stat-icon" style="background:rgba(37,99,235,.12);color:#2563eb;"><i class="fas fa-id-card"></i></div><div class="stat-info"><h3>${total}</h3><p>Total Drivers</p></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:rgba(16,185,129,.12);color:#10b981;"><i class="fas fa-check-circle"></i></div><div class="stat-info"><h3>${approved}</h3><p>Approved / Active</p></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:rgba(245,158,11,.12);color:#f59e0b;"><i class="fas fa-clock"></i></div><div class="stat-info"><h3>${pending}</h3><p>Pending Review</p></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:rgba(239,68,68,.12);color:#ef4444;"><i class="fas fa-ban"></i></div><div class="stat-info"><h3>${rejected}</h3><p>Rejected</p></div></div>
+    `;
+}
+
+function getFilteredDriversForAccess() {
+    const query = (document.getElementById('driverAccessSearch')?.value || '').trim().toLowerCase();
+    const statusFilter = document.getElementById('driverAccessStatusFilter')?.value || 'all';
+
+    return driversData.filter(driver => {
+        const status = driverAccessStatusKey(driver);
+        const normalized = normalizeDashboardStatus(status, driver.active);
+        const statusMatch = statusFilter === 'all'
+            || status === statusFilter
+            || normalized === statusFilter;
+        if (!statusMatch) return false;
+        if (!query) return true;
+        const haystack = `${driver.name} ${driver.email} ${driver.phone} ${driver.license}`.toLowerCase();
+        return haystack.includes(query);
+    });
+}
+
+function renderDriverAccessList() {
+    const list = document.getElementById('driverAccessList');
+    if (!list) return;
+
+    const drivers = getFilteredDriversForAccess();
+    if (!drivers.length) {
+        list.innerHTML = '<p style="color: var(--text-secondary); margin: 0;">No drivers match your search.</p>';
+        return;
+    }
+
+    list.innerHTML = drivers.map(driver => {
+        const active = String(driverAccessState.driverId) === String(driver.id);
+        const status = driverAccessStatusKey(driver);
+        return `
+            <button type="button" class="driver-access-item${active ? ' active' : ''}" data-driver-id="${driver.id}" onclick="selectDriverAccess(${driver.id})"
+                style="text-align:left;border:1px solid ${active ? 'var(--accent)' : 'var(--border-color)'};background:${active ? 'rgba(37,99,235,.08)' : 'var(--card-bg)'};border-radius:12px;padding:12px 14px;cursor:pointer;width:100%;">
+                <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
+                    <strong style="color:var(--text-dark);font-size:14px;">${driver.name}</strong>
+                    <span class="status-badge ${driver.status}" style="font-size:11px;white-space:nowrap;">${status.replace(/_/g, ' ')}</span>
+                </div>
+                <div style="color:var(--text-secondary);font-size:12px;margin-top:6px;">
+                    <div><i class="fas fa-phone"></i> ${driver.phone || '—'}</div>
+                    <div style="margin-top:4px;"><i class="fas fa-id-card"></i> ${driver.license || '—'}</div>
+                </div>
+            </button>`;
+    }).join('');
+}
+
+function renderDriverAccessProfilePanel(data) {
+    const panel = document.getElementById('driverAccessProfile');
+    const actions = document.getElementById('driverAccessActions');
+    if (!panel) return;
+
+    if (!data?.profile) {
+        panel.innerHTML = '<p style="color: var(--text-secondary); margin: 0;">Select a driver to view full profile and control dashboard access.</p>';
+        if (actions) {
+            actions.style.display = 'none';
+            actions.innerHTML = '';
+        }
+        return;
+    }
+
+    const p = data.profile;
+    const a = data.assignment || {};
+    const s = data.stats || {};
+    const joined = p.created_at ? new Date(p.created_at).toLocaleDateString() : '—';
+
+    const detail = (label, value) => `
+        <div style="padding:12px;background:var(--card-bg);border:1px solid var(--border-color);border-radius:10px;">
+            <div style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:4px;">${label}</div>
+            <div style="font-size:14px;font-weight:600;color:var(--text-dark);word-break:break-word;">${value || '—'}</div>
+        </div>`;
+
+    panel.innerHTML = `
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:16px;">
+            <div>
+                <h4 style="margin:0 0 6px;font-size:20px;font-weight:800;color:var(--text-dark);">${p.name || 'Driver'}</h4>
+                <div style="color:var(--text-secondary);font-size:13px;">${p.email || '—'} · ${p.phone || '—'}</div>
+            </div>
+            <span class="status-badge ${normalizeDashboardStatus(p.status, p.active)}" style="font-size:12px;padding:6px 12px;">${(p.status || 'pending').replace(/_/g, ' ')}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px;">
+            ${detail('License', p.license_number)}
+            ${detail('Experience', p.years_experience != null ? `${p.years_experience} years` : '—')}
+            ${detail('Age / Gender', [p.age, p.gender].filter(Boolean).join(' · ') || '—')}
+            ${detail('Joined', joined)}
+            ${detail('School', p.school_name)}
+            ${detail('State', p.state)}
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px;">
+            ${detail('Vehicle', [p.car_type, p.car_model].filter(Boolean).join(' ') || '—')}
+            ${detail('Plate', p.car_plate)}
+            ${detail('Address', p.address)}
+            ${detail('Assigned Bus', a.bus_number ? `Bus #${a.bus_number}` : 'Not assigned')}
+            ${detail('Route', a.route_name)}
+            ${detail('Bus Plate', a.bus_plate)}
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px;">
+            ${detail('Total Trips', s.trips_total)}
+            ${detail('Active Trips', s.trips_active)}
+            ${detail('Completed', s.trips_completed)}
+            ${detail('Open Sections', s.enabled_sections)}
+            ${detail('Locked Sections', s.locked_sections)}
+        </div>
+        ${(p.national_id_url || p.criminal_record_url) ? `
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                ${p.national_id_url ? `<a href="${p.national_id_url}" target="_blank" class="btn-secondary btn-compact"><i class="fas fa-id-card"></i> National ID</a>` : ''}
+                ${p.criminal_record_url ? `<a href="${p.criminal_record_url}" target="_blank" class="btn-secondary btn-compact"><i class="fas fa-shield-halved"></i> Criminal Record</a>` : ''}
+            </div>` : ''}
+        ${p.message ? `<div style="margin-top:14px;padding:12px;border-radius:10px;background:var(--card-bg);border:1px dashed var(--border-color);color:var(--text-secondary);font-size:13px;"><strong>Notes:</strong> ${p.message}</div>` : ''}
+    `;
+
+    if (actions) {
+        actions.style.display = 'flex';
+        const status = p.status || 'pending';
+        actions.innerHTML = `
+            ${['pending', 'pending_approval'].includes(status) ? `
+                <button type="button" class="btn-primary" onclick="approveDriverFromAccess(${p.id})"><i class="fas fa-check"></i> Approve Driver</button>
+                <button type="button" class="btn-secondary" onclick="rejectDriverFromAccess(${p.id})"><i class="fas fa-times"></i> Reject</button>
+            ` : ''}
+            <button type="button" class="btn-secondary" onclick="viewDriver(${p.id})"><i class="fas fa-eye"></i> Full Modal</button>
+            <button type="button" class="btn-secondary" onclick="editDriver(${p.id})"><i class="fas fa-edit"></i> Edit Driver</button>
+            <button type="button" class="btn-secondary" onclick="navigateTo('drivers')"><i class="fas fa-list"></i> Drivers List</button>
+        `;
+    }
+}
+
+function filterDriverAccessList() {
+    renderDriverAccessList();
+}
+
+async function selectDriverAccess(id) {
+    if (!id) {
+        driverAccessState = { driverId: null, sections: {}, profile: null };
+        renderDriverAccessList();
+        renderDriverAccessProfilePanel(null);
+        renderDriverAccessToggles(null);
+        return;
+    }
+
+    renderDriverAccessList();
+
+    const profilePanel = document.getElementById('driverAccessProfile');
+    if (profilePanel) {
+        profilePanel.innerHTML = '<p style="color: var(--text-secondary); margin: 0;"><i class="fas fa-spinner fa-spin"></i> Loading driver details...</p>';
+    }
+
+    try {
+        const response = await safestepApi(`/api/admin/drivers/${id}/dashboard-access`);
+        driverAccessState = {
+            driverId: id,
+            sections: response.data?.sections || {},
+            profile: response.data?.profile || null,
+            assignment: response.data?.assignment || null,
+            stats: response.data?.stats || null,
+        };
+        renderDriverAccessProfilePanel(response.data);
+        renderDriverAccessToggles(driverAccessState.sections);
+    } catch (error) {
+        showToast(error?.message || 'Failed to load driver access settings.', 'error');
+        renderDriverAccessProfilePanel(null);
+        renderDriverAccessToggles(null);
+    }
+}
+
+function renderDriverAccess() {
+    renderDriverAccessStats();
+    renderDriverAccessList();
+
+    if (driverAccessState.driverId) {
+        selectDriverAccess(driverAccessState.driverId);
+        return;
+    }
+
+    const drivers = getFilteredDriversForAccess();
+    if (drivers.length === 1) {
+        selectDriverAccess(drivers[0].id);
+    } else {
+        renderDriverAccessProfilePanel(null);
+        renderDriverAccessToggles(null);
+    }
+}
+
+async function onDriverAccessSelectChange() {
+    const id = document.getElementById('driverAccessSelect')?.value;
+    await selectDriverAccess(id || null);
+}
+
+function renderDriverAccessToggles(sections) {
+    const container = document.getElementById('driverAccessToggles');
+    if (!container) return;
+
+    if (!sections) {
+        container.innerHTML = '<p style="color: var(--text-secondary); margin: 0;">Select a driver to manage dashboard sections.</p>';
+        return;
+    }
+
+    container.innerHTML = Object.entries(DRIVER_SECTION_LABELS).map(([key, label]) => `
+        <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid var(--border-color);border-radius:8px;">
+            <span>${label}</span>
+            <input type="checkbox" data-section="${key}" ${sections[key] !== false ? 'checked' : ''} ${key === 'dashboard' ? 'disabled checked' : ''}>
+        </label>
+    `).join('');
+}
+
+function setAllDriverSections(enabled) {
+    const container = document.getElementById('driverAccessToggles');
+    if (!container) return;
+    container.querySelectorAll('input[data-section]').forEach((input) => {
+        if (input.dataset.section === 'dashboard') {
+            input.checked = true;
+            return;
+        }
+        input.checked = !!enabled;
+    });
+}
+
+async function saveDriverAccess() {
+    if (!driverAccessState.driverId) {
+        showToast('Select a driver first.', 'warning');
+        return;
+    }
+
+    const container = document.getElementById('driverAccessToggles');
+    const sections = { dashboard: true };
+    container?.querySelectorAll('input[data-section]').forEach((input) => {
+        sections[input.dataset.section] = input.checked;
+    });
+
+    try {
+        await safestepApi(`/api/admin/drivers/${driverAccessState.driverId}/dashboard-access`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sections }),
+        });
+        showToast('Driver dashboard access saved.', 'success');
+        await selectDriverAccess(driverAccessState.driverId);
+    } catch (error) {
+        showToast('Failed to save driver access.', 'error');
+    }
 }
 
 function pageForResourceType(type) {
@@ -6039,15 +6282,7 @@ async function hydrateAdminDashboardFromApi() {
 
         safestepReplaceArray(driversData, (drivers.data || []).map(mapDriverForDashboard));
 
-        safestepReplaceArray(usersData, (users.data || []).map(user => ({
-            id: user.id,
-            name: user.name || 'User',
-            email: user.email || '',
-            role: user.role || (Array.isArray(user.roles) ? user.roles[0] : 'parent'),
-            department: user.role === 'admin' ? 'Administration' : (user.role === 'driver' ? 'Transportation' : 'Parent Portal'),
-            lastLogin: user.updated_at ? new Date(user.updated_at).toLocaleString() : 'Never',
-            status: user.status || 'active'
-        })));
+        safestepReplaceArray(usersData, (users.data || []).map(mapUserForDashboard));
 
         safestepReplaceArray(studentsData, (students.data || []).map(student => ({
             id: student.id,

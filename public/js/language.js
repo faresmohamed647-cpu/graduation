@@ -526,6 +526,7 @@
         applyAttributeTranslations(selected);
         setLanguageLabel(selected);
         refreshCarousels(selected);
+        document.dispatchEvent(new CustomEvent('languageChanged', { detail: { lang: selected } }));
     }
 
     document.addEventListener('DOMContentLoaded', () => {

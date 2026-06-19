@@ -13,7 +13,7 @@ async function hydrateParentDashboardFromApi() {
         ]);
 
         const childRows = children.data || dashboard.data?.children || [];
-        childrenData = childRows.map((child, index) => ({
+        safestepReplaceArray(childrenData, childRows.map((child, index) => ({
             id: child.id,
             name: child.full_name || child.name || 'Student',
             grade: child.grade || '',
@@ -27,7 +27,7 @@ async function hydrateParentDashboardFromApi() {
             busNumber: child.bus?.bus_number || 'Assigned bus',
             driver: child.bus?.driver?.user?.name || 'Assigned driver',
             attendance: [true, true, true, true, true, true, true]
-        }));
+        })));
 
         const childNameOverlay = document.getElementById('childNameOverlay');
         if (childNameOverlay && childRows.length) {

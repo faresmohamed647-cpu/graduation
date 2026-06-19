@@ -13,122 +13,13 @@
     let trackingPollTimer = null;
     const cache = { students: [], parents: [], buses: [], drivers: [], routes: [], trips: [], emergencies: [] };
 
-    /* ─────────────── DEMO DATA (Arabic Names) ─────────────── */
-    const DEMO = {
-        stats: {
-            total_students: 12, active_students: 10, total_drivers: 3,
-            total_buses: 4, active_trips: 3, today_attendance: 10,
-            today_absence: 2, emergency_alerts: 1
-        },
-        students: [
-            { id:1, name:'Youssef Ahmed', grade:'Grade 3', parent:{user:{name:'Sara Ahmed'}}, bus:{bus_number:'BUS-001'}, route:{name:'Smouha to Sidi Gaber'}, status:'active', qr_code:'QR-001', rfid_tag:'RFID-001' },
-            { id:2, name:'Malak Ahmed', grade:'Grade 5', parent:{user:{name:'Sara Ahmed'}}, bus:{bus_number:'BUS-001'}, route:{name:'Smouha to Sidi Gaber'}, status:'active', qr_code:'QR-002', rfid_tag:'RFID-002' },
-            { id:3, name:'Omar Hassan', grade:'Grade 7', parent:{user:{name:'Mohamed Hassan'}}, bus:{bus_number:'BUS-002'}, route:{name:'Sidi Bishr to Fleming'}, status:'active', qr_code:'QR-003', rfid_tag:'RFID-003' },
-            { id:4, name:'Nour Hassan', grade:'Grade 4', parent:{user:{name:'Mohamed Hassan'}}, bus:{bus_number:'BUS-002'}, route:{name:'Sidi Bishr to Fleming'}, status:'active', qr_code:'QR-004', rfid_tag:'RFID-004' },
-            { id:5, name:'Adam Hassan', grade:'Grade 1', parent:{user:{name:'Mohamed Hassan'}}, bus:{bus_number:'BUS-002'}, route:{name:'Sidi Bishr to Fleming'}, status:'active', qr_code:'QR-005', rfid_tag:'RFID-005' },
-            { id:6, name:'Ali Mohamed', grade:'Grade 6', parent:{user:{name:'Fatma Ali'}}, bus:{bus_number:'BUS-003'}, route:{name:'Sporting to Stanley'}, status:'active', qr_code:'QR-006', rfid_tag:'RFID-006' },
-            { id:7, name:'Farida Mohamed', grade:'Grade 9', parent:{user:{name:'Fatma Ali'}}, bus:{bus_number:'BUS-003'}, route:{name:'Sporting to Stanley'}, status:'active', qr_code:'QR-007', rfid_tag:'RFID-007' },
-            { id:8, name:'Ziad Mostafa', grade:'Grade 2', parent:{user:{name:'Hana Mostafa'}}, bus:{bus_number:'BUS-001'}, route:{name:'Smouha to Sidi Gaber'}, status:'active', qr_code:'QR-008', rfid_tag:'RFID-008' },
-            { id:9, name:'Salma Mostafa', grade:'Grade 8', parent:{user:{name:'Hana Mostafa'}}, bus:{bus_number:'BUS-002'}, route:{name:'Sidi Bishr to Fleming'}, status:'inactive', qr_code:'QR-009', rfid_tag:'RFID-009' },
-            { id:10, name:'Hamza Khaled', grade:'Grade 10', parent:{user:{name:'Amira Khaled'}}, bus:{bus_number:'BUS-004'}, route:{name:'Agami to Mansheya'}, status:'active', qr_code:'QR-010', rfid_tag:'RFID-010' },
-        ],
-        parents: [
-            { id:1, name:'Sara Ahmed', email:'sara.ahmed@safestep.com', phone:'01234567890', children:[{name:'Youssef Ahmed'},{name:'Malak Ahmed'}], active:true },
-            { id:2, name:'Mohamed Hassan', email:'mohamed.hassan@safestep.com', phone:'01122334455', children:[{name:'Omar Hassan'},{name:'Nour Hassan'},{name:'Adam Hassan'}], active:true },
-            { id:3, name:'Fatma Ali', email:'fatma.ali@safestep.com', phone:'01011223344', children:[{name:'Ali Mohamed'},{name:'Farida Mohamed'}], active:true },
-            { id:4, name:'Hana Mostafa', email:'hana.mostafa@safestep.com', phone:'01288776655', children:[{name:'Ziad Mostafa'},{name:'Salma Mostafa'}], active:true },
-            { id:5, name:'Amira Khaled', email:'amira.khaled@safestep.com', phone:'01555667788', children:[{name:'Hamza Khaled'}], active:true },
-        ],
-        drivers: [
-            { id:1, name:'Ahmed Khaled', license:'DR-1234-EG', phone:'01012345678', experience:'8 years', bus:'BUS-001', status:'active' },
-            { id:2, name:'Mohamed Samir', license:'DR-5678-EG', phone:'01098765432', experience:'5 years', bus:'BUS-002', status:'active' },
-            { id:3, name:'Hassan Ibrahim', license:'DR-9012-EG', phone:'01155443322', experience:'12 years', bus:'BUS-003', status:'active' },
-        ],
-        buses: [
-            { id:1, bus_number:'BUS-001', plate_number:'ABC 1234', capacity:45, driver:'Ahmed Khaled', route:'Smouha to Sidi Gaber', insurance_expiry:'2027-03-15', insurance_alert:false, status:'active' },
-            { id:2, bus_number:'BUS-002', plate_number:'DEF 5678', capacity:40, driver:'Mohamed Samir', route:'Sidi Bishr to Fleming', insurance_expiry:'2026-12-01', insurance_alert:true, status:'active' },
-            { id:3, bus_number:'BUS-003', plate_number:'GHI 9012', capacity:50, driver:'Hassan Ibrahim', route:'Sporting to Stanley', insurance_expiry:'2027-06-20', insurance_alert:false, status:'active' },
-            { id:4, bus_number:'BUS-004', plate_number:'JKL 3456', capacity:35, driver:'-', route:'-', insurance_expiry:'2027-08-15', insurance_alert:false, status:'maintenance' },
-        ],
-        routes: [
-            { id:1, name:'Smouha to Sidi Gaber', type:'morning', stops:[{name:'School',lat:31.2001,lng:29.9187,order:1},{name:'Smouha Club',lat:31.2156,lng:29.9553,order:2},{name:'Sporting',lat:31.2089,lng:29.9389,order:3},{name:'Sidi Gaber',lat:31.2187,lng:29.9422,order:4}], estimated_minutes:35, distance_km:'17.5', bus:'BUS-001', driver:'Ahmed Khaled', students_count:25 },
-            { id:2, name:'Sidi Bishr to Fleming', type:'morning', stops:[{name:'School',lat:31.2001,lng:29.9187,order:1},{name:'Sidi Bishr',lat:31.2550,lng:29.9980,order:2},{name:'Mandara',lat:31.2700,lng:30.0200,order:3},{name:'Fleming',lat:31.2400,lng:29.9700,order:4}], estimated_minutes:40, distance_km:'20.0', bus:'BUS-002', driver:'Mohamed Samir', students_count:22 },
-            { id:3, name:'Sporting to Stanley', type:'afternoon', stops:[{name:'School',lat:31.2001,lng:29.9187,order:1},{name:'Sporting',lat:31.2089,lng:29.9389,order:2},{name:'Cleopatra',lat:31.2280,lng:29.9480,order:3},{name:'Stanley',lat:31.2380,lng:29.9620,order:4}], estimated_minutes:30, distance_km:'15.0', bus:'BUS-003', driver:'Hassan Ibrahim', students_count:28 },
-            { id:4, name:'Agami to Mansheya', type:'morning', stops:[{name:'School',lat:31.2001,lng:29.9187,order:1},{name:'Agami',lat:31.0950,lng:29.7600,order:2},{name:'Miami',lat:31.2800,lng:30.0100,order:3},{name:'Mansheya',lat:31.1980,lng:29.8950,order:4}], estimated_minutes:50, distance_km:'25.0', bus:'BUS-004', driver:'-', students_count:10 },
-        ],
-        trips: [
-            { id:1, trip_date:'2026-06-08', shift:'morning', route:'Smouha to Sidi Gaber', bus:'BUS-001', driver:'Ahmed Khaled', students_count:25, status:'active' },
-            { id:2, trip_date:'2026-06-08', shift:'morning', route:'Sidi Bishr to Fleming', bus:'BUS-002', driver:'Mohamed Samir', students_count:22, status:'active' },
-            { id:3, trip_date:'2026-06-08', shift:'afternoon', route:'Sporting to Stanley', bus:'BUS-003', driver:'Hassan Ibrahim', students_count:28, status:'active' },
-            { id:4, trip_date:'2026-06-07', shift:'afternoon', route:'Agami to Mansheya', bus:'BUS-004', driver:'-', students_count:10, status:'completed' },
-        ],
-        attendance: [
-            { student_name:'Youssef Ahmed', bus_number:'BUS-001', route_name:'Smouha to Sidi Gaber', picked_up_at:'07:15 AM', dropped_off_at:'07:45 AM', status:'present' },
-            { student_name:'Malak Ahmed', bus_number:'BUS-001', route_name:'Smouha to Sidi Gaber', picked_up_at:'07:18 AM', dropped_off_at:'07:45 AM', status:'present' },
-            { student_name:'Omar Hassan', bus_number:'BUS-002', route_name:'Sidi Bishr to Fleming', picked_up_at:'07:20 AM', dropped_off_at:'07:50 AM', status:'present' },
-            { student_name:'Nour Hassan', bus_number:'BUS-002', route_name:'Sidi Bishr to Fleming', picked_up_at:'07:25 AM', dropped_off_at:'08:00 AM', status:'present' },
-            { student_name:'Adam Hassan', bus_number:'BUS-002', route_name:'Sidi Bishr to Fleming', picked_up_at:'-', dropped_off_at:'-', status:'absent' },
-        ],
-        emergencies: [
-            { id:1, type:'breakdown', severity:'medium', message:'Engine breakdown on BUS-002 on Sidi Bishr to Fleming route', status:'open', created_at:'2026-06-08 09:30:00' },
-        ],
-        tracking: [
-            { bus_id:1, bus_number:'BUS-001', driver_name:'Ahmed Khaled', speed:35, status:'on_route', last_update:'2 minutes ago', latitude:31.2156, longitude:29.9553 },
-            { bus_id:2, bus_number:'BUS-002', driver_name:'Mohamed Samir', speed:42, status:'on_route', last_update:'1 minute ago', latitude:31.2550, longitude:29.9980 },
-            { bus_id:3, bus_number:'BUS-003', driver_name:'Hassan Ibrahim', speed:28, status:'on_route', last_update:'3 minutes ago', latitude:31.2089, longitude:29.9389 },
-        ],
-        activityLogs: [
-            { action:'Attendance Check', user:{name:'System'}, entity_type:'Attendance', entity_id:142, created_at:'2026-06-08 07:45:00' },
-            { action:'Trip Started', user:{name:'Ahmed Khaled'}, entity_type:'Trip', entity_id:1, created_at:'2026-06-08 07:00:00' },
-        ],
-        notifications: { sent_total:45, read_total:38, unread_total:7 },
-        kpis: { attendance_rate:92, fleet_utilization:83, on_time_trips:96, safety_score:88 },
-        riskStudents: [
-            { name:'Adam Hassan', grade:'Grade 1', absent_rate:15, risk_level:'medium' },
-        ],
-        attendanceTrends: (() => {
-            const d = []; const now = new Date();
-            for (let i = 29; i >= 0; i--) {
-                const dt = new Date(now); dt.setDate(dt.getDate() - i);
-                const ds = dt.toISOString().slice(0, 10);
-                d.push({ date: ds, status: 'present', count: 8 + Math.floor(Math.random() * 4) });
-                d.push({ date: ds, status: 'absent', count: Math.floor(Math.random() * 2) });
-                d.push({ date: ds, status: 'late', count: Math.floor(Math.random() * 2) });
-            }
-            return d;
-        })(),
-        tripsOverview: (() => {
-            const d = []; const now = new Date();
-            for (let i = 6; i >= 0; i--) {
-                const dt = new Date(now); dt.setDate(dt.getDate() - i);
-                const ds = dt.toISOString().slice(0, 10);
-                d.push({ trip_date: ds, status: 'completed', count: 3 + Math.floor(Math.random() * 2) });
-                d.push({ trip_date: ds, status: 'active', count: Math.floor(Math.random() * 2) });
-                d.push({ trip_date: ds, status: 'cancelled', count: 0 });
-            }
-            return d;
-        })(),
-        fleetStatus: [
-            { bus_number:'BUS-001', total_trips:145 },
-            { bus_number:'BUS-002', total_trips:132 },
-            { bus_number:'BUS-003', total_trips:158 },
-            { bus_number:'BUS-004', total_trips:98 },
-        ],
-        safetyReports: (() => {
-            const d = []; const months = ['Jan','Feb','Mar','Apr','May','Jun'];
-            months.forEach(m => {
-                d.push({ month: m, type: 'breakdown', count: Math.floor(Math.random() * 2) });
-                d.push({ month: m, type: 'incident', count: 0 });
-            });
-            return d;
-        })(),
-    };
-
-    function useDemoIfEmpty(data, demoKey) {
-        return (Array.isArray(data) && data.length > 0) ? data : (DEMO[demoKey] || []);
+    function asArray(data) {
+        const list = data?.data ?? data;
+        return Array.isArray(list) ? list : [];
     }
-    function useDemoObjIfEmpty(data, demoKey) {
-        return (data && Object.keys(data).length > 0) ? data : (DEMO[demoKey] || {});
+    function asObject(data) {
+        const obj = data?.data ?? data;
+        return obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : {};
     }
 
     const pageTitles = {
@@ -271,11 +162,15 @@
     async function loadPage(page) {
         const target = el(page);
         if (!isSchoolDashboardReady() && page !== 'dashboard') {
-            showPageLock(target);
+            if (window.DashboardLock) {
+                window.DashboardLock.showPageLock(target);
+            }
             return;
         }
 
-        clearPageLock(target);
+        if (window.DashboardLock) {
+            window.DashboardLock.clearPageLock(target);
+        }
         const loaders = {
             dashboard: loadDashboard,
             parents: loadParents,
@@ -310,17 +205,17 @@
                     api('/dashboard/attendance-trends?days=30'),
                     api('/dashboard/safety-reports?months=6'),
                 ]);
-                s = useDemoObjIfEmpty(stats.data, 'stats');
-                tripsData = useDemoIfEmpty(trips.data, 'tripsOverview');
-                trendsData = useDemoIfEmpty(trends.data, 'attendanceTrends');
-                fleetData = useDemoIfEmpty(fleet.data, 'fleetStatus');
-                safetyData = useDemoIfEmpty(safety.data, 'safetyReports');
+                s = asObject(stats.data);
+                tripsData = asArray(trips.data);
+                trendsData = asArray(trends.data);
+                fleetData = asArray(fleet.data);
+                safetyData = asArray(safety.data);
             } catch (_) {
-                s = DEMO.stats;
-                tripsData = DEMO.tripsOverview;
-                trendsData = DEMO.attendanceTrends;
-                fleetData = DEMO.fleetStatus;
-                safetyData = DEMO.safetyReports;
+                s = {};
+                tripsData = [];
+                trendsData = [];
+                fleetData = [];
+                safetyData = [];
             }
 
             setText('statStudents', s.total_students);
@@ -345,7 +240,7 @@
 
     async function loadKpis() {
         let k;
-        try { const res = await api('/dashboard/kpis'); k = useDemoObjIfEmpty(res.data, 'kpis'); } catch (_) { k = DEMO.kpis; }
+        try { const res = await api('/dashboard/kpis'); k = asObject(res.data); } catch (_) { k = {}; }
         const panel = el('kpiPanel');
         if (!panel) return;
         panel.innerHTML = `
@@ -381,7 +276,7 @@
 
     async function loadRiskStudents() {
         let data;
-        try { const res = await api('/dashboard/student-risk'); data = useDemoIfEmpty(res.data, 'riskStudents'); } catch (_) { data = DEMO.riskStudents; }
+        try { const res = await api('/dashboard/student-risk'); data = asArray(res.data); } catch (_) { data = []; }
         const tbody = el('riskStudentsBody');
         if (!tbody) return;
         tbody.innerHTML = data.map(r => `
@@ -391,7 +286,7 @@
 
     async function loadParents() {
         let data;
-        try { const res = await api('/parents'); data = useDemoIfEmpty(res.data, 'parents'); } catch (_) { data = DEMO.parents; }
+        try { const res = await api('/parents'); data = asArray(res.data); } catch (_) { data = []; }
         cache.parents = data;
         const tbody = el('parentsTableBody');
         if (!tbody) return;
@@ -505,7 +400,7 @@
 
     async function loadStudents() {
         let data;
-        try { const res = await api('/students?per_page=all'); data = useDemoIfEmpty(res.data, 'students'); } catch (_) { data = DEMO.students; }
+        try { const res = await api('/students?per_page=all'); data = asArray(res.data); } catch (_) { data = []; }
         cache.students = data;
         const tbody = el('studentsTableBody');
         if (!tbody) return;
@@ -529,7 +424,7 @@
 
     async function loadBuses() {
         let data;
-        try { const res = await api('/buses'); data = useDemoIfEmpty(res.data, 'buses'); } catch (_) { data = DEMO.buses; }
+        try { const res = await api('/buses'); data = asArray(res.data); } catch (_) { data = []; }
         cache.buses = data;
         const tbody = el('busesTableBody');
         if (!tbody) return;
@@ -551,7 +446,7 @@
 
     async function loadDrivers() {
         let data;
-        try { const res = await api('/drivers'); data = useDemoIfEmpty(res.data, 'drivers'); } catch (_) { data = DEMO.drivers; }
+        try { const res = await api('/drivers'); data = asArray(res.data); } catch (_) { data = []; }
         cache.drivers = data;
         const tbody = el('driversTableBody');
         if (!tbody) return;
@@ -571,7 +466,7 @@
 
     async function loadRoutes() {
         let data;
-        try { const res = await api('/routes'); data = useDemoIfEmpty(res.data, 'routes'); } catch (_) { data = DEMO.routes; }
+        try { const res = await api('/routes'); data = asArray(res.data); } catch (_) { data = []; }
         cache.routes = data;
         const tbody = el('routesTableBody');
         if (!tbody) return;
@@ -591,7 +486,7 @@
 
     async function loadTrips() {
         let data;
-        try { const res = await api('/trips'); data = useDemoIfEmpty(res.data, 'trips'); } catch (_) { data = DEMO.trips; }
+        try { const res = await api('/trips'); data = asArray(res.data); } catch (_) { data = []; }
         cache.trips = data;
         const tbody = el('tripsTableBody');
         if (!tbody) return;
@@ -610,7 +505,7 @@
 
     async function loadTracking() {
         let fleet;
-        try { const res = await api('/tracking/live'); fleet = useDemoIfEmpty(res.data, 'tracking'); } catch (_) { fleet = DEMO.tracking; }
+        try { const res = await api('/tracking/live'); fleet = asArray(res.data); } catch (_) { fleet = []; }
         const tbody = el('trackingTableBody');
         if (tbody) {
             tbody.innerHTML = fleet.map(b => `
@@ -649,7 +544,7 @@
     async function loadAttendance() {
         const date = el('attendanceDate')?.value || new Date().toISOString().slice(0, 10);
         let data;
-        try { const res = await api(`/attendance?date=${date}`); data = useDemoIfEmpty(res.data, 'attendance'); } catch (_) { data = DEMO.attendance; }
+        try { const res = await api(`/attendance?date=${date}`); data = asArray(res.data); } catch (_) { data = []; }
         const tbody = el('attendanceTableBody');
         if (!tbody) return;
         tbody.innerHTML = data.map(a => `
@@ -662,7 +557,7 @@
 
     async function loadEmergencies() {
         let data;
-        try { const res = await api('/emergency-alerts'); data = useDemoIfEmpty(res.data, 'emergencies'); } catch (_) { data = DEMO.emergencies; }
+        try { const res = await api('/emergency-alerts'); data = asArray(res.data); } catch (_) { data = []; }
         cache.emergencies = data;
         const tbody = el('emergencyTableBody');
         if (!tbody) return;
@@ -705,7 +600,7 @@
 
     async function loadActivityLogs() {
         let data;
-        try { const res = await api('/activity-logs'); data = useDemoIfEmpty(res.data, 'activityLogs'); } catch (_) { data = DEMO.activityLogs; }
+        try { const res = await api('/activity-logs'); data = asArray(res.data); } catch (_) { data = []; }
         const tbody = el('activityLogsBody');
         if (!tbody) return;
         tbody.innerHTML = data.map(l => `
@@ -1348,7 +1243,7 @@
 
     async function loadNotificationCenter() {
         let d;
-        try { const res = await api('/notifications/center'); d = useDemoObjIfEmpty(res.data, 'notifications'); } catch (_) { d = DEMO.notifications; }
+        try { const res = await api('/notifications/center'); d = asObject(res.data); } catch (_) { d = {}; }
         setText('notifSent', d.sent_total);
         setText('notifRead', d.read_total);
         setText('notifUnread', d.unread_total);
@@ -1459,7 +1354,7 @@
             reportData = res.data;
         } catch (_) {
             // Compile demo data based on type
-            const typeMap = { students: cache.students, buses: cache.buses, drivers: cache.drivers, routes: cache.routes, attendance: DEMO.attendance, safety: DEMO.safetyReports, summary: DEMO.stats };
+            const typeMap = { students: cache.students, buses: cache.buses, drivers: cache.drivers, routes: cache.routes, attendance: [], safety: [], summary: {} };
             reportData = typeMap[type] || cache.students;
         }
         // Render as formatted report cards

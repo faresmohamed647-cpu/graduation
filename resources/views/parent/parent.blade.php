@@ -26,7 +26,7 @@
     ></script>
     <style>
         :root{
-            --bg:#f6f7fb;--card:#ffffff;--muted:#6b7280;--accent:#1d4ed8;--focus:#1d4ed8
+            --bg:#f0f4ff;--card:#ffffff;--muted:#64748b;--accent:#2563eb;--focus:#1d4ed8
         }
         body{background:var(--bg);font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial}
         .sr-only{position:absolute!important;height:1px;width:1px;overflow:hidden;clip:rect(1px,1px,1px,1px);white-space:nowrap;border:0;padding:0;margin:-1px}
@@ -134,12 +134,20 @@
         var t = '{{ $apiToken ?? '' }}';
         window.__API_TOKEN = t;
         window.__INITIAL_PAGE = 'dashboard';
+        window.__ONBOARDING_POLL = {
+            appStatus: @json($appStatus),
+            endpoint: '/api/parent/profile-status',
+            isDashboardUnlocked: @json($isDashboardUnlocked ?? false),
+        };
         if(t){ localStorage.setItem('safestep_token', t); localStorage.setItem('token', t); }
     })();
     </script>
+    <link rel="stylesheet" href="{{ asset('css/dashboard-lock.css') }}">
     <script src="{{ asset('js/api-service.js') }}"></script>
     <script src="{{ asset('js/spa-navigation.js') }}"></script>
+    <script src="{{ asset('js/dashboard-lock.js') }}"></script>
     <script src="{{ asset('js/dashboard-mobile.js') }}"></script>
+    <script src="{{ asset('js/onboarding-poll.js') }}"></script>
 </head>
 <body class="dashboard-body">
     <a href="#dashboard" class="sr-only skip-link">Skip to content</a>
@@ -166,6 +174,10 @@
             <a href="#" class="nav-link" data-page="children" role="button" aria-pressed="false">
                 <i class="fas fa-child"></i>
                 <span>Children</span>
+            </a>
+            <a href="#" class="nav-link" data-page="child-qr" role="button" aria-pressed="false">
+                <i class="fas fa-qrcode"></i>
+                <span>Student QR</span>
             </a>
             <a href="#" class="nav-link" data-page="attendance" role="button" aria-pressed="false">
                 <i class="fas fa-clipboard-check"></i>
@@ -273,7 +285,7 @@
                     </div>
                 </div>
 
-                @elseif(($stats['children_count'] ?? 0) === 0)
+                @elseif($appStatus === 'pending_details')
                 <!-- State C: Onboarding Form (Needs Children Details) -->
                 <div class="card" id="childrenOnboardingCard" style="grid-column:1/-1; border-radius: 20px; padding: 28px; border: 1px solid var(--border-color); background: var(--card-bg);">
                     <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between;">
@@ -349,8 +361,37 @@
                     </form>
                 </div>
 
-                @elseif($assignedChildrenCount === 0)
-                <!-- State D: Waiting for Bus/Driver Assignment -->
+                @elseif($appStatus === 'pending_approval')
+                <!-- State D: Children submitted, waiting for Admin approval -->
+                <div class="card status-pending-card" style="grid-column: 1/-1; padding: 60px 40px; text-align: center; margin: 20px 0; border: 1px solid var(--border-color); background: var(--card-bg);">
+                    <div style="width: 100px; height: 100px; border-radius: 50%; background: rgba(37,99,235,0.08); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 24px;">
+                        <i class="fas fa-user-clock" style="font-size: 44px; color: var(--accent);"></i>
+                    </div>
+                    <h2 style="font-size: 26px; font-weight: 800; color: var(--text-dark); margin-bottom: 14px;">Children Details Submitted</h2>
+                    <p style="font-size: 16px; color: var(--text-light); max-width: 580px; margin: 0 auto 28px; line-height: 1.6;">Thank you for registering your children details. The administration is currently reviewing your profile. Once approved, your dashboard will open automatically and all sections will become available.</p>
+                    <p style="font-size: 14px; color: var(--text-muted); max-width: 520px; margin: 0 auto 20px; line-height: 1.6;">بعد موافقة الإدارة سيتم فتح الداشبورد تلقائياً وتفعيل جميع الأقسام.</p>
+                    <div style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-light); background: var(--light-bg); padding: 8px 16px; border-radius: 30px; border: 1px solid var(--border-color);">
+                        <span>Status:</span>
+                        <span class="status-badge pending" style="padding: 4px 12px; border-radius: 12px; font-weight: 700;">Pending Approval</span>
+                    </div>
+                </div>
+
+                @if($children->count())
+                <div class="card" style="grid-column: 1/-1; padding: 28px; border: 1px solid var(--border-color); background: var(--card-bg); margin-top: 16px;">
+                    <h4 style="margin: 0 0 16px; color: var(--text-dark); font-size: 15px; font-weight: 700;">Submitted Children</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                        @foreach($children as $child)
+                        <div style="border: 1px solid var(--border-color); border-radius: 14px; padding: 16px; background: var(--light-bg);">
+                            <strong style="color: var(--text-dark);">{{ $child->full_name }}</strong>
+                            <div style="color: var(--text-light); font-size: 13px; margin-top: 6px;">Grade {{ $child->grade ?? '—' }} &bull; {{ $child->school_name ?? '—' }}</div>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+
+                @elseif($appStatus === 'approved' && $assignedChildrenCount === 0)
+                <!-- State E: Approved but waiting for Bus/Driver Assignment -->
                 <div class="card" style="grid-column: 1/-1; padding: 40px; border: 1px solid var(--border-color); background: var(--card-bg);">
                     <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px; border-bottom: 1px solid var(--border-color); padding-bottom: 20px; flex-wrap: wrap;">
                         <div style="width: 56px; height: 56px; border-radius: 14px; background: rgba(37,99,235,0.08); display: flex; align-items: center; justify-content: center; color: var(--accent); font-size: 26px;">
@@ -613,6 +654,24 @@
             <div class="children-container">
                 <div id="childrenSectionsContainer">
                     <!-- Generated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Student QR Page (linked to admin Activity Logs QR generation) -->
+        <div class="page" id="child-qr">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-qrcode"></i> Student QR Codes</h3>
+                    <button type="button" class="btn-secondary" onclick="loadParentQrCodes()">
+                        <i class="fas fa-rotate"></i> Refresh
+                    </button>
+                </div>
+                <div style="padding: 16px 20px 0; color: var(--muted); font-size: 14px;">
+                    QR codes appear here automatically when the admin generates them from Activity Logs.
+                </div>
+                <div id="parentQrGrid" style="padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px;">
+                    <div class="small-muted">Loading QR codes...</div>
                 </div>
             </div>
         </div>
@@ -1229,42 +1288,104 @@
         stats: @json($stats),
         assignedChildrenCount: @json($assignedChildrenCount ?? 0),
         isApproved: @json($isApproved),
-        appStatus: @json($appStatus)
+        isDashboardUnlocked: @json($isDashboardUnlocked ?? false),
+        appStatus: @json($appStatus),
+        profileApprovedAt: @json($profileApprovedAt ?? null)
     };
 
-    // SPA Page Navigation Guard
-    document.addEventListener('spa:pageChanged', function(e) {
-        const pageId = e.detail.pageId;
-        if (pageId === 'dashboard' || pageId === 'profile-settings' || pageId === 'support' || pageId === 'requests' || pageId === 'my-applications') {
-            return;
-        }
+    function isParentDashboardReady() {
+        const data = window.__PARENT_DATA || {};
+        return data.isDashboardUnlocked === true
+            || data.appStatus === 'approved'
+            || !!data.profileApprovedAt;
+    }
+
+    function getParentLockMessage() {
+        const data = window.__PARENT_DATA || {};
         const isAr = (localStorage.getItem('lang_parent') || 'en') === 'ar';
-        if (!window.__PARENT_DATA.isApproved) {
-            const msg = isAr
-                ? 'حسابك قيد المراجعة حالياً. سيتم تفعيل الأقسام بمجرد تفعيل الحساب.'
-                : 'Your account is currently under review. Sections will be activated once your account is approved.';
-            alert(msg);
-            window.navigateTo('dashboard');
-            return;
+        if (data.appStatus === 'pending_details') {
+            return {
+                title: isAr ? 'أكمل استمارة الأطفال' : 'Complete Children Form',
+                body: isAr
+                    ? 'يرجى ملء استمارة بيانات الأطفال من لوحة التحكم أولاً. لا يمكن فتح بقية الأقسام قبل إرسال البيانات.'
+                    : 'Please fill out the children details form on the dashboard first. Other sections stay locked until you submit.',
+                sub: isAr ? 'بعد الإرسال، ستنتظر موافقة الإدارة.' : 'After submitting, admin approval is required.',
+                showDashboardBtn: true,
+                dashboardBtn: isAr ? 'الذهاب للوحة التحكم' : 'Go to Dashboard',
+            };
         }
-        if (window.__PARENT_DATA.children.length === 0) {
-            const msg = isAr
-                ? 'يرجى ملء استمارة بيانات الأطفال أولاً لتفعيل بقية الأقسام.'
-                : 'Please fill out the children details form first to activate the rest of the sections.';
-            alert(msg);
-            window.navigateTo('dashboard');
-            return;
+        if (data.appStatus === 'pending_approval') {
+            return {
+                title: isAr ? 'بانتظار موافقة الإدارة' : 'Awaiting Admin Approval',
+                body: isAr
+                    ? 'تم إرسال بيانات الأطفال. لا يمكن فتح أي قسم آخر حتى توافق الإدارة على حسابك.'
+                    : 'Your children details were submitted. No other section can open until admin approves your account.',
+                sub: isAr ? 'سيتم فتح الداشبورد تلقائياً بعد الموافقة.' : 'The dashboard will unlock automatically after approval.',
+                showDashboardBtn: false,
+            };
         }
-        if (window.__PARENT_DATA.assignedChildrenCount === 0) {
-            if (pageId === 'tracking' || pageId === 'attendance' || pageId === 'trip-history' || pageId === 'emergency-alerts') {
-                const msg = isAr
-                    ? 'هذا القسم سيصبح نشطاً بمجرد قيام الإدارة بتعيين حافلة وسائق لأطفالك.'
-                    : 'This section will become active once the school administration assigns a bus and driver to your children.';
-                alert(msg);
-                window.navigateTo('dashboard');
+        if (data.appStatus === 'pending') {
+            return {
+                title: isAr ? 'الطلب قيد المراجعة' : 'Application Under Review',
+                body: isAr
+                    ? 'حسابك قيد المراجعة حالياً. سيتم تفعيل الأقسام بمجرد قبول طلب التقديم.'
+                    : 'Your account is under review. Sections unlock once your application is accepted.',
+                showDashboardBtn: true,
+                dashboardBtn: isAr ? 'الذهاب للوحة التحكم' : 'Go to Dashboard',
+            };
+        }
+        if (data.appStatus === 'rejected') {
+            return {
+                title: isAr ? 'تم رفض الحساب' : 'Account Rejected',
+                body: isAr
+                    ? 'تم رفض طلبك. تواصل مع الدعم أو أعد إرسال البيانات بعد التعديل.'
+                    : 'Your request was rejected. Contact support or resubmit your details.',
+                showDashboardBtn: true,
+                dashboardBtn: isAr ? 'الذهاب للوحة التحكم' : 'Go to Dashboard',
+            };
+        }
+        return {
+            title: isAr ? 'القسم غير متاح' : 'Section Unavailable',
+            body: isAr ? 'هذا القسم غير متاح حالياً.' : 'This section is not available yet.',
+            showDashboardBtn: true,
+            dashboardBtn: isAr ? 'الذهاب للوحة التحكم' : 'Go to Dashboard',
+        };
+    }
+
+    function getParentAssignmentLockMessage() {
+        const isAr = (localStorage.getItem('lang_parent') || 'en') === 'ar';
+        return {
+            title: isAr ? 'في انتظار تعيين الحافلة' : 'Bus Assignment Pending',
+            body: isAr
+                ? 'هذا القسم سيصبح نشطاً بمجرد قيام الإدارة بتعيين حافلة وسائق لأطفالك.'
+                : 'This section activates once administration assigns a bus and driver to your children.',
+            showDashboardBtn: true,
+            dashboardBtn: isAr ? 'الذهاب للوحة التحكم' : 'Go to Dashboard',
+        };
+    }
+
+    window.__DASHBOARD_LOCK = {
+        isReady: isParentDashboardReady,
+        shouldLockPage: function(pageId) {
+            if (!isParentDashboardReady()) return true;
+            if (window.__PARENT_DATA.assignedChildrenCount === 0) {
+                return ['tracking', 'attendance', 'trip-history', 'emergency-alerts'].includes(pageId);
             }
-        }
-    });
+            return false;
+        },
+        getMessage: function(pageId) {
+            if (isParentDashboardReady() && window.__PARENT_DATA.assignedChildrenCount === 0) {
+                if (['tracking', 'attendance', 'trip-history', 'emergency-alerts'].includes(pageId)) {
+                    return getParentAssignmentLockMessage();
+                }
+            }
+            return getParentLockMessage();
+        },
+    };
+
+    if (window.DashboardLock) {
+        window.DashboardLock.refresh();
+    }
 
     (function(){
         const container = document.getElementById('childrenSectionsContainer');
@@ -1954,6 +2075,49 @@
                 closeParentProfileModal();
             }
         });
+    </script>
+
+    <script>
+    let parentQrPollTimer = null;
+
+    async function loadParentQrCodes() {
+        const grid = document.getElementById('parentQrGrid');
+        if (!grid) return;
+
+        try {
+            const response = await safestepApi('/api/parent/qr-codes');
+            const items = response.data || [];
+
+            if (!items.length) {
+                grid.innerHTML = '<div class="small-muted" style="padding:12px;">No QR codes yet. They will appear here when admin generates them from Activity Logs.</div>';
+                return;
+            }
+
+            grid.innerHTML = items.map(item => `
+                <div class="card" style="text-align:center;">
+                    <h4 style="margin-bottom:6px;">${item.full_name || 'Student'}</h4>
+                    <p class="small-muted">${item.grade || ''}${item.school_name ? ' · ' + item.school_name : ''}</p>
+                    ${item.image_url ? `<img src="${item.image_url}" alt="QR for ${item.full_name}" width="200" height="200" style="margin:12px auto;border-radius:8px;">` : ''}
+                    <p class="small-muted">${item.qr_code || ''}</p>
+                    <p class="small-muted">${item.generated_at ? new Date(item.generated_at).toLocaleString() : ''}</p>
+                    ${item.image_url ? `<a href="${item.image_url}" download class="btn-primary" style="display:inline-block;margin-top:8px;padding:8px 14px;text-decoration:none;">Download QR</a>` : ''}
+                </div>
+            `).join('');
+        } catch (error) {
+            grid.innerHTML = '<div class="small-muted" style="padding:12px;">Unable to load QR codes right now.</div>';
+        }
+    }
+
+    document.addEventListener('spa:pageChanged', function(e) {
+        if (e.detail.pageId === 'child-qr') {
+            loadParentQrCodes();
+            if (parentQrPollTimer) clearInterval(parentQrPollTimer);
+            parentQrPollTimer = setInterval(loadParentQrCodes, 10000);
+        } else if (parentQrPollTimer) {
+            clearInterval(parentQrPollTimer);
+            parentQrPollTimer = null;
+        }
+    });
     </script>
 
     <script src="{{ asset('js/dashboard-theme.js') }}"></script>

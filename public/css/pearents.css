@@ -12,8 +12,8 @@
     --text-dark: #0f172a;
     --text-light: #64748b;
     --white: #FFFFFF;
-    --primary-gradient: linear-gradient(135deg, #0f172a 0%, #1e3a8a 45%, #1d4ed8 100%);
-    --primary-gradient-hover: linear-gradient(135deg, #020617 0%, #1e40af 42%, #2563eb 100%);
+    --primary-gradient: #1d4ed8;
+    --primary-gradient-hover: #2563eb;
     --soft-gradient: linear-gradient(135deg, rgba(30, 58, 138, 0.12), rgba(29, 78, 216, 0.12));
 }
 

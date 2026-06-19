@@ -100,27 +100,84 @@
         window.__DRIVER_DATA = {
             isApproved: @json($isApproved),
             appStatus: @json($appStatus),
-            hasBus: @json($assignedBus ? true : false)
+            hasBus: @json($assignedBus ? true : false),
+            dashboardSections: @json($dashboardSections ?? [])
+        };
+        window.__ONBOARDING_POLL = {
+            appStatus: @json($appStatus),
+            endpoint: '/api/driver/profile-status',
+            isDashboardUnlocked: @json($isApproved),
         };
         if(t){ localStorage.setItem('safestep_token', t); localStorage.setItem('token', t); }
 
-        // SPA Page Navigation Guard
-        document.addEventListener('spa:pageChanged', function(e) {
-            const pageId = e.detail.pageId;
-            if (pageId === 'dashboard' || pageId === 'notifications' || pageId === 'requests' || pageId === 'my-applications') {
-                return;
-            }
-            if (!window.__DRIVER_DATA.isApproved) {
-                alert('حسابك قيد المراجعة حالياً. سيتم تفعيل الأقسام بمجرد تفعيل الحساب.');
-                window.navigateTo('dashboard');
-                return;
-            }
-        });
+        window.__DASHBOARD_LOCK = {
+            isReady: function() {
+                return window.__DRIVER_DATA?.isApproved === true;
+            },
+            shouldLockPage: function(pageId) {
+                const data = window.__DRIVER_DATA || {};
+                if (!data.isApproved) return true;
+                return (data.dashboardSections || {})[pageId] === false;
+            },
+            getMessage: function(pageId) {
+                const data = window.__DRIVER_DATA || {};
+                if (data.isApproved && (data.dashboardSections || {})[pageId] === false) {
+                    return {
+                        title: 'Section Disabled',
+                        body: 'This section was disabled by administration.',
+                        showDashboardBtn: true,
+                        dashboardBtn: 'Back to Dashboard',
+                    };
+                }
+                if (data.appStatus === 'pending_details') {
+                    return {
+                        title: 'أكمل ملف السائق',
+                        body: 'يرجى ملء استمارة بيانات السائق من لوحة التحكم أولاً. لا يمكن فتح بقية الأقسام قبل إرسال البيانات.',
+                        sub: 'بعد الإرسال، ستنتظر موافقة الإدارة.',
+                        showDashboardBtn: true,
+                        dashboardBtn: 'الذهاب للوحة التحكم',
+                    };
+                }
+                if (data.appStatus === 'pending_approval') {
+                    return {
+                        title: 'بانتظار موافقة الإدارة',
+                        body: 'تم إرسال بياناتك. لا يمكن فتح أي قسم آخر حتى توافق الإدارة على حسابك.',
+                        sub: 'سيتم فتح الداشبورد تلقائياً بعد الموافقة.',
+                        showDashboardBtn: false,
+                    };
+                }
+                if (data.appStatus === 'pending') {
+                    return {
+                        title: 'الطلب قيد المراجعة',
+                        body: 'طلب التقديم قيد المراجعة. سيتم تفعيل الأقسام بعد قبول الطلب.',
+                        showDashboardBtn: true,
+                        dashboardBtn: 'الذهاب للوحة التحكم',
+                    };
+                }
+                if (data.appStatus === 'rejected') {
+                    return {
+                        title: 'تم رفض الحساب',
+                        body: 'تم رفض طلبك. تواصل مع الدعم أو أعد إرسال البيانات.',
+                        showDashboardBtn: true,
+                        dashboardBtn: 'الذهاب للوحة التحكم',
+                    };
+                }
+                return {
+                    title: 'القسم غير متاح',
+                    body: 'هذا القسم غير متاح حالياً.',
+                    showDashboardBtn: true,
+                    dashboardBtn: 'الذهاب للوحة التحكم',
+                };
+            },
+        };
     })();
     </script>
+    <link rel="stylesheet" href="{{ asset('css/dashboard-lock.css') }}">
     <script src="{{ asset('js/api-service.js') }}"></script>
     <script src="{{ asset('js/spa-navigation.js') }}"></script>
+    <script src="{{ asset('js/dashboard-lock.js') }}"></script>
     <script src="{{ asset('js/dashboard-mobile.js') }}"></script>
+    <script src="{{ asset('js/onboarding-poll.js') }}"></script>
 </head>
 <body class="dashboard-body">
     <!-- Sidebar -->
@@ -328,7 +385,8 @@
                         <i class="fas fa-user-clock" style="font-size: 44px; color: var(--accent);"></i>
                     </div>
                     <h2 style="font-size: 26px; font-weight: 800; color: var(--text-dark); margin-bottom: 14px;">Profile Details Submitted</h2>
-                    <p style="font-size: 16px; color: var(--text-light); max-width: 580px; margin: 0 auto 28px; line-height: 1.6;">Thank you for registering your profile details. The administration is currently reviewing your application, license information, and vehicle details. You will receive access to your driver dashboard once approved.</p>
+                    <p style="font-size: 16px; color: var(--text-light); max-width: 580px; margin: 0 auto 28px; line-height: 1.6;">Thank you for registering your profile details. The administration is currently reviewing your application. Once approved, your driver dashboard will open automatically.</p>
+                    <p style="font-size: 14px; color: var(--text-muted); max-width: 520px; margin: 0 auto 20px; line-height: 1.6;">بعد موافقة الإدارة سيتم فتح الداشبورد تلقائياً وتفعيل جميع الأقسام.</p>
                     <div style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-light); background: var(--light-bg); padding: 8px 16px; border-radius: 30px; border: 1px solid var(--border-color);">
                         <span>Status:</span>
                         <span class="status-badge pending" style="padding: 4px 12px; border-radius: 12px; font-weight: 700;">Pending Approval</span>

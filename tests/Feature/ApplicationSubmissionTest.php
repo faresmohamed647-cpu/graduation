@@ -286,7 +286,8 @@ class ApplicationSubmissionTest extends TestCase
             'degree' => 'Primary',
             'education_system' => 'National',
             'school_name' => 'Green School',
-            'active' => true,
+            'active' => false,
+            'status' => 'pending_details',
         ]);
     }
 
@@ -325,7 +326,15 @@ class ApplicationSubmissionTest extends TestCase
             'email' => 'principal@school.test',
             'role' => 'school',
             'status' => 'pending',
-            'user_id' => null,
+        ]);
+
+        $user = \App\Models\User::where('email', 'principal@school.test')->first();
+        $this->assertNotNull($user);
+        $this->assertEquals('school_admin', $user->role);
+
+        $this->assertDatabaseHas('schools', [
+            'name' => 'Test Academy',
+            'status' => 'pending_details',
         ]);
     }
 }

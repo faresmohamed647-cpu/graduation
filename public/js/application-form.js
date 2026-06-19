@@ -6,7 +6,9 @@
   const submitBtn = form.querySelector(".application-submit");
   const submitLabel = submitBtn ? submitBtn.textContent : "Submit";
   const apiToken =
-    document.querySelector('meta[name="application-api-token"]')?.content || "";
+    document.querySelector('meta[name="application-api-token"]')?.content ||
+    document.querySelector('meta[name="api-token"]')?.content ||
+    "";
 
   const clearErrors = () => {
     form.querySelectorAll(".field-error").forEach((node) => {

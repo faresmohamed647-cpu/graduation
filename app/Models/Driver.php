@@ -28,6 +28,17 @@ class Driver extends Model
         'message',
         'status',
         'interview_date',
+        'dashboard_sections',
+    ];
+
+    public const DEFAULT_DASHBOARD_SECTIONS = [
+        'dashboard' => true,
+        'today-trip' => true,
+        'students' => true,
+        'route' => true,
+        'trip' => true,
+        'notifications' => true,
+        'trip-history' => true,
     ];
 
     protected function casts(): array
@@ -35,7 +46,15 @@ class Driver extends Model
         return [
             'interview_date' => 'datetime',
             'active' => 'boolean',
+            'dashboard_sections' => 'array',
         ];
+    }
+
+    public function resolvedDashboardSections(): array
+    {
+        $sections = $this->dashboard_sections ?? [];
+
+        return array_merge(self::DEFAULT_DASHBOARD_SECTIONS, is_array($sections) ? $sections : []);
     }
 
     public function user(): BelongsTo

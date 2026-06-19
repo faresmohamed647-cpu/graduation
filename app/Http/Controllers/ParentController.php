@@ -4,8 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Application;
 use App\Models\Attendance;
-use App\Models\Trip;
+use App\Models\ServiceRequest;
 use App\Models\Student;
+use App\Models\Trip;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -73,13 +74,48 @@ class ParentController extends Controller
 
         $isApproved = false;
         $appStatus = 'pending';
+        $isDashboardUnlocked = false;
 
         if ($user?->parentProfile) {
-            if ($user->parentProfile->active || $acceptedApplication) {
-                $isApproved = true;
-                $appStatus = 'approved';
-            } elseif ($rejectedApplication) {
+            $parentProfile = $user->parentProfile->fresh();
+            $profileStatus = strtolower(trim((string) ($parentProfile->status ?? 'pending')));
+            $hasChildren = $parentProfile->students()->exists();
+            $profileApprovedAt = $parentProfile->profile_approved_at;
+
+            if ($profileStatus === 'rejected' || $rejectedApplication) {
+                $isApproved = false;
+                $isDashboardUnlocked = false;
                 $appStatus = 'rejected';
+            } elseif ($profileApprovedAt || $profileStatus === 'approved') {
+                if (! $profileApprovedAt) {
+                    $parentProfile->update([
+                        'profile_approved_at' => now(),
+                        'status' => 'approved',
+                        'active' => true,
+                    ]);
+                } elseif ($profileStatus !== 'approved' || ! $parentProfile->active) {
+                    $parentProfile->update([
+                        'status' => 'approved',
+                        'active' => true,
+                    ]);
+                }
+                $isApproved = true;
+                $isDashboardUnlocked = true;
+                $appStatus = 'approved';
+            } elseif ($profileStatus === 'pending_approval') {
+                $appStatus = 'pending_approval';
+            } elseif ($profileStatus === 'pending_details') {
+                $appStatus = 'pending_details';
+            } elseif ($hasChildren && $acceptedApplication) {
+                if ($profileStatus !== 'pending_approval') {
+                    $parentProfile->update(['status' => 'pending_approval', 'active' => false]);
+                }
+                $appStatus = 'pending_approval';
+            } elseif ($acceptedApplication) {
+                if ($profileStatus !== 'pending_details') {
+                    $parentProfile->update(['status' => 'pending_details', 'active' => false]);
+                }
+                $appStatus = 'pending_details';
             } else {
                 $appStatus = 'pending';
             }
@@ -90,6 +126,8 @@ class ParentController extends Controller
             ?: ($acceptedApplication?->metadata['student_count'] ?? 1)
         );
         $childFormCount = max(1, min($childFormCount, 10));
+
+        $profileApprovedAt = $user?->parentProfile?->fresh()?->profile_approved_at;
 
         $stats = [
             'children_count' => $children->count(),
@@ -116,11 +154,13 @@ class ParentController extends Controller
             'latestTrip' => $latestTrip,
             'stats' => $stats,
             'isApproved' => $isApproved,
+            'isDashboardUnlocked' => $isDashboardUnlocked,
             'appStatus' => $appStatus,
             'assignedChildrenCount' => $assignedChildrenCount,
             'assignedBus' => $assignedBus,
             'assignedDriver' => $assignedDriver,
             'assignedRoute' => $assignedRoute,
+            'profileApprovedAt' => $profileApprovedAt,
         ]);
     }
 
@@ -153,13 +193,56 @@ class ParentController extends Controller
 
     public function requests(Request $request)
     {
-        $user = $request->user();
-        $applications = $this->applicationsForUser($user, 'parent')->get();
+        $user = $request->user()->load('parentProfile');
+        $parentProfile = $user->parentProfile;
+
+        $children = collect();
+        $schools = collect();
+
+        if ($parentProfile) {
+            $children = Student::query()
+                ->where('parent_id', $parentProfile->id)
+                ->where('active', true)
+                ->with(['bus', 'route'])
+                ->orderBy('full_name')
+                ->get();
+
+            $schools = $children->pluck('school_name')
+                ->filter()
+                ->merge([$parentProfile->school_name])
+                ->filter()
+                ->unique()
+                ->values();
+        }
+
+        $serviceRequests = ServiceRequest::query()
+            ->where('user_id', $user->id)
+            ->latest()
+            ->get();
+
+        $requestContext = [
+            'parentName' => $user->name ?? '',
+            'parentEmail' => $user->email ?? '',
+            'parentPhone' => $parentProfile?->phone ?? '',
+            'parentLocation' => $parentProfile?->address ?? '',
+            'schools' => $schools->values()->all(),
+            'children' => $children->map(fn (Student $c) => [
+                'id' => $c->id,
+                'full_name' => $c->full_name,
+                'grade' => $c->grade,
+                'school_name' => $c->school_name,
+                'bus' => $c->bus?->bus_number,
+            ])->values()->all(),
+        ];
 
         return view('parent.parent-request', [
-            'applications' => $applications,
             'user' => $user,
-            'apiToken' => session('api_token', ''),
+            'parentProfile' => $parentProfile,
+            'children' => $children,
+            'schools' => $schools,
+            'serviceRequests' => $serviceRequests,
+            'requestContext' => $requestContext,
+            'apiToken' => $this->dashboardApiToken($user),
         ]);
     }
 

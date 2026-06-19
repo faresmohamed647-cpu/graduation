@@ -121,6 +121,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/students', [AdminStudentController::class, 'store']);
         Route::put('/students/{student}', [AdminStudentController::class, 'update']);
         Route::delete('/students/{student}', [AdminStudentController::class, 'destroy']);
+        Route::post('/students/{student}/generate-qr', [AdminStudentController::class, 'generateQr']);
         Route::get('/student-assignments', [AdminStudentAssignmentController::class, 'index']);
         Route::post('/student-assignments/assign', [AdminStudentAssignmentController::class, 'assign']);
 
@@ -133,6 +134,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/drivers/{driver}', [AdminDriverController::class, 'destroy']);
         Route::post('/drivers/{driver}/approve', [AdminDriverController::class, 'approve']);
         Route::post('/drivers/{driver}/reject', [AdminDriverController::class, 'reject']);
+        Route::get('/drivers/{driver}/dashboard-access', [AdminDriverController::class, 'dashboardAccess']);
+        Route::put('/drivers/{driver}/dashboard-access', [AdminDriverController::class, 'updateDashboardAccess']);
 
         // Parents CRUD
         Route::get('/parents', [AdminParentController::class, 'index']);
@@ -220,6 +223,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('driver')->middleware('role:driver')->group(function () {
         Route::post('/details/submit', [DriverApiController::class, 'submitDetails']);
         Route::get('/dashboard', [DriverApiController::class, 'dashboard']);
+        Route::get('/profile-status', [DriverApiController::class, 'profileStatus']);
+
+        Route::middleware('driver.active')->group(function () {
         Route::get('/trips/today', [DriverApiController::class, 'todayTrips']);
         Route::post('/trips/{trip}/start', [DriverApiController::class, 'startTrip']);
         Route::post('/trips/{trip}/complete', [DriverApiController::class, 'completeTrip']);
@@ -233,11 +239,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/route-progress', [DriverApiController::class, 'routeProgress']);
         Route::get('/performance', [DriverApiController::class, 'performance']);
         Route::get('/maintenance-alerts', [DriverApiController::class, 'maintenanceAlerts']);
+        });
     });
 
     // ── School Admin routes ──
     Route::prefix('school-admin')->middleware('role:school_admin')->group(function () {
         Route::post('/details/submit', [SchoolAdminDashboardController::class, 'submitDetails']);
+        Route::get('/profile-status', [SchoolAdminDashboardController::class, 'profileStatus']);
         Route::get('/settings', [SchoolAdminSettingsController::class, 'show']);
 
         Route::middleware('school.active')->group(function () {
@@ -312,9 +320,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ── Parent routes ──
     Route::prefix('parent')->middleware('role:parent')->group(function () {
-        Route::get('/dashboard', [ParentApiController::class, 'dashboard']);
-        Route::get('/children', [ParentApiController::class, 'children']);
         Route::post('/children/submit', [ParentApiController::class, 'submitChildren']);
+        Route::get('/dashboard', [ParentApiController::class, 'dashboard']);
+        Route::get('/profile-status', [ParentApiController::class, 'profileStatus']);
+
+        Route::middleware('parent.active')->group(function () {
+        Route::get('/children', [ParentApiController::class, 'children']);
+        Route::get('/qr-codes', [ParentApiController::class, 'qrCodes']);
         Route::get('/children/{student}', [ParentApiController::class, 'child']);
         Route::get('/children/{student}/attendance', [ParentApiController::class, 'childAttendance']);
         Route::get('/notifications', [ParentApiController::class, 'notifications']);
@@ -324,5 +336,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/children/{student}/trip-history', [ParentApiController::class, 'childTripHistory']);
         Route::get('/attendance-report', [ParentApiController::class, 'attendanceReport']);
         Route::get('/emergency-status', [ParentApiController::class, 'emergencyStatus']);
+        });
     });
 });

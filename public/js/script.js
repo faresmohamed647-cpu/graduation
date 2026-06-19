@@ -70,7 +70,12 @@ function setMobileSidebarState(isOpen) {
 }
 
 function applyTheme(theme) {
+    if (window.SafeStepTheme) {
+        window.SafeStepTheme.applyTheme(theme);
+        return;
+    }
     const isDark = theme === 'dark';
+    document.documentElement.classList.toggle('dark-mode', isDark);
     document.body.classList.toggle('dark-mode', isDark);
     if (!themeToggleBtn) return;
     themeToggleBtn.innerHTML = isDark
@@ -79,6 +84,7 @@ function applyTheme(theme) {
 }
 
 function initThemeToggle() {
+    if (window.SafeStepTheme) return;
     const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'light';
     applyTheme(savedTheme);
     if (!themeToggleBtn) return;
@@ -179,37 +185,8 @@ function updateDashboardData() {
 updateDashboardData();
 setInterval(updateDashboardData, 10000);
 
-// Children Page Data (default; overridden by API if available)
-let childrenData = [
-    {
-        name: 'Farida Mohamed',
-        grade: 'Grade 5 - Section A',
-        avatar: 'https://source.unsplash.com/300x300/?egyptian,girl,portrait&sig=21',
-        status: 'On Bus',
-        statusClass: 'on-bus',
-        pickupLocation: 'Khaled Ibn El-Walid St, Sidi Bishr, Alexandria',
-        pickupTime: '7:45 AM',
-        dropLocation: 'Al-Iqbal National School',
-        dropTime: '8:15 AM',
-        busNumber: 'Bus #42',
-        driver: 'Omer mohamed',
-        attendance: [true, true, true, true, true, false, true]
-    },
-    {
-        name: 'Saif Mohamed',
-        grade: 'Grade 3 - Section B',
-        avatar: 'https://source.unsplash.com/300x300/?egyptian,child,portrait&sig=22',
-        status: 'On Bus',
-        statusClass: 'on-bus',
-        pickupLocation: 'Khaled Ibn El-Walid St, Sidi Bishr, Alexandria',
-        pickupTime: '7:45 AM',
-        dropLocation: 'Al-Iqbal National School',
-        dropTime: '8:15 AM',
-        busNumber: 'Bus #42',
-        driver: 'Omer mohamed',
-        attendance: [true, true, true, true, true, false, true]
-    }
-];
+// Children Page Data — loaded from API via parent-api.js
+let childrenData = [];
 
 function getChildAttendanceSummary(childName) {
     const records = attendanceData.filter(record => record.child === childName);
@@ -281,6 +258,15 @@ function markChildAbsentToday(index) {
 function renderChildrenSections() {
     const container = document.getElementById('childrenSectionsContainer');
     if (!container) return;
+
+    if (!childrenData.length) {
+        container.innerHTML = `
+            <div class="card child-info-card" style="text-align:center;padding:36px;color:var(--text-secondary,#64748b);">
+                <i class="fas fa-child" style="font-size:32px;margin-bottom:12px;display:block;color:#3b82f6;"></i>
+                <p>No children registered yet. Submit your children's details to get started.</p>
+            </div>`;
+        return;
+    }
 
     container.innerHTML = childrenData.map((child, index) => {
         const summary = getChildAttendanceSummary(child.name);
@@ -838,17 +824,8 @@ if (notificationIcon) {
     });
 }
 
-// Attendance Data
-const attendanceData = [
-    { date: '2024-02-19', child: 'Farida Mohamed', status: 'Present', pickupTime: '7:45 AM', dropTime: '8:15 AM' },
-    { date: '2024-02-18', child: 'Farida Mohamed', status: 'Present', pickupTime: '7:43 AM', dropTime: '8:12 AM' },
-    { date: '2024-02-17', child: 'Farida Mohamed', status: 'Present', pickupTime: '7:47 AM', dropTime: '8:18 AM' },
-    { date: '2024-02-16', child: 'Farida Mohamed', status: 'Absent', pickupTime: '-', dropTime: '-' },
-    { date: '2024-02-15', child: 'Farida Mohamed', status: 'Present', pickupTime: '7:45 AM', dropTime: '8:15 AM' },
-    { date: '2024-02-14', child: 'Saif Mohamed', status: 'Present', pickupTime: '7:45 AM', dropTime: '8:15 AM' },
-    { date: '2024-02-13', child: 'Saif Mohamed', status: 'Present', pickupTime: '7:44 AM', dropTime: '8:14 AM' },
-    { date: '2024-02-12', child: 'Saif Mohamed', status: 'Present', pickupTime: '7:46 AM', dropTime: '8:16 AM' }
-];
+// Attendance Data — loaded from API
+let attendanceData = [];
 
 function renderAttendanceTable() {
     const tbody = document.getElementById('attendanceTableBody');
@@ -886,13 +863,8 @@ function updateAttendanceSummary() {
 
 renderChildrenSections();
 
-// Payments Data
-const paymentsData = [
-    { date: '2024-02-15', amount: 'EGP 300', method: 'Cash', status: 'Paid', invoice: 'INV-001' },
-    { date: '2024-01-15', amount: 'EGP 300', method: 'Bank Transfer', status: 'Paid', invoice: 'INV-002' },
-    { date: '2023-12-15', amount: 'EGP 300', method: 'Cash', status: 'Paid', invoice: 'INV-003' },
-    { date: '2024-03-15', amount: 'EGP 300', method: 'Credit Card', status: 'Pending', invoice: 'INV-004' }
-];
+// Payments Data — user-specific when available from API
+let paymentsData = [];
 
 const usageDiscounts = [
     {

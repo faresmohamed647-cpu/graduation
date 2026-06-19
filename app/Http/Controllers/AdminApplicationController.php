@@ -144,10 +144,17 @@ class AdminApplicationController extends Controller
                 }
 
                 if ($role === 'parent') {
+                    $existingParent = ParentProfile::where('user_id', $user->id)->first();
+                    $preserveAdvancedStatus = $existingParent
+                        && in_array($existingParent->status, ['pending_approval', 'approved'], true);
+
                     ParentProfile::updateOrCreate(
                         ['user_id' => $user->id],
                         array_filter([
-                            'active'           => $active,
+                            'active'           => $preserveAdvancedStatus ? $existingParent->active : false,
+                            'status'           => $preserveAdvancedStatus
+                                ? $existingParent->status
+                                : ($active ? 'pending_details' : 'rejected'),
                             'phone'            => $application->phone ?: ($meta['phone'] ?? null),
                             'address'          => $application->address ?: ($meta['address'] ?? null),
                             'state'            => $meta['student_state'] ?? ($meta['state'] ?? null),
@@ -165,8 +172,8 @@ class AdminApplicationController extends Controller
                     Driver::updateOrCreate(
                         ['user_id' => $user->id],
                         array_filter([
-                            'active'           => $active,
-                            'status'           => $active ? 'approved' : 'rejected',
+                            'active'           => false,
+                            'status'           => $active ? 'pending_details' : 'rejected',
                             'full_name'        => $application->full_name ?: ($meta['full_name'] ?? null),
                             'phone'            => $application->phone ?: ($meta['phone'] ?? null),
                             'address'          => $application->address ?: ($meta['address'] ?? null),

@@ -24,6 +24,8 @@ class Student extends Model
         'medication',
         'photo',
         'qr_code',
+        'qr_payload',
+        'qr_generated_at',
         'rfid_tag',
         'bus_id',
         'bus_route_id',
@@ -34,6 +36,8 @@ class Student extends Model
     protected $casts = [
         'active' => 'boolean',
         'has_medical_condition' => 'boolean',
+        'qr_payload' => 'array',
+        'qr_generated_at' => 'datetime',
     ];
 
     public function parent(): BelongsTo

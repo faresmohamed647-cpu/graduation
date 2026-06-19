@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Bus;
 use App\Models\Driver;
+use App\Models\Trip;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -174,13 +176,124 @@ class AdminDriverController extends Controller
 
     public function approve(Driver $driver)
     {
+        if ($driver->status === 'pending_details') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Driver has not submitted the profile form yet.',
+            ], 422);
+        }
+
         $driver->update(['active' => true, 'status' => 'approved']);
-        return response()->json(['success' => true, 'message' => 'Driver approved']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Driver approved. Dashboard is now unlocked.',
+            'data' => $driver->fresh('user'),
+        ]);
     }
 
     public function reject(Driver $driver)
     {
         $driver->update(['active' => false, 'status' => 'rejected']);
         return response()->json(['success' => true, 'message' => 'Driver rejected']);
+    }
+
+    public function dashboardAccess(Driver $driver)
+    {
+        $driver->load(['user', 'school']);
+
+        $assignedBus = Bus::query()
+            ->where('driver_id', $driver->id)
+            ->with('route')
+            ->first();
+
+        $latestTrip = Trip::query()
+            ->with(['bus', 'route'])
+            ->where('driver_id', $driver->id)
+            ->latest('trip_date')
+            ->first();
+
+        $tripsTotal = $driver->trips()->count();
+        $tripsActive = $driver->trips()->where('status', 'active')->count();
+        $tripsCompleted = $driver->trips()->where('status', 'completed')->count();
+
+        $sections = $driver->resolvedDashboardSections();
+        $lockedSections = count(array_filter($sections, fn ($enabled) => $enabled === false));
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'driver_id' => $driver->id,
+                'driver_name' => $driver->user?->name ?? $driver->full_name,
+                'sections' => $sections,
+                'profile' => [
+                    'id' => $driver->id,
+                    'user_id' => $driver->user_id,
+                    'name' => $driver->user?->name ?? $driver->full_name,
+                    'email' => $driver->user?->email,
+                    'phone' => $driver->phone,
+                    'license_number' => $driver->license_number,
+                    'years_experience' => $driver->years_experience,
+                    'full_name' => $driver->full_name,
+                    'age' => $driver->age,
+                    'gender' => $driver->gender,
+                    'address' => $driver->address,
+                    'state' => $driver->state,
+                    'car_type' => $driver->car_type,
+                    'car_model' => $driver->car_model,
+                    'car_plate' => $driver->car_plate,
+                    'status' => $driver->status,
+                    'active' => $driver->active,
+                    'interview_date' => $driver->interview_date?->toIso8601String(),
+                    'message' => $driver->message,
+                    'national_id_url' => $driver->national_id_url,
+                    'criminal_record_url' => $driver->criminal_record_url,
+                    'created_at' => $driver->created_at?->toIso8601String(),
+                    'school_name' => $driver->school?->name,
+                ],
+                'assignment' => [
+                    'bus_number' => $assignedBus?->bus_number,
+                    'bus_plate' => $assignedBus?->plate_number,
+                    'bus_capacity' => $assignedBus?->capacity,
+                    'bus_status' => $assignedBus?->status,
+                    'route_name' => $assignedBus?->route?->name ?? $latestTrip?->route?->name,
+                    'latest_trip_date' => $latestTrip?->trip_date,
+                    'latest_trip_status' => $latestTrip?->status,
+                ],
+                'stats' => [
+                    'trips_total' => $tripsTotal,
+                    'trips_active' => $tripsActive,
+                    'trips_completed' => $tripsCompleted,
+                    'locked_sections' => $lockedSections,
+                    'enabled_sections' => count($sections) - $lockedSections,
+                ],
+            ],
+        ]);
+    }
+
+    public function updateDashboardAccess(Request $request, Driver $driver)
+    {
+        $data = $request->validate([
+            'sections' => ['required', 'array'],
+        ]);
+
+        $sections = [];
+        foreach (array_keys(Driver::DEFAULT_DASHBOARD_SECTIONS) as $key) {
+            $sections[$key] = array_key_exists($key, $data['sections'])
+                ? (bool) $data['sections'][$key]
+                : true;
+        }
+        $sections['dashboard'] = true;
+
+        $driver->update(['dashboard_sections' => $sections]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Driver dashboard access updated.',
+            'data' => [
+                'driver_id' => $driver->id,
+                'sections' => $driver->fresh()->resolvedDashboardSections(),
+            ],
+        ]);
     }
 }

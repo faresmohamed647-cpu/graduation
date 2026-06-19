@@ -251,7 +251,7 @@ class SchoolAdminDashboardController extends Controller
             ], 404);
         }
 
-        if ($school->status !== 'pending_details') {
+        if (! in_array($school->status, ['pending_details', 'rejected'], true)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Profile details were already submitted or approved.',
@@ -304,6 +304,20 @@ class SchoolAdminDashboardController extends Controller
             'success' => true,
             'message' => 'School profile submitted successfully. Awaiting admin approval.',
             'data' => $school->fresh(),
+        ]);
+    }
+
+    public function profileStatus(Request $request)
+    {
+        $school = $request->user()?->school;
+        $status = $school?->status ?? 'pending_details';
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'status' => $status,
+                'is_dashboard_unlocked' => $status === 'active',
+            ],
         ]);
     }
 }

@@ -218,7 +218,7 @@ class ApplicationController extends Controller
                 'role' => ApplicationRole::School->value,
                 'experience' => $data['experience'],
                 'notes' => $notes !== '' ? $notes : null,
-                'status' => 'accepted',
+                'status' => 'pending',
             ]);
         });
     }

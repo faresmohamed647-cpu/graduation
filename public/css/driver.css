@@ -170,14 +170,16 @@ body {
 }
 
 .nav-link.active {
-    background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+    background: rgba(255, 255, 255, 0.14);
     color: #FFFFFF;
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    box-shadow: none;
     font-weight: 600;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .nav-link.active::before {
     transform: scaleY(1);
+    background: #ffffff;
 }
 
 .nav-link.active i {
@@ -3727,12 +3729,40 @@ body.dark-mode .sidebar {
 }
 
 body.dark-mode .nav-link {
-    color: #cbd5e1;
+    color: rgba(255, 255, 255, 0.75);
 }
 
 body.dark-mode .nav-link.active,
 body.dark-mode .nav-link:hover {
     color: #ffffff;
+}
+
+html.dark-mode .topbar h1,
+html.dark-mode #pageTitle,
+body.dark-mode .topbar h1,
+body.dark-mode #pageTitle {
+    color: #f8fafc;
+}
+
+html.dark-mode .sidebar .nav-link.active,
+body.dark-mode .sidebar .nav-link.active {
+    background: rgba(255, 255, 255, 0.14) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: none;
+}
+
+html.dark-mode .menu-toggle,
+html.dark-mode .notification-icon,
+html.dark-mode .theme-toggle,
+body.dark-mode .menu-toggle,
+body.dark-mode .notification-icon,
+body.dark-mode .theme-toggle {
+    color: #f1f5f9;
+}
+
+html.dark-mode .profile span,
+body.dark-mode .profile span {
+    color: #f1f5f9;
 }
 
 body.dark-mode input,

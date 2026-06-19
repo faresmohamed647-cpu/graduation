@@ -15,6 +15,8 @@ class ParentProfile extends Model
         'phone',
         'address',
         'active',
+        'status',
+        'profile_approved_at',
         'state',
         'relationship',
         'student_count',
@@ -25,6 +27,14 @@ class ParentProfile extends Model
         'school_starting',
         'message',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'active' => 'boolean',
+            'profile_approved_at' => 'datetime',
+        ];
+    }
 
     public function user(): BelongsTo
     {

@@ -30,7 +30,7 @@ class AdminParentController extends Controller
             'phone'            => $p->phone,
             'address'          => $p->address,
             'active'           => $p->active,
-            'status'           => $p->active ? 'active' : 'inactive',
+            'status'           => $p->status ?? ($p->active ? 'approved' : 'pending'),
             'state'            => $p->state,
             'relationship'     => $p->relationship,
             'student_count'    => $p->student_count,
@@ -86,6 +86,7 @@ class AdminParentController extends Controller
             'phone'            => $data['phone'] ?? null,
             'address'          => $data['address'] ?? null,
             'active'           => $data['active'] ?? true,
+            'status'           => ($data['active'] ?? true) ? 'approved' : 'pending',
             'state'            => $data['state'] ?? null,
             'relationship'     => $data['relationship'] ?? null,
             'student_count'    => $data['student_count'] ?? 1,
@@ -154,13 +155,33 @@ class AdminParentController extends Controller
 
     public function approve(ParentProfile $parent)
     {
-        $parent->update(['active' => true]);
-        return response()->json(['success' => true, 'message' => 'Parent approved']);
+        if ($parent->status === 'pending_details') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Parent has not submitted the children details form yet.',
+            ], 422);
+        }
+
+        $parent->update([
+            'active' => true,
+            'status' => 'approved',
+            'profile_approved_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Parent profile approved. Dashboard is now unlocked.',
+            'data' => $parent->fresh(['user', 'students']),
+        ]);
     }
 
     public function reject(ParentProfile $parent)
     {
-        $parent->update(['active' => false]);
+        $parent->update([
+            'active' => false,
+            'status' => 'rejected',
+            'profile_approved_at' => null,
+        ]);
         return response()->json(['success' => true, 'message' => 'Parent rejected']);
     }
 }

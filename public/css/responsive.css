@@ -892,3 +892,150 @@ body.dark-mode .sidebar-overlay {
         padding-right: max(16px, env(safe-area-inset-right));
     }
 }
+
+/* ============================================================
+   8. DARK MODE — Navbar & Topbar contrast (all 4 dashboards)
+   ============================================================ */
+html.dark-mode .topbar,
+body.dark-mode .topbar {
+    background: #0b1120 !important;
+    border-bottom-color: #1a2540 !important;
+    color: #f1f5f9 !important;
+}
+
+html.dark-mode .topbar h1,
+html.dark-mode #pageTitle,
+body.dark-mode .topbar h1,
+body.dark-mode #pageTitle {
+    color: #f8fafc !important;
+}
+
+html.dark-mode .menu-toggle,
+body.dark-mode .menu-toggle {
+    background: #111827 !important;
+    border-color: #334155 !important;
+    color: #f1f5f9 !important;
+}
+
+html.dark-mode .menu-toggle:hover,
+body.dark-mode .menu-toggle:hover {
+    background: var(--primary-color, #1d4ed8) !important;
+    color: #ffffff !important;
+    border-color: var(--primary-color, #1d4ed8) !important;
+}
+
+html.dark-mode .profile span,
+body.dark-mode .profile span {
+    color: #f1f5f9 !important;
+}
+
+html.dark-mode .notification-icon,
+body.dark-mode .notification-icon {
+    color: #cbd5e1 !important;
+}
+
+html.dark-mode .notification-icon:hover,
+body.dark-mode .notification-icon:hover {
+    background: #1a2540 !important;
+    color: #60a5fa !important;
+}
+
+html.dark-mode .theme-toggle,
+html.dark-mode .lang-toggle,
+body.dark-mode .theme-toggle,
+body.dark-mode .lang-toggle {
+    background: #111827 !important;
+    border-color: #334155 !important;
+    color: #f1f5f9 !important;
+}
+
+html.dark-mode .theme-toggle:hover,
+html.dark-mode .lang-toggle:hover,
+body.dark-mode .theme-toggle:hover,
+body.dark-mode .lang-toggle:hover {
+    border-color: #60a5fa !important;
+    color: #60a5fa !important;
+}
+
+html.dark-mode .search-box,
+body.dark-mode .search-box {
+    background: #0f1929 !important;
+    border-color: #1a2540 !important;
+}
+
+html.dark-mode .search-box input,
+body.dark-mode .search-box input {
+    color: #f1f5f9 !important;
+}
+
+html.dark-mode .search-box input::placeholder,
+body.dark-mode .search-box input::placeholder {
+    color: #64748b !important;
+}
+
+html.dark-mode .search-box i,
+body.dark-mode .search-box i {
+    color: #94a3b8 !important;
+}
+
+html.dark-mode .sidebar .nav-link,
+body.dark-mode .sidebar .nav-link {
+    color: rgba(255, 255, 255, 0.82) !important;
+}
+
+html.dark-mode .sidebar .nav-link i,
+body.dark-mode .sidebar .nav-link i {
+    color: inherit !important;
+}
+
+html.dark-mode .sidebar .nav-link.active,
+body.dark-mode .sidebar .nav-link.active {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.14) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: none !important;
+}
+
+html.dark-mode .sidebar .nav-link:hover:not(.active):not(.logout),
+body.dark-mode .sidebar .nav-link:hover:not(.active):not(.logout) {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
+html.dark-mode .sidebar .nav-link.logout,
+body.dark-mode .sidebar .nav-link.logout {
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+html.dark-mode .sidebar .nav-link.logout:hover,
+body.dark-mode .sidebar .nav-link.logout:hover {
+    color: #fca5a5 !important;
+}
+
+html.dark-mode .sidebar .portal-tag,
+body.dark-mode .sidebar .portal-tag {
+    color: rgba(255, 255, 255, 0.55) !important;
+}
+
+html.dark-mode .topbar-school-meta .school-label,
+body.dark-mode .topbar-school-meta .school-label {
+    color: #94a3b8 !important;
+}
+
+html.dark-mode #schoolNameBar,
+body.dark-mode #schoolNameBar {
+    color: #34d399 !important;
+}
+
+@media (max-width: 768px) {
+    html.dark-mode .theme-toggle,
+    html.dark-mode .theme-toggle.lang-toggle,
+    html.dark-mode .notification-icon,
+    body.dark-mode .theme-toggle,
+    body.dark-mode .theme-toggle.lang-toggle,
+    body.dark-mode .notification-icon {
+        background: #111827 !important;
+        color: #f1f5f9 !important;
+        border-color: #334155 !important;
+    }
+}

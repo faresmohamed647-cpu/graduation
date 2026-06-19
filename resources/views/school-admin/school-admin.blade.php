@@ -30,7 +30,57 @@
             awaitingProfileApproval: @json($awaitingProfileApproval),
             appStatus: @json($appStatus)
         };
+        window.__ONBOARDING_POLL = {
+            appStatus: @json($appStatus),
+            endpoint: '/api/school-admin/profile-status',
+            isDashboardUnlocked: @json($isDashboardUnlocked),
+        };
         if(t){ localStorage.setItem('safestep_token', t); localStorage.setItem('token', t); }
+
+        window.__DASHBOARD_LOCK = {
+            isReady: function() {
+                const data = window.__SCHOOL_ADMIN_DATA || {};
+                return data.isDashboardUnlocked === true || data.appStatus === 'active';
+            },
+            shouldLockPage: function(pageId) {
+                const data = window.__SCHOOL_ADMIN_DATA || {};
+                return !(data.isDashboardUnlocked === true || data.appStatus === 'active');
+            },
+            getMessage: function() {
+                const data = window.__SCHOOL_ADMIN_DATA || {};
+                if (data.appStatus === 'pending_details' || data.needsOnboarding) {
+                    return {
+                        title: 'أكمل ملف المدرسة',
+                        body: 'يرجى إكمال نموذج تفاصيل المدرسة من لوحة التحكم. لا يمكن فتح بقية الأقسام قبل الإرسال.',
+                        sub: 'بعد الإرسال، ستنتظر موافقة الإدارة.',
+                        showDashboardBtn: true,
+                        dashboardBtn: 'الذهاب للوحة التحكم',
+                    };
+                }
+                if (data.appStatus === 'pending_approval' || data.awaitingProfileApproval) {
+                    return {
+                        title: 'بانتظار موافقة الإدارة',
+                        body: 'تم إرسال ملف المدرسة. لا يمكن فتح أي قسم آخر حتى توافق إدارة SafeStep.',
+                        sub: 'سيتم فتح الداشبورد تلقائياً بعد الموافقة.',
+                        showDashboardBtn: false,
+                    };
+                }
+                if (data.appStatus === 'rejected') {
+                    return {
+                        title: 'تم رفض الملف',
+                        body: 'تم رفض ملف المدرسة. راجع البيانات أو تواصل مع الدعم.',
+                        showDashboardBtn: true,
+                        dashboardBtn: 'الذهاب للوحة التحكم',
+                    };
+                }
+                return {
+                    title: 'القسم غير متاح',
+                    body: 'هذا القسم غير متاح حالياً.',
+                    showDashboardBtn: true,
+                    dashboardBtn: 'الذهاب للوحة التحكم',
+                };
+            },
+        };
     })();
     </script>
     <!-- Prevent dark-mode flash before body exists -->
@@ -42,7 +92,10 @@
     </script>
     <script src="{{ asset('js/api-service.js') }}"></script>
     <script src="{{ asset('js/spa-navigation.js') }}"></script>
+    <link rel="stylesheet" href="{{ asset('css/dashboard-lock.css') }}">
+    <script src="{{ asset('js/dashboard-lock.js') }}"></script>
     <script src="{{ asset('js/dashboard-mobile.js') }}"></script>
+    <script src="{{ asset('js/onboarding-poll.js') }}"></script>
     <style>
         .topbar-school-meta { display: flex; flex-direction: column; gap: 2px; }
         .topbar-school-meta .school-label {
@@ -274,7 +327,8 @@
                         <i class="fas fa-school" style="font-size: 44px; color: var(--accent);"></i>
                     </div>
                     <h2 style="font-size: 26px; font-weight: 800; color: var(--text-dark); margin-bottom: 14px;">School Profile & License Under Review</h2>
-                    <p style="font-size: 16px; color: var(--text-light); max-width: 580px; margin: 0 auto 28px; line-height: 1.6;">Thank you for submitting your school registration and license documents. The SafeStep administration is currently verifying your school credentials and fleet requirements. Your dashboard and administrator tabs will be unlocked once approved.</p>
+                    <p style="font-size: 16px; color: var(--text-light); max-width: 580px; margin: 0 auto 28px; line-height: 1.6;">Thank you for submitting your school registration and license documents. Once approved, your school dashboard will open automatically and all administrator sections will unlock.</p>
+                    <p style="font-size: 14px; color: var(--text-muted); max-width: 520px; margin: 0 auto 20px; line-height: 1.6;">بعد موافقة الإدارة سيتم فتح الداشبورد تلقائياً وتفعيل جميع الأقسام.</p>
                     <div style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-light); background: var(--light-bg); padding: 8px 16px; border-radius: 30px; border: 1px solid var(--border-color);">
                         <span>Status:</span>
                         <span class="status-badge pending" style="padding: 4px 12px; border-radius: 12px; font-weight: 700;">Pending Approval</span>

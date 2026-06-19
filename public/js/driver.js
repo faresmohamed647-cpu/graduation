@@ -94,7 +94,12 @@ function setMobileSidebarState(isOpen) {
 }
 
 function applyTheme(theme) {
+    if (window.SafeStepTheme) {
+        window.SafeStepTheme.applyTheme(theme);
+        return;
+    }
     const isDark = theme === 'dark';
+    document.documentElement.classList.toggle('dark-mode', isDark);
     document.body.classList.toggle('dark-mode', isDark);
     if (!themeToggleBtn) return;
     themeToggleBtn.innerHTML = isDark
@@ -103,6 +108,7 @@ function applyTheme(theme) {
 }
 
 function initThemeToggle() {
+    if (window.SafeStepTheme) return;
     const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'light';
     applyTheme(savedTheme);
     if (!themeToggleBtn) return;
@@ -194,39 +200,10 @@ function renderBusInfo() {
 
 renderBusInfo();
 
-// Students Data
-const studentsData = [
-   { name: 'Ahmed Mohamed', grade: 'Grade 5', pickup: 'Corniche El-Nile, Alexandria', status: null },
-    { name: 'Laila Ali', grade: 'Grade 3', pickup: 'El-Horreya St, Alexandria', status: null },
-    { name: 'Youssef Ibrahim', grade: 'Grade 4', pickup: 'El-Gomhoreya St, Alexandria', status: null },
-    { name: 'Nouran Hassan', grade: 'Grade 5', pickup: 'Sidi Gaber St, Alexandria', status: null },
-    { name: 'Mariam Said', grade: 'Grade 2', pickup: 'Fleming St, Alexandria', status: null },
-    { name: 'Mohamed Khaled', grade: 'Grade 4', pickup: 'Raml Station St, Alexandria', status: null },
-    { name: 'Sara Abdallah', grade: 'Grade 3', pickup: 'El-Montaza St, Alexandria', status: null },
-    { name: 'Omar Samir', grade: 'Grade 5', pickup: 'Sporting St, Alexandria', status: null },
-    { name: 'Aya Mahmoud', grade: 'Grade 2', pickup: 'El-Raml St, Alexandria', status: null },
-    { name: 'Karim Ali', grade: 'Grade 4', pickup: 'Smouha St, Alexandria', status: null },
-    { name: 'Hana Mostafa', grade: 'Grade 3', pickup: 'El-Maamoura St, Alexandria', status: null },
-    { name: 'Ahmed Sami', grade: 'Grade 5', pickup: 'El-Qasr El-Aini St, Alexandria', status: null },
-    { name: 'Nada Ahmed', grade: 'Grade 2', pickup: 'Shubra St, Alexandria', status: null },
-    { name: 'Yassin Reda', grade: 'Grade 4', pickup: 'El-Nasr St, Alexandria', status: null },
-    { name: 'Donia Mahmoud', grade: 'Grade 3', pickup: 'El-Horreya St, Alexandria', status: null },
-    { name: 'Ramy Mostafa', grade: 'Grade 5', pickup: 'El-Gameya St, Alexandria', status: null },
-    { name: 'Hager Abdelrahman', grade: 'Grade 2', pickup: 'El-Montaza St, Alexandria', status: null },
-    { name: 'Saif Mohamed', grade: 'Grade 4', pickup: 'El-Tayaran St, Alexandria', status: null },
-    { name: 'Inas Ali', grade: 'Grade 3', pickup: 'El-Iskandariya St, Alexandria', status: null },
-    { name: 'Ahmed Abdallah', grade: 'Grade 5', pickup: 'El-Horreya St, Alexandria', status: null },
-    { name: 'Asmaa Hassan', grade: 'Grade 2', pickup: '26 July St, Alexandria', status: null },
-    { name: 'Mahmoud Said', grade: 'Grade 4', pickup: 'El-Gameya St, Alexandria', status: null },
-    { name: 'Nada Ali', grade: 'Grade 3', pickup: 'Fleming St, Alexandria', status: null },
-    { name: 'Yassin Khaled', grade: 'Grade 5', pickup: 'Corniche El-Nile, Alexandria', status: null }
-];
+// Students Data — loaded from API via driver-api.js
+let studentsData = [];
 
-const attendanceData = studentsData.map(student => ({
-    name: student.name,
-    pickup: 'pending',
-    dropoff: 'pending'
-}));
+let attendanceData = [];
 
 const ATTENDANCE_STORAGE_KEY = 'driver_attendance_events';
 

@@ -11,24 +11,89 @@ class AdminUserController extends Controller
 {
     public function index(Request $request)
     {
-        $query = User::query();
+        $query = User::with([
+            'school:id,name,email,phone,address',
+            'driverProfile',
+            'parentProfile.students:id,parent_id,full_name,grade,school_name',
+        ]);
+
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%");
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
             });
         }
-        if ($role = $request->get('role')) { $query->where('role', $role); }
+
+        if ($role = $request->get('role')) {
+            $query->where('role', $role);
+        }
+
         $users = $query->latest()->get();
-        $mapped = $users->map(fn (User $u) => [
-            'id' => $u->id,
-            'name' => $u->name,
-            'email' => $u->email,
-            'password_plain' => $u->plain_password, // For admin visibility
-            'roles' => [$u->role],
-            'role' => $u->role,
-            'status' => 'active',
-            'created_at' => $u->created_at,
-        ]);
+
+        $mapped = $users->map(function (User $u) {
+            $phone = null;
+            $status = 'active';
+            $profileDetails = [];
+
+            if ($u->role === 'parent' && $u->parentProfile) {
+                $parent = $u->parentProfile;
+                $phone = $parent->phone;
+                $status = $parent->active ? 'active' : 'inactive';
+                $profileDetails = array_filter([
+                    'phone' => $parent->phone,
+                    'address' => $parent->address,
+                    'relationship' => $parent->relationship,
+                    'student_count' => $parent->student_count,
+                    'school_name' => $parent->school_name,
+                    'children' => $parent->students->map(fn ($s) => [
+                        'id' => $s->id,
+                        'name' => $s->full_name,
+                        'grade' => $s->grade,
+                        'school' => $s->school_name,
+                    ])->values()->all(),
+                ], fn ($v) => $v !== null && $v !== '' && $v !== []);
+            } elseif ($u->role === 'driver' && $u->driverProfile) {
+                $driver = $u->driverProfile;
+                $phone = $driver->phone;
+                $status = $driver->active ? ($driver->status ?? 'active') : 'inactive';
+                $profileDetails = array_filter([
+                    'phone' => $driver->phone,
+                    'license_number' => $driver->license_number,
+                    'years_experience' => $driver->years_experience,
+                    'car_type' => $driver->car_type,
+                    'car_model' => $driver->car_model,
+                    'car_plate' => $driver->car_plate,
+                    'address' => $driver->address,
+                    'status' => $driver->status,
+                ], fn ($v) => $v !== null && $v !== '');
+            } elseif ($u->role === 'school_admin') {
+                $phone = $u->school?->phone;
+                $profileDetails = array_filter([
+                    'school_name' => $u->school?->name,
+                    'school_email' => $u->school?->email,
+                    'school_phone' => $u->school?->phone,
+                    'school_address' => $u->school?->address,
+                ], fn ($v) => $v !== null && $v !== '');
+            }
+
+            return [
+                'id' => $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+                'password_plain' => $u->plain_password,
+                'roles' => [$u->role],
+                'role' => $u->role,
+                'school_id' => $u->school_id,
+                'school_name' => $u->school?->name,
+                'phone' => $phone,
+                'status' => $status,
+                'profile_details' => $profileDetails,
+                'children_count' => $u->parentProfile?->students?->count() ?? 0,
+                'created_at' => $u->created_at?->toIso8601String(),
+                'updated_at' => $u->updated_at?->toIso8601String(),
+            ];
+        });
+
         return response()->json(['success' => true, 'data' => $mapped]);
     }
 

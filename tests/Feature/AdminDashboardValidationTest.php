@@ -150,6 +150,92 @@ class AdminDashboardValidationTest extends TestCase
         ]);
     }
 
+    public function test_generate_student_qr(): void
+    {
+        Sanctum::actingAs($this->adminUser);
+
+        $parentUser = User::create([
+            'name' => 'Parent Name',
+            'email' => 'parent-qr@example.test',
+            'password' => bcrypt('password'),
+            'role' => 'parent',
+        ]);
+        $parentProfile = ParentProfile::create([
+            'user_id' => $parentUser->id,
+            'active' => true,
+        ]);
+
+        $student = \App\Models\Student::create([
+            'full_name' => 'QR Student',
+            'parent_id' => $parentProfile->id,
+            'grade' => 'Grade 3',
+            'school_name' => 'Test School',
+            'active' => true,
+        ]);
+
+        $response = $this->postJson("/api/admin/students/{$student->id}/generate-qr", [
+            'zone' => 'Alexandria East',
+            'trip_type' => 'pickup',
+            'note' => 'Gate 1',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure([
+                'data' => ['qr_code', 'payload', 'image_url', 'generated_at'],
+            ]);
+
+        $this->assertDatabaseHas('students', [
+            'id' => $student->id,
+            'qr_code' => $response->json('data.qr_code'),
+        ]);
+    }
+
+    public function test_parent_reapprove_after_reject_unlocks_dashboard(): void
+    {
+        Sanctum::actingAs($this->adminUser);
+
+        $parentUser = User::create([
+            'name' => 'Parent Reapprove',
+            'email' => 'parent-reapprove@example.test',
+            'password' => bcrypt('password'),
+            'role' => 'parent',
+        ]);
+        $parentProfile = ParentProfile::create([
+            'user_id' => $parentUser->id,
+            'active' => true,
+            'status' => 'approved',
+            'profile_approved_at' => now()->subDay(),
+        ]);
+
+        $this->postJson("/api/admin/parents/{$parentProfile->id}/reject")->assertOk();
+
+        $this->assertDatabaseHas('parents', [
+            'id' => $parentProfile->id,
+            'status' => 'rejected',
+            'active' => false,
+            'profile_approved_at' => null,
+        ]);
+
+        $parentProfile->update(['status' => 'pending_approval']);
+
+        $this->postJson("/api/admin/parents/{$parentProfile->id}/approve")
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $this->assertDatabaseHas('parents', [
+            'id' => $parentProfile->id,
+            'status' => 'approved',
+            'active' => true,
+        ]);
+        $this->assertNotNull($parentProfile->fresh()->profile_approved_at);
+
+        Sanctum::actingAs($parentUser);
+        $this->getJson('/api/parent/profile-status')
+            ->assertOk()
+            ->assertJsonPath('data.is_dashboard_unlocked', true);
+    }
+
     public function test_add_trip_validation(): void
     {
         Sanctum::actingAs($this->adminUser);

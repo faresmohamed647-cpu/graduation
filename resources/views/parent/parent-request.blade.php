@@ -867,23 +867,34 @@
     <!-- MY REQUESTS -->
     <div class="card" style="margin-bottom: 20px;" id="myRequestsCard">
       <div class="card-header" style="background: linear-gradient(135deg, #0ea5a4, #2563eb);">
-        <h3><i class="fas fa-list-check"></i> My Requests (<span id="myRequestsCount">{{ $applications->count() }}</span>)</h3>
+        <h3><i class="fas fa-list-check"></i> My Requests (<span id="myRequestsCount">{{ $serviceRequests->count() }}</span>)</h3>
         <p>Your previously submitted requests</p>
       </div>
       <div class="form-section" id="myRequestsList">
-        @forelse($applications as $app)
-        <div class="request-item" data-id="{{ $app->id }}" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 10px;">
+        @forelse($serviceRequests as $req)
+        <div class="request-item" data-id="{{ $req->id }}" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 10px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
-            <strong style="color: #1e293b;">{{ $app->subject ?? $app->experience }}</strong>
-            <span style="background: {{ $app->status === 'pending' ? '#fef2f2' : ($app->status === 'accepted' ? '#f0fdf4' : '#f0f9ff') }}; color: {{ $app->status === 'pending' ? '#dc2626' : ($app->status === 'accepted' ? '#16a34a' : '#1e40af') }}; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase;">{{ $app->status }}</span>
+            <strong style="color: #1e293b;">{{ $req->subject }}</strong>
+            @php
+              $statusColors = [
+                'pending' => ['bg' => '#fef2f2', 'color' => '#dc2626'],
+                'in-progress' => ['bg' => '#fffbeb', 'color' => '#d97706'],
+                'resolved' => ['bg' => '#f0fdf4', 'color' => '#16a34a'],
+                'rejected' => ['bg' => '#fee2e2', 'color' => '#dc2626'],
+              ];
+              $style = $statusColors[$req->status] ?? ['bg' => '#f0f9ff', 'color' => '#1e40af'];
+            @endphp
+            <span style="background: {{ $style['bg'] }}; color: {{ $style['color'] }}; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase;">{{ $req->status }}</span>
           </div>
           <div style="color: #64748b; font-size: 13px; margin-top: 6px;">
-            <i class="fas fa-calendar"></i> {{ $app->created_at->format('M d, Y') }}
+            <i class="fas fa-calendar"></i> {{ $req->created_at->format('M d, Y') }}
             <span style="margin: 0 8px;">|</span>
-            <i class="fas fa-envelope"></i> {{ $app->email }}
+            <i class="fas fa-tag"></i> {{ str_replace('_', ' ', $req->request_type) }}
+            <span style="margin: 0 8px;">|</span>
+            <i class="fas fa-flag"></i> {{ ucfirst($req->priority) }}
           </div>
-          @if($app->notes)
-          <div style="color: #475569; font-size: 13px; margin-top: 6px; border-top: 1px dashed #e2e8f0; padding-top: 6px;">{{ Str::limit($app->notes, 120) }}</div>
+          @if($req->description)
+          <div style="color: #475569; font-size: 13px; margin-top: 6px; border-top: 1px dashed #e2e8f0; padding-top: 6px;">{{ Str::limit($req->description, 120) }}</div>
           @endif
         </div>
         @empty
@@ -939,7 +950,7 @@
                 class="form-control" 
                 placeholder="+20 100 123 4567" 
                 pattern="[0-9+\s\-\(\)]+"
-                value="{{ $user->parentProfile->phone ?? '' }}"
+                value="{{ $parentProfile?->phone ?? '' }}"
                 required
               >
             </div>
@@ -971,6 +982,7 @@
                 id="parentLocation" 
                 class="form-control" 
                 placeholder="Enter your address or area..." 
+                value="{{ $parentProfile?->address ?? '' }}"
                 required
               >
               <button type="button" class="location-btn" onclick="getParentLocation()">
@@ -991,18 +1003,29 @@
               Select Children <span class="required">*</span>
             </label>
             <div id="childrenContainer" style="border: 2px solid #e5e7eb; border-radius: 8px; padding: 12px;">
+              @forelse($children as $child)
+              @php
+                $busLabel = $child->bus?->bus_number ? 'Bus #' . $child->bus->bus_number : 'No bus assigned';
+              @endphp
               <div class="child-item">
-                <input type="checkbox" id="child1" name="children" value="Ahmed">
-                <label for="child1">Ahmed (Grade 5) - Bus #42</label>
+                <input
+                  type="checkbox"
+                  id="child{{ $child->id }}"
+                  name="children"
+                  value="{{ $child->full_name }}"
+                  data-child-id="{{ $child->id }}"
+                  data-grade="{{ $child->grade ?? '' }}"
+                  data-school="{{ $child->school_name ?? '' }}"
+                  data-bus="{{ $busLabel }}"
+                >
+                <label for="child{{ $child->id }}">{{ $child->full_name }} ({{ $child->grade ?? '—' }}) — {{ $busLabel }}</label>
               </div>
-              <div class="child-item">
-                <input type="checkbox" id="child2" name="children" value="Laila">
-                <label for="child2">Laila (Grade 3) - Bus #42</label>
+              @empty
+              <div style="text-align:center;padding:16px;color:#94a3b8;font-size:14px;">
+                <i class="fas fa-child" style="font-size:20px;margin-bottom:8px;display:block;"></i>
+                No children registered yet. Add your children from the dashboard first.
               </div>
-              <div class="child-item">
-                <input type="checkbox" id="child3" name="children" value="Farah">
-                <label for="child3">Farah (Grade 1) - Bus #15</label>
-              </div>
+              @endforelse
             </div>
             <div class="helper-text">Select one or more children for this request</div>
           </div>
@@ -1018,11 +1041,11 @@
                 <span class="icon"><i class="fas fa-graduation-cap"></i></span>
                 School Name <span class="required">*</span>
               </label>
-              <select id="school" class="form-control" required onchange="updateGrades()">
+              <select id="school" class="form-control" @if($schools->isNotEmpty()) required @endif onchange="updateGrades()">
                 <option value="">Select School</option>
-                <option value="Al-Noor School">Al-Noor School</option>
-                <option value="Sun Valley Primary">Sun Valley Primary</option>
-                <option value="Bright Future Academy">Bright Future Academy</option>
+                @foreach($schools as $schoolName)
+                <option value="{{ $schoolName }}" @selected($loop->first && $schools->count() === 1)>{{ $schoolName }}</option>
+                @endforeach
               </select>
             </div>
 
@@ -1031,15 +1054,11 @@
                 <span class="icon"><i class="fas fa-book"></i></span>
                 Grade <span class="required">*</span>
               </label>
-              <select id="grade" class="form-control" required>
+              <select id="grade" class="form-control" @if($children->isNotEmpty()) required @endif>
                 <option value="">Select Grade</option>
-                <option value="KG1">KG1</option>
-                <option value="KG2">KG2</option>
-                <option value="Grade 1">Grade 1</option>
-                <option value="Grade 2">Grade 2</option>
-                <option value="Grade 3">Grade 3</option>
-                <option value="Grade 4">Grade 4</option>
-                <option value="Grade 5">Grade 5</option>
+                @foreach($children->pluck('grade')->filter()->unique() as $gradeOption)
+                <option value="{{ $gradeOption }}">{{ $gradeOption }}</option>
+                @endforeach
               </select>
             </div>
           </div>
@@ -1230,12 +1249,17 @@
   </div>
 
   <script>
-    // Server-injected API token for authenticated requests
+    window.__REQUEST_CONTEXT = @json($requestContext);
     window.__API_TOKEN = '{{ $apiToken ?? '' }}';
+    if (window.__API_TOKEN) {
+      localStorage.setItem('safestep_token', window.__API_TOKEN);
+      localStorage.setItem('token', window.__API_TOKEN);
+    }
 
     function requestStatusStyle(status) {
-      if (status === 'accepted') return { bg: '#f0fdf4', color: '#16a34a' };
+      if (status === 'resolved') return { bg: '#f0fdf4', color: '#16a34a' };
       if (status === 'rejected') return { bg: '#fee2e2', color: '#dc2626' };
+      if (status === 'in-progress') return { bg: '#fffbeb', color: '#d97706' };
       if (status === 'pending') return { bg: '#fef2f2', color: '#dc2626' };
       return { bg: '#f0f9ff', color: '#1e40af' };
     }
@@ -1246,28 +1270,31 @@
       }[char]));
     }
 
-    function renderMyRequests(applications) {
+    function renderMyRequests(requests) {
       const list = document.getElementById('myRequestsList');
       const count = document.getElementById('myRequestsCount');
       if (!list) return;
-      if (count) count.textContent = applications.length;
-      if (!applications.length) {
+      if (count) count.textContent = requests.length;
+      if (!requests.length) {
         list.innerHTML = '<div id="noRequestsMsg" style="text-align:center;padding:24px;color:#94a3b8;"><i class="fas fa-inbox" style="font-size:24px;margin-bottom:8px;display:block;"></i>No requests yet</div>';
         return;
       }
-      list.innerHTML = applications.map(app => {
-        const style = requestStatusStyle(app.status);
-        return `<div class="request-item" data-id="${app.id}" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-bottom:10px;">
+      list.innerHTML = requests.map(req => {
+        const style = requestStatusStyle(req.status);
+        const created = req.created_at ? String(req.created_at).slice(0, 10) : '';
+        return `<div class="request-item" data-id="${req.id}" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-bottom:10px;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
-            <strong style="color:#1e293b;">${escapeHtml(app.experience || 'Request')}</strong>
-            <span style="background:${style.bg};color:${style.color};padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;text-transform:uppercase;">${escapeHtml(app.status)}</span>
+            <strong style="color:#1e293b;">${escapeHtml(req.subject || 'Request')}</strong>
+            <span style="background:${style.bg};color:${style.color};padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;text-transform:uppercase;">${escapeHtml(req.status)}</span>
           </div>
           <div style="color:#64748b;font-size:13px;margin-top:6px;">
-            <i class="fas fa-calendar"></i> ${escapeHtml((app.created_at || '').slice(0, 10))}
+            <i class="fas fa-calendar"></i> ${escapeHtml(created)}
             <span style="margin:0 8px;">|</span>
-            <i class="fas fa-envelope"></i> ${escapeHtml(app.email)}
+            <i class="fas fa-tag"></i> ${escapeHtml((req.request_type || '').replace(/_/g, ' '))}
+            <span style="margin:0 8px;">|</span>
+            <i class="fas fa-flag"></i> ${escapeHtml(req.priority || 'medium')}
           </div>
-          ${app.notes ? `<div style="color:#475569;font-size:13px;margin-top:6px;border-top:1px dashed #e2e8f0;padding-top:6px;">${escapeHtml(app.notes).slice(0, 120)}</div>` : ''}
+          ${req.description ? `<div style="color:#475569;font-size:13px;margin-top:6px;border-top:1px dashed #e2e8f0;padding-top:6px;">${escapeHtml(req.description).slice(0, 120)}</div>` : ''}
         </div>`;
       }).join('');
     }
@@ -1344,7 +1371,37 @@
     }
 
     function updateGrades() {
-      // Can be extended to show different grades based on school
+      const school = document.getElementById('school')?.value;
+      const gradeSelect = document.getElementById('grade');
+      const children = window.__REQUEST_CONTEXT?.children || [];
+      if (!gradeSelect) return;
+
+      const grades = [...new Set(
+        children
+          .filter(child => !school || child.school_name === school)
+          .map(child => child.grade)
+          .filter(Boolean)
+      )];
+
+      const current = gradeSelect.value;
+      gradeSelect.innerHTML = '<option value="">Select Grade</option>' +
+        grades.map(grade => `<option value="${escapeHtml(grade)}">${escapeHtml(grade)}</option>`).join('');
+
+      if (grades.includes(current)) {
+        gradeSelect.value = current;
+      } else if (grades.length === 1) {
+        gradeSelect.value = grades[0];
+      }
+    }
+
+    function resetParentFormDefaults() {
+      const ctx = window.__REQUEST_CONTEXT || {};
+      document.getElementById('parentName').value = ctx.parentName || '';
+      document.getElementById('parentEmail').value = ctx.parentEmail || '';
+      document.getElementById('parentPhone').value = ctx.parentPhone || '';
+      document.getElementById('parentLocation').value = ctx.parentLocation || '';
+      document.getElementById('priorityMedium').checked = true;
+      updateGrades();
     }
 
     requestTypeSelect.addEventListener('change', updateRequestFields);
@@ -1400,8 +1457,9 @@
       e.preventDefault();
 
       // Validation
+      const childInputs = document.querySelectorAll('input[name="children"]');
       const selectedChildren = document.querySelectorAll('input[name="children"]:checked');
-      if (selectedChildren.length === 0) {
+      if (childInputs.length > 0 && selectedChildren.length === 0) {
         showAlert('Please select at least one child', 'error');
         return;
       }
@@ -1416,7 +1474,14 @@
       submitBtn.disabled = true;
       submitBtn.innerHTML = '<div class="spinner"></div><span>Submitting...</span>';
 
-      const children = Array.from(selectedChildren).map(c => c.value).join(', ');
+      const childrenSelected = Array.from(selectedChildren).map(c => ({
+        id: c.dataset.childId,
+        name: c.value,
+        grade: c.dataset.grade,
+        school: c.dataset.school,
+        bus: c.dataset.bus,
+      }));
+      const children = childrenSelected.map(c => c.name).join(', ');
       const requestType = document.getElementById('requestType').value;
       const subject = document.getElementById('subject').value.trim();
       const description = document.getElementById('description').value.trim();
@@ -1424,7 +1489,9 @@
 
       // Build metadata with full request context
       const metadata = {
-        children: children,
+        children: childrenSelected,
+        school: document.getElementById('school').value,
+        grade: document.getElementById('grade').value,
         parentName: document.getElementById('parentName').value.trim(),
         parentEmail: document.getElementById('parentEmail').value.trim(),
         parentPhone: document.getElementById('parentPhone').value.trim(),
@@ -1465,6 +1532,7 @@
 
         showAlert('✓ Request saved successfully!', 'success');
         parentForm.reset();
+        resetParentFormDefaults();
         loadMyRequests();
 
         // Dynamically prepend new request without reload
@@ -1523,6 +1591,8 @@
     });
 
     console.log('👨‍👩‍👧‍👦 Parent Request Form initialized');
+    updateGrades();
+    loadMyRequests();
   </script>
   <script src="{{ asset('js/ajax-forms.js') }}"></script>
 </body>

@@ -10,8 +10,8 @@
     --public-border: rgba(148, 163, 184, 0.26);
     --public-shadow: 0 16px 38px rgba(15, 23, 42, 0.08);
     --public-shadow-hover: 0 20px 46px rgba(29, 78, 216, 0.16);
-    --public-gradient: linear-gradient(135deg, #0f172a 0%, #1e3a8a 45%, #1d4ed8 100%);
-    --public-gradient-hover: linear-gradient(135deg, #020617 0%, #1e40af 42%, #2563eb 100%);
+    --public-gradient: #1d4ed8;
+    --public-gradient-hover: #2563eb;
 }
 
 body {
@@ -98,7 +98,7 @@ body {
 }
 
 .footer {
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
+    background: #1e3a8a !important;
 }
 
 .footer .btn.btn-social {
@@ -213,4 +213,119 @@ input[type="number"]:focus {
     .purchase--btn::after {
         animation: none !important;
     }
+}
+
+/* ===================================================
+   PUBLIC WEBSITE — DARK MODE (navbar & header)
+   =================================================== */
+[data-theme="dark"] {
+    --public-bg: #0b1120;
+    --public-bg-soft: #0f172a;
+    --public-surface: #1e293b;
+    --public-text: #f1f5f9;
+    --public-muted: #94a3b8;
+    --public-border: rgba(148, 163, 184, 0.22);
+    --public-shadow: 0 16px 38px rgba(0, 0, 0, 0.35);
+    --public-gradient: #2563eb;
+}
+
+[data-theme="dark"] body {
+    background:
+        radial-gradient(circle at 12% 10%, rgba(30, 58, 138, 0.18) 0%, transparent 30%),
+        radial-gradient(circle at 88% 90%, rgba(29, 78, 216, 0.14) 0%, transparent 30%),
+        linear-gradient(135deg, var(--public-bg) 0%, var(--public-bg-soft) 100%);
+    color: var(--public-text);
+}
+
+[data-theme="dark"] .navbar.navbar-light {
+    background: rgba(15, 23, 42, 0.98) !important;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35) !important;
+}
+
+[data-theme="dark"] .navbar-light .navbar-nav .nav-link {
+    color: rgba(255, 255, 255, 0.88) !important;
+}
+
+[data-theme="dark"] .navbar-light .navbar-nav .nav-link:hover,
+[data-theme="dark"] .navbar-light .navbar-nav .nav-link.active,
+[data-theme="dark"] .text-primary {
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .navbar .buttons .btn-link,
+[data-theme="dark"] .navbar .buttons a.join-btn,
+[data-theme="dark"] .navbar .buttons a:first-child,
+[data-theme="dark"] .navbar .buttons a:last-child {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: rgba(255, 255, 255, 0.28) !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+}
+
+[data-theme="dark"] .navbar .buttons .btn-link:hover,
+[data-theme="dark"] .navbar .buttons a.join-btn:hover,
+[data-theme="dark"] .navbar .buttons a:first-child:hover,
+[data-theme="dark"] .navbar .buttons a:last-child:hover {
+    background: rgba(255, 255, 255, 0.16) !important;
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.45) !important;
+}
+
+[data-theme="dark"] .order-btn {
+    background: #ffffff !important;
+    border-color: #ffffff !important;
+    color: #0f172a !important;
+}
+
+[data-theme="dark"] .order-btn:hover {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+    border-color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] .dark-mode-toggle {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .dark-mode-toggle:hover {
+    background: rgba(255, 255, 255, 0.18) !important;
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .navbar-toggler {
+    border-color: rgba(255, 255, 255, 0.35) !important;
+}
+
+[data-theme="dark"] .navbar-toggler-icon {
+    filter: invert(1) brightness(1.8);
+}
+
+[data-theme="dark"] .dropdown-menu {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+}
+
+[data-theme="dark"] .dropdown-item {
+    color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] .dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .lang-menu {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+}
+
+[data-theme="dark"] .lang-menu button {
+    color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] .lang-menu button:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #ffffff !important;
 }

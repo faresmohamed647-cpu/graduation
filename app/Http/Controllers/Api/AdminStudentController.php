@@ -106,4 +106,56 @@ class AdminStudentController extends Controller
         $student->delete();
         return response()->json(['success' => true, 'message' => 'Student deleted']);
     }
+
+    public function generateQr(Request $request, Student $student, \App\Services\ActivityLogService $logger)
+    {
+        $data = $request->validate([
+            'zone' => ['required', 'string', 'max:100'],
+            'trip_type' => ['required', 'string', 'in:pickup,dropoff,both'],
+            'note' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $student->load('parent.user');
+
+        $payload = [
+            'studentId' => 'STU' . str_pad((string) $student->id, 3, '0', STR_PAD_LEFT),
+            'student_id' => $student->id,
+            'name' => $student->full_name,
+            'grade' => $student->grade,
+            'parent' => $student->parent?->user?->name,
+            'parent_id' => $student->parent_id,
+            'school' => $student->school_name,
+            'zone' => $data['zone'],
+            'tripType' => $data['trip_type'],
+            'note' => $data['note'] ?? '',
+            'generatedAt' => now()->toIso8601String(),
+        ];
+
+        $qrCode = 'QR-' . $student->id . '-' . strtoupper(substr(md5(json_encode($payload)), 0, 8));
+        $payloadJson = json_encode($payload);
+
+        $student->update([
+            'qr_code' => $qrCode,
+            'qr_payload' => $payload,
+            'qr_generated_at' => now(),
+        ]);
+
+        $logger->log($request, 'student_qr_generated', $student, [
+            'parent_id' => $student->parent_id,
+            'zone' => $data['zone'],
+            'trip_type' => $data['trip_type'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Student QR generated and linked to parent dashboard.',
+            'data' => [
+                'student_id' => $student->id,
+                'qr_code' => $qrCode,
+                'payload' => $payload,
+                'image_url' => 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=' . urlencode($payloadJson),
+                'generated_at' => $student->qr_generated_at?->toIso8601String(),
+            ],
+        ]);
+    }
 }

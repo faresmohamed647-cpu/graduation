@@ -70,10 +70,10 @@ class ParentApiController extends Controller
         $user = $request->user();
         $parent = $user?->parentProfile;
 
-        if (! $parent || ! $parent->active) {
+        if (! $parent || $parent->status !== 'pending_details') {
             return response()->json([
                 'success' => false,
-                'message' => 'Your parent application must be accepted before submitting children details.',
+                'message' => 'Children details can only be submitted while your profile is awaiting onboarding.',
             ], 422);
         }
 
@@ -123,9 +123,15 @@ class ParentApiController extends Controller
             })->values();
         });
 
+        $parent->update([
+            'status' => 'pending_approval',
+            'active' => false,
+            'profile_approved_at' => null,
+        ]);
+
         return response()->json([
             'success' => true,
-            'message' => 'Children details submitted. Admin will assign a driver and bus.',
+            'message' => 'Children details submitted. The administration will review and approve your profile.',
             'data' => $students,
         ], 201);
     }
@@ -366,5 +372,57 @@ class ParentApiController extends Controller
             'success' => true,
             'message' => 'Password updated successfully',
         ]);
+    }
+
+    public function profileStatus(Request $request)
+    {
+        $parent = $request->user()?->parentProfile?->fresh();
+        $status = $parent?->status ?? 'pending';
+        $statusNormalized = strtolower((string) $status);
+        $unlocked = $statusNormalized !== 'rejected'
+            && ((bool) $parent?->profile_approved_at || $statusNormalized === 'approved');
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'status' => $status,
+                'profile_approved_at' => $parent?->profile_approved_at?->toIso8601String(),
+                'is_dashboard_unlocked' => $unlocked,
+            ],
+        ]);
+    }
+
+    public function qrCodes(Request $request)
+    {
+        $parentId = $request->user()?->parentProfile?->id;
+        if (! $parentId) {
+            return response()->json(['success' => true, 'data' => []]);
+        }
+
+        $students = Student::query()
+            ->where('parent_id', $parentId)
+            ->whereNotNull('qr_generated_at')
+            ->orderByDesc('qr_generated_at')
+            ->get()
+            ->map(function (Student $student) {
+                $payload = $student->qr_payload ?? [];
+                $payloadJson = json_encode($payload);
+
+                return [
+                    'id' => $student->id,
+                    'full_name' => $student->full_name,
+                    'grade' => $student->grade,
+                    'school_name' => $student->school_name,
+                    'qr_code' => $student->qr_code,
+                    'payload' => $payload,
+                    'generated_at' => $student->qr_generated_at?->toIso8601String(),
+                    'image_url' => $payloadJson
+                        ? 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=' . urlencode($payloadJson)
+                        : null,
+                ];
+            })
+            ->values();
+
+        return response()->json(['success' => true, 'data' => $students]);
     }
 }

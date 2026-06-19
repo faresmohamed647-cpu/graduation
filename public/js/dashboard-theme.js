@@ -61,10 +61,13 @@
         onDomReady();
     }
 
-    // Use event delegation for click to support dynamic themes / DOM updates
+    // Use event delegation — stop duplicate handlers in legacy dashboard scripts
     document.addEventListener('click', (e) => {
         const btn = e.target.closest('#themeToggle');
         if (!btn) return;
+
+        e.preventDefault();
+        e.stopImmediatePropagation();
 
         const next = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
         localStorage.setItem(STORAGE_KEY, next);

@@ -741,23 +741,34 @@
     <!-- MY REQUESTS -->
     <div class="card" style="margin-bottom: 20px;" id="myRequestsCard">
       <div class="card-header" style="background: linear-gradient(135deg, #0ea5a4, #2563eb);">
-        <h3><i class="fas fa-list-check"></i> My Requests (<span id="myRequestsCount">{{ $applications->count() }}</span>)</h3>
+        <h3><i class="fas fa-list-check"></i> My Requests (<span id="myRequestsCount">{{ $serviceRequests->count() }}</span>)</h3>
         <p>Your previously submitted requests</p>
       </div>
       <div class="form-section" id="myRequestsList">
-        @forelse($applications as $app)
-        <div class="request-item" data-id="{{ $app->id }}" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 10px;">
+        @forelse($serviceRequests as $req)
+        <div class="request-item" data-id="{{ $req->id }}" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 10px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
-            <strong style="color: #1e293b;">{{ $app->subject ?? $app->experience }}</strong>
-            <span style="background: {{ $app->status === 'pending' ? '#fef2f2' : ($app->status === 'accepted' ? '#f0fdf4' : '#f0f9ff') }}; color: {{ $app->status === 'pending' ? '#dc2626' : ($app->status === 'accepted' ? '#16a34a' : '#1e40af') }}; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase;">{{ $app->status }}</span>
+            <strong style="color: #1e293b;">{{ $req->subject }}</strong>
+            @php
+              $statusColors = [
+                'pending' => ['bg' => '#fef2f2', 'color' => '#dc2626'],
+                'in-progress' => ['bg' => '#fffbeb', 'color' => '#d97706'],
+                'resolved' => ['bg' => '#f0fdf4', 'color' => '#16a34a'],
+                'rejected' => ['bg' => '#fee2e2', 'color' => '#dc2626'],
+              ];
+              $style = $statusColors[$req->status] ?? ['bg' => '#f0f9ff', 'color' => '#1e40af'];
+            @endphp
+            <span style="background: {{ $style['bg'] }}; color: {{ $style['color'] }}; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase;">{{ $req->status }}</span>
           </div>
           <div style="color: #64748b; font-size: 13px; margin-top: 6px;">
-            <i class="fas fa-calendar"></i> {{ $app->created_at->format('M d, Y') }}
+            <i class="fas fa-calendar"></i> {{ $req->created_at->format('M d, Y') }}
             <span style="margin: 0 8px;">|</span>
-            <i class="fas fa-envelope"></i> {{ $app->email }}
+            <i class="fas fa-tag"></i> {{ str_replace('_', ' ', $req->request_type) }}
+            <span style="margin: 0 8px;">|</span>
+            <i class="fas fa-flag"></i> {{ ucfirst($req->priority) }}
           </div>
-          @if($app->notes)
-          <div style="color: #475569; font-size: 13px; margin-top: 6px; border-top: 1px dashed #e2e8f0; padding-top: 6px;">{{ Str::limit($app->notes, 120) }}</div>
+          @if($req->description)
+          <div style="color: #475569; font-size: 13px; margin-top: 6px; border-top: 1px dashed #e2e8f0; padding-top: 6px;">{{ Str::limit($req->description, 120) }}</div>
           @endif
         </div>
         @empty
@@ -796,7 +807,7 @@
               id="driverName" 
               class="form-control" 
               placeholder="e.g., Ahmed Mohamed Hassan" 
-              value="{{ $user->name ?? '' }}"
+              value="{{ $driverProfile->full_name ?? $user->name ?? '' }}"
               required
             >
             <div class="helper-text">Your name as it appears in official records</div>
@@ -846,6 +857,7 @@
                 id="driverLicense" 
                 class="form-control" 
                 placeholder="DL-123456" 
+                value="{{ $driverProfile->license_number ?? '' }}"
                 required
               >
             </div>
@@ -859,7 +871,9 @@
                 type="text" 
                 id="employeeId" 
                 class="form-control" 
-                placeholder="EMP-0001" 
+                placeholder="DRV-001" 
+                value="{{ $driverProfile ? 'DRV-' . str_pad((string) $driverProfile->id, 3, '0', STR_PAD_LEFT) : '' }}"
+                readonly
                 required
               >
             </div>
@@ -880,9 +894,14 @@
                 type="text" 
                 id="busNumber" 
                 class="form-control" 
-                placeholder="e.g., Bus #42" 
-                required
+                placeholder="{{ $assignedBus ? '' : 'No bus assigned yet — enter manually if known' }}" 
+                value="{{ $assignedBus?->bus_number ? 'Bus #' . $assignedBus->bus_number : '' }}"
+                @if($assignedBus) readonly @endif
+                {{ $assignedBus ? 'required' : '' }}
               >
+              @unless($assignedBus)
+              <div class="helper-text">No bus is assigned to you yet. You can still submit the request.</div>
+              @endunless
             </div>
 
             <div class="form-group">
@@ -890,14 +909,15 @@
                 <span class="icon"><i class="fas fa-map-marker-alt"></i></span>
                 Route <span class="required">*</span>
               </label>
-              <select id="route" class="form-control" required>
+              <select id="route" class="form-control" {{ ($routes->isNotEmpty() || $assignedRoute) ? 'required' : '' }}>
                 <option value="">Select Route</option>
-                <option value="Route A">Route A</option>
-                <option value="Route B">Route B</option>
-                <option value="Route C">Route C</option>
-                <option value="Route D">Route D</option>
-                <option value="Route E">Route E</option>
-                <option value="Route F">Route F</option>
+                @forelse($routes as $routeOption)
+                <option value="{{ $routeOption->name }}" @selected($assignedRoute && $assignedRoute->id === $routeOption->id)>{{ $routeOption->name }}</option>
+                @empty
+                @if($assignedRoute)
+                <option value="{{ $assignedRoute->name }}" selected>{{ $assignedRoute->name }}</option>
+                @endif
+                @endforelse
               </select>
             </div>
           </div>
@@ -915,6 +935,7 @@
                 placeholder="e.g., 5" 
                 min="0"
                 max="50"
+                value="{{ $driverProfile->years_experience ?? '' }}"
                 required
               >
             </div>
@@ -925,10 +946,14 @@
                 Employment Status <span class="required">*</span>
               </label>
               <select id="employmentStatus" class="form-control" required>
-                <option value="">Select Status</option>
-                <option value="active">Active</option>
-                <option value="probation">Probation</option>
-                <option value="contract">Contract</option>
+                @php
+                  $employment = $employmentStatus ?? 'pending';
+                @endphp
+                <option value="active" @selected($employment === 'active')>Active</option>
+                <option value="pending" @selected($employment === 'pending')>Pending Approval</option>
+                <option value="probation" @selected($employment === 'probation')>Probation</option>
+                <option value="contract" @selected($employment === 'contract')>Contract</option>
+                <option value="inactive" @selected($employment === 'inactive')>Inactive</option>
               </select>
             </div>
           </div>
@@ -1114,12 +1139,17 @@
   </div>
 
   <script>
-    // Server-injected API token for authenticated requests
+    window.__REQUEST_CONTEXT = @json($requestContext);
     window.__API_TOKEN = '{{ $apiToken ?? '' }}';
+    if (window.__API_TOKEN) {
+      localStorage.setItem('safestep_token', window.__API_TOKEN);
+      localStorage.setItem('token', window.__API_TOKEN);
+    }
 
     function requestStatusStyle(status) {
-      if (status === 'accepted') return { bg: '#f0fdf4', color: '#16a34a' };
+      if (status === 'resolved') return { bg: '#f0fdf4', color: '#16a34a' };
       if (status === 'rejected') return { bg: '#fee2e2', color: '#dc2626' };
+      if (status === 'in-progress') return { bg: '#fffbeb', color: '#d97706' };
       if (status === 'pending') return { bg: '#fef2f2', color: '#dc2626' };
       return { bg: '#f0f9ff', color: '#1e40af' };
     }
@@ -1130,28 +1160,31 @@
       }[char]));
     }
 
-    function renderMyRequests(applications) {
+    function renderMyRequests(requests) {
       const list = document.getElementById('myRequestsList');
       const count = document.getElementById('myRequestsCount');
       if (!list) return;
-      if (count) count.textContent = applications.length;
-      if (!applications.length) {
+      if (count) count.textContent = requests.length;
+      if (!requests.length) {
         list.innerHTML = '<div id="noRequestsMsg" style="text-align:center;padding:24px;color:#94a3b8;"><i class="fas fa-inbox" style="font-size:24px;margin-bottom:8px;display:block;"></i>No requests yet</div>';
         return;
       }
-      list.innerHTML = applications.map(app => {
-        const style = requestStatusStyle(app.status);
-        return `<div class="request-item" data-id="${app.id}" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-bottom:10px;">
+      list.innerHTML = requests.map(req => {
+        const style = requestStatusStyle(req.status);
+        const created = req.created_at ? String(req.created_at).slice(0, 10) : '';
+        return `<div class="request-item" data-id="${req.id}" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-bottom:10px;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
-            <strong style="color:#1e293b;">${escapeHtml(app.experience || 'Request')}</strong>
-            <span style="background:${style.bg};color:${style.color};padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;text-transform:uppercase;">${escapeHtml(app.status)}</span>
+            <strong style="color:#1e293b;">${escapeHtml(req.subject || 'Request')}</strong>
+            <span style="background:${style.bg};color:${style.color};padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;text-transform:uppercase;">${escapeHtml(req.status)}</span>
           </div>
           <div style="color:#64748b;font-size:13px;margin-top:6px;">
-            <i class="fas fa-calendar"></i> ${escapeHtml((app.created_at || '').slice(0, 10))}
+            <i class="fas fa-calendar"></i> ${escapeHtml(created)}
             <span style="margin:0 8px;">|</span>
-            <i class="fas fa-envelope"></i> ${escapeHtml(app.email)}
+            <i class="fas fa-tag"></i> ${escapeHtml((req.request_type || '').replace(/_/g, ' '))}
+            <span style="margin:0 8px;">|</span>
+            <i class="fas fa-flag"></i> ${escapeHtml(req.priority || 'medium')}
           </div>
-          ${app.notes ? `<div style="color:#475569;font-size:13px;margin-top:6px;border-top:1px dashed #e2e8f0;padding-top:6px;">${escapeHtml(app.notes).slice(0, 120)}</div>` : ''}
+          ${req.description ? `<div style="color:#475569;font-size:13px;margin-top:6px;border-top:1px dashed #e2e8f0;padding-top:6px;">${escapeHtml(req.description).slice(0, 120)}</div>` : ''}
         </div>`;
       }).join('');
     }
@@ -1227,6 +1260,20 @@
 
     requestTypeSelect.addEventListener('change', updateRequestFields);
 
+    function resetDriverFormDefaults() {
+      const ctx = window.__REQUEST_CONTEXT || {};
+      document.getElementById('driverName').value = ctx.driverName || '';
+      document.getElementById('driverEmail').value = ctx.driverEmail || '';
+      document.getElementById('driverPhone').value = ctx.driverPhone || '';
+      document.getElementById('driverLicense').value = ctx.driverLicense || '';
+      document.getElementById('employeeId').value = ctx.employeeId || '';
+      document.getElementById('busNumber').value = ctx.busNumber || '';
+      document.getElementById('route').value = ctx.route || '';
+      document.getElementById('yearsExperience').value = ctx.yearsExperience ?? '';
+      document.getElementById('employmentStatus').value = ctx.employmentStatus || 'pending';
+      document.getElementById('priorityMedium').checked = true;
+    }
+
     function showAlert(message, type = 'info') {
       const alert = document.createElement('div');
       alert.className = `alert alert-${type} show`;
@@ -1267,8 +1314,12 @@
         driverName: document.getElementById('driverName').value.trim(),
         driverEmail: document.getElementById('driverEmail').value.trim(),
         driverPhone: document.getElementById('driverPhone').value.trim(),
+        driverLicense: document.getElementById('driverLicense').value.trim(),
+        employeeId: document.getElementById('employeeId').value.trim(),
         busNumber: document.getElementById('busNumber').value,
         route: document.getElementById('route').value,
+        yearsExperience: document.getElementById('yearsExperience').value,
+        employmentStatus: document.getElementById('employmentStatus').value,
         leaveStartDate: document.getElementById('leaveStartDate')?.value || null,
         leaveEndDate: document.getElementById('leaveEndDate')?.value || null,
         leaveType: document.getElementById('leaveType')?.value || null,
@@ -1305,6 +1356,7 @@
 
         showAlert('✓ Request saved successfully!', 'success');
         driverForm.reset();
+        resetDriverFormDefaults();
         loadMyRequests();
 
         // Dynamically prepend new request without reload
@@ -1363,6 +1415,7 @@
     });
 
     console.log('🚗 Driver Request Form initialized');
+    loadMyRequests();
   </script>
   <script src="{{ asset('js/ajax-forms.js') }}"></script>
 </body>

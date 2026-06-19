@@ -1,4 +1,4 @@
-<?php
+P<?php
 
 use Illuminate\Database\Migrations\Migration;
 

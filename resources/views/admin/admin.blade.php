@@ -82,6 +82,10 @@
                 <i class="fas fa-id-card"></i>
                 <span>Drivers</span>
             </a>
+            <a href="#" class="nav-link" data-page="driver-access">
+                <i class="fas fa-sliders-h"></i>
+                <span>Driver Access</span>
+            </a>
             <a href="#" class="nav-link" data-page="buses">
                 <i class="fas fa-bus"></i>
                 <span>Buses</span>
@@ -523,6 +527,8 @@
                             <option value="active">Active</option>
                             <option value="inactive">Nonactive</option>
                             <option value="pending">Pending</option>
+                            <option value="pending_details">Awaiting Children Form</option>
+                            <option value="pending_approval">Awaiting Profile Approval</option>
                             <option value="rejected">Rejected</option>
                         </select>
                     </div>
@@ -611,6 +617,71 @@
                             <!-- Populated by JS -->
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Driver Dashboard Access -->
+        <style>
+            @media (max-width: 992px) {
+                #driver-access .card > div[style*="grid-template-columns"] {
+                    grid-template-columns: 1fr !important;
+                }
+                #driver-access #driverAccessList {
+                    max-height: 320px !important;
+                }
+            }
+        </style>
+        <div class="page" id="driver-access">
+            <div class="stats-grid" id="driverAccessStats" style="margin-bottom: 20px;"></div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-sliders-h"></i> Driver Dashboard Access</h3>
+                    <div class="card-actions" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                        <input type="search" id="driverAccessSearch" class="form-control" placeholder="Search drivers..." style="max-width:240px;" oninput="filterDriverAccessList()">
+                        <select id="driverAccessStatusFilter" class="form-control" style="max-width:180px;" onchange="filterDriverAccessList()">
+                            <option value="all">All statuses</option>
+                            <option value="approved">Approved</option>
+                            <option value="active">Active</option>
+                            <option value="pending">Pending</option>
+                            <option value="pending_approval">Awaiting approval</option>
+                            <option value="pending_details">Awaiting details</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="padding: 20px; display: grid; grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); gap: 20px; align-items: start;">
+                    <div>
+                        <div id="driverAccessList" style="display:flex;flex-direction:column;gap:10px;max-height:720px;overflow-y:auto;padding-right:4px;">
+                            <p style="color: var(--text-secondary); margin: 0;">Loading drivers...</p>
+                        </div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:16px;">
+                        <div id="driverAccessProfile" class="card" style="margin:0;padding:20px;background:var(--light-bg);border:1px solid var(--border-color);">
+                            <p style="color: var(--text-secondary); margin: 0;">Select a driver to view full profile and control dashboard access.</p>
+                        </div>
+                        <div class="card" style="margin:0;padding:20px;">
+                            <h4 style="margin:0 0 12px;font-size:16px;font-weight:700;color:var(--text-dark);">
+                                <i class="fas fa-lock-open"></i> Dashboard Sections
+                            </h4>
+                            <div id="driverAccessToggles" style="display: grid; gap: 10px;">
+                                <p style="color: var(--text-secondary); margin: 0;">Select a driver to manage dashboard sections.</p>
+                            </div>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px;">
+                                <button type="button" class="btn-primary" onclick="saveDriverAccess()">
+                                    <i class="fas fa-save"></i> Save Access
+                                </button>
+                                <button type="button" class="btn-secondary" onclick="setAllDriverSections(true)">
+                                    <i class="fas fa-unlock"></i> Open All
+                                </button>
+                                <button type="button" class="btn-secondary" onclick="setAllDriverSections(false)">
+                                    <i class="fas fa-lock"></i> Close All
+                                </button>
+                            </div>
+                        </div>
+                        <div id="driverAccessActions" style="display:none;gap:10px;flex-wrap:wrap;"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2085,10 +2156,9 @@
                         <select id="userRoleFilter" class="form-control">
                             <option value="all">All Roles</option>
                             <option value="admin">Administrator</option>
-                            <option value="manager">Manager</option>
+                            <option value="school_admin">School Admin</option>
                             <option value="driver">Driver</option>
                             <option value="parent">Parent</option>
-                            <option value="staff">Staff</option>
                         </select>
                     </div>
                     <div class="filter-item">
@@ -2107,9 +2177,10 @@
                             <tr>
                                 <th>Name</th>
                                 <th>Email</th>
+                                <th>Phone</th>
                                 <th>Role</th>
-                                <th>Department</th>
-                                <th>Last Login</th>
+                                <th>School</th>
+                                <th>Registered</th>
                                 <th>Status</th>
                                 <th>Actions</th>
                             </tr>
@@ -3254,6 +3325,41 @@
                 <button type="button" onclick="closeApplicationDetailsModal()" class="btn btn-secondary" style="padding:8px 20px; font-size:14px; border-radius:12px; cursor:pointer;">Close / إغلاق</button>
             </div>
 
+        </div>
+    </div>
+
+    <!-- User Details Modal -->
+    <div id="userDetailsModal" class="safestep-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(30, 58, 138, 0.55); backdrop-filter:blur(10px); z-index:9999; align-items:center; justify-content:center; opacity:0; transition:opacity 0.3s ease;">
+        <div class="safestep-modal-content" style="background:var(--card-bg, #ffffff); border:1px solid var(--card-border, rgba(255,255,255,0.06)); border-radius:24px; box-shadow:var(--card-shadow, 0 25px 50px -12px rgba(29,78,216,0.35)); width:90%; max-width:700px; max-height:85vh; overflow-y:auto; position:relative; transform:scale(0.95); transition:transform 0.3s ease; display:flex; flex-direction:column;">
+            <div style="background:linear-gradient(135deg, rgba(37,99,235,0.12) 0%, rgba(29,78,216,0.08) 100%); border-bottom:1px solid var(--card-border, rgba(255,255,255,0.06)); padding:20px 24px; display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="font-size:20px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:10px; margin:0;">
+                    <i class="fas fa-user-circle" style="color:#2563eb;"></i>
+                    <span>User Details / تفاصيل المستخدم</span>
+                </h3>
+                <button type="button" onclick="closeUserDetailsModal()" style="background:transparent; border:none; color:var(--text-secondary); cursor:pointer; font-size:20px;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div style="padding:24px; display:flex; flex-direction:column; gap:20px;">
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:16px; background:rgba(37,99,235,0.04); border-radius:16px; padding:16px; border:1px solid var(--card-border, #e5e7eb);">
+                    <div><label style="display:block;font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px;">Name</label><span id="modalUserName" style="font-weight:700;"></span></div>
+                    <div><label style="display:block;font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px;">Email</label><span id="modalUserEmail" style="word-break:break-all;"></span></div>
+                    <div><label style="display:block;font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px;">Phone</label><span id="modalUserPhone"></span></div>
+                    <div><label style="display:block;font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px;">Role</label><span id="modalUserRole" class="status-badge"></span></div>
+                    <div><label style="display:block;font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px;">School</label><span id="modalUserSchool"></span></div>
+                    <div><label style="display:block;font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px;">Status</label><span id="modalUserStatus" class="status-badge"></span></div>
+                    <div><label style="display:block;font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px;">Registered</label><span id="modalUserRegistered"></span></div>
+                    <div><label style="display:block;font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px;">Last Activity</label><span id="modalUserLastLogin"></span></div>
+                    <div><label style="display:block;font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px;">Password (plain)</label><span id="modalUserPassword" style="font-family:monospace;"></span></div>
+                </div>
+                <div>
+                    <h4 style="font-size:14px; font-weight:700; color:#2563eb; text-transform:uppercase; margin-bottom:8px;"><i class="fas fa-id-card"></i> Profile Details / تفاصيل إضافية</h4>
+                    <div id="modalUserDetailsGrid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px;"></div>
+                </div>
+            </div>
+            <div style="border-top:1px solid var(--card-border, #e5e7eb); padding:16px 24px; display:flex; justify-content:flex-end;">
+                <button type="button" onclick="closeUserDetailsModal()" class="btn btn-secondary">Close / إغلاق</button>
+            </div>
         </div>
     </div>
 </body>

@@ -106,7 +106,8 @@ class ApplicationRuntimeFlowTest extends TestCase
 
         $this->assertDatabaseHas('parents', [
             'user_id' => $user->id,
-            'active' => true,
+            'active' => false,
+            'status' => 'pending_details',
             'phone' => '0123456789',
             'address' => 'Test Address',
             'state' => 'CA',
@@ -136,6 +137,7 @@ class ApplicationRuntimeFlowTest extends TestCase
             'phone' => '01012345678',
             'address' => 'Cairo',
             'active' => false,
+            'status' => 'pending',
             'student_count' => 1,
         ]);
 
@@ -156,8 +158,8 @@ class ApplicationRuntimeFlowTest extends TestCase
             ->assertOk()
             ->assertSee('Your application is under review', false);
 
-        // 2. Approved but 0 children -> Onboarding
-        $profile->update(['active' => true]);
+        // 2. Application accepted -> Onboarding form
+        $profile->update(['active' => false, 'status' => 'pending_details']);
         $app->update(['status' => 'accepted']);
         $this->actingAs($parentUser)
             ->get('/parent')
@@ -165,20 +167,37 @@ class ApplicationRuntimeFlowTest extends TestCase
             ->assertSee('Register Children Details', false)
             ->assertDontSee('Route and Bus assignment pending');
 
-        // 3. Approved + Children registered but not assigned -> Waiting
+        // 3. Children submitted, waiting admin approval
         \App\Models\Student::create([
             'parent_id' => $profile->id,
             'full_name' => 'Child One',
             'active' => true,
             'assignment_status' => 'pending',
         ]);
+        $profile->update(['status' => 'pending_approval']);
+        $profile->refresh();
+        $this->actingAs($parentUser)
+            ->get('/parent')
+            ->assertOk()
+            ->assertSee('Children Details Submitted', false);
+
+        // 4. Admin approves parent profile -> dashboard unlocks
+        Sanctum::actingAs(User::factory()->create(['role' => 'admin']));
+        $this->postJson("/api/admin/parents/{$profile->id}/approve")->assertOk();
+        $this->assertDatabaseHas('parents', [
+            'id' => $profile->id,
+            'status' => 'approved',
+            'active' => true,
+        ]);
+
         $this->actingAs($parentUser)
             ->get('/parent')
             ->assertOk()
             ->assertSee('Route and Bus assignment pending', false)
-            ->assertSee('Child One', false);
+            ->assertDontSee('Children Details Submitted', false)
+            ->assertDontSee('Register Children Details', false);
 
-        // 4. Approved + Assigned -> Active
+        // 5. Approved + Assigned -> Active
         $bus = \App\Models\Bus::create([
             'bus_number' => 'Bus 99',
             'plate_number' => 'ABC 123',
@@ -190,6 +209,48 @@ class ApplicationRuntimeFlowTest extends TestCase
             ->get('/parent')
             ->assertOk()
             ->assertSee('Bus Status', false);
+    }
+
+    public function test_parent_with_children_and_drifted_status_shows_pending_approval_not_form(): void
+    {
+        $parentUser = User::factory()->create(['role' => 'parent']);
+        $profile = \App\Models\ParentProfile::create([
+            'user_id' => $parentUser->id,
+            'phone' => '01012345678',
+            'address' => 'Cairo',
+            'active' => false,
+            'status' => 'pending',
+            'student_count' => 1,
+        ]);
+
+        Application::create([
+            'user_id' => $parentUser->id,
+            'full_name' => 'Parent User',
+            'email' => $parentUser->email,
+            'phone' => '01012345678',
+            'address' => 'Cairo',
+            'role' => 'parent',
+            'experience' => 'Parent registration',
+            'status' => 'accepted',
+        ]);
+
+        \App\Models\Student::create([
+            'parent_id' => $profile->id,
+            'full_name' => 'Child One',
+            'active' => true,
+            'assignment_status' => 'pending',
+        ]);
+
+        $this->actingAs($parentUser)
+            ->get('/parent')
+            ->assertOk()
+            ->assertSee('Children Details Submitted', false)
+            ->assertDontSee('Register Children Details', false);
+
+        $this->assertDatabaseHas('parents', [
+            'id' => $profile->id,
+            'status' => 'pending_approval',
+        ]);
     }
 
     public function test_driver_dashboard_shows_waiting_states_correctly(): void
@@ -253,7 +314,8 @@ class ApplicationRuntimeFlowTest extends TestCase
             'user_id' => $parentUser->id,
             'phone' => '01012345678',
             'address' => 'Cairo',
-            'active' => true,
+            'active' => false,
+            'status' => 'pending_details',
             'student_count' => 1,
             'school_name' => 'Test School',
         ]);
@@ -282,6 +344,11 @@ class ApplicationRuntimeFlowTest extends TestCase
         $this->assertDatabaseHas('students', [
             'parent_id' => $profile->id,
             'full_name' => 'Child Name One',
+        ]);
+        $this->assertDatabaseHas('parents', [
+            'id' => $profile->id,
+            'status' => 'pending_approval',
+            'active' => false,
         ]);
     }
 

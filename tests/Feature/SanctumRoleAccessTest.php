@@ -92,10 +92,12 @@ class SanctumRoleAccessTest extends TestCase
             'license_number' => 'TEST-DRIVER',
             'years_experience' => 3,
             'active' => true,
+            'status' => 'approved',
         ]);
 
         Sanctum::actingAs($driverUser);
         $this->getJson('/api/driver/dashboard')->assertOk();
+        $this->getJson('/api/driver/students')->assertOk();
 
         $parentUser = $this->userWithRole('parent');
         ParentProfile::create([
@@ -103,9 +105,11 @@ class SanctumRoleAccessTest extends TestCase
             'phone' => '01100000000',
             'address' => 'Test address',
             'active' => true,
+            'status' => 'approved',
         ]);
 
         Sanctum::actingAs($parentUser);
+        $this->getJson('/api/parent/dashboard')->assertOk();
         $this->getJson('/api/parent/children')->assertOk();
     }
 
